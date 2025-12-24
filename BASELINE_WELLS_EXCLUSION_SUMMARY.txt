@@ -1,0 +1,119 @@
+================================================================================
+BASELINE MEASUREMENTS - WELL EXCLUSION SUMMARY
+================================================================================
+
+Generated: 2025-12-15
+Analysis of baseline measurements from Exp3 and Exp4 datasets
+
+================================================================================
+EXPERIMENT 3 (Exp3_160320) - SUMMARY
+================================================================================
+
+Total Wells Processed: 382
+  - VALID Wells:     47  (12.3%)
+  - REJECTED Wells: 335 (87.7%)
+
+Source Files:
+  - Valid:    D:/Mohammad_paper_Analysis/Exp3_160320/well_averages_VALID.xlsx
+  - Rejected: D:/Mohammad_paper_Analysis/Exp3_160320/well_averages_REJECTED.xlsx
+
+--------------------------------------------------------------------------------
+REJECTION REASON ANALYSIS
+--------------------------------------------------------------------------------
+
+ALL 335 REJECTED WELLS HAVE IDENTICAL SENSOR ERROR:
+  - SNR = -1.00 (error code, threshold = 0.7)
+  - O2  = -100.0% air (error code, valid range = 0-100%)
+  - Measurements = 4 (insufficient for analysis)
+
+Root Cause: Sensor failure or well configuration issues
+Pattern: 'SNR=-1.00<0.7; O2=-100.0<0: 4'
+
+--------------------------------------------------------------------------------
+VALID WELLS (47 total)
+--------------------------------------------------------------------------------
+
+Quality Criteria Met:
+  - SNR >= 0.7
+  - O2 in range [0, 100]% air
+  - Sufficient measurements
+
+Valid Well Statistics:
+  O2 (% air):  Mean = 40.3, 
+               Range = [14.3, 69.8]
+  SNR:         Mean = 5.61, 
+               Range = [1.87, 12.36]
+  Measurements: Mean = 4.0, 
+                Range = [2, 4]
+
+Valid Well IDs:
+  Row A: A11, A5, A7
+  Row B: B10
+  Row C: C12
+  Row D: D3
+  Row I: I10, I11, I14, I15, I16, I18, I22, I23, I4, I7, I8
+  Row J: J10, J11, J17, J18, J19, J21, J22, J3, J4, J5, J6, J7, J8
+  Row K: K1, K12, K16, K2, K23, K24, K3, K4, K6
+  Row L: L10, L11, L14, L19, L22, L4, L5, L6
+
+================================================================================
+EXPERIMENT 4 (Exp4_080719) - SUMMARY
+================================================================================
+
+Total Baseline Measurements: 175
+
+Note: Exp4 baseline file contains measurements from multiple timepoints
+      per well. All measurements passed initial quality filters.
+
+Unique Wells: 175
+Measurements per Well: 1.0 average
+
+Source File:
+  D:/Mohammad_paper_Analysis/Exp4_080719/Exp4_080719_baseline_measurements.xlsx
+
+Measurement Statistics:
+  O2 (% air):   Mean = 24.1, 
+                Range = [6.0, 75.3]
+  SNR:          Mean = 10.44, 
+                Range = [2.82, 16.91]
+  Measurements: Mean = 83.5, 
+                Range = [5, 89]
+
+================================================================================
+HEART RATE ANALYSIS QUALITY (from V2 processing)
+================================================================================
+
+Exp3 Heart Rate Analysis:
+  Data Quality: {'INSUFFICIENT_DATA': 47}
+  Reason: Insufficient measurements (4) and low sampling rate (1 Hz)
+  Conclusion: NOT SUITABLE for heart rate analysis
+
+Exp4 Heart Rate Analysis:
+  Data Quality: {'VALID': 175}
+  Valid measurements: 175/175
+  Sampling rate: 10 Hz
+  Heart Rate: 70.98 ± 16.20 BPM
+  Range: [36.59, 118.42] BPM
+  Conclusion: SUITABLE for heart rate analysis
+
+================================================================================
+KEY FINDINGS
+================================================================================
+
+1. Exp3 Baseline:
+   - 335/382 wells (87.7%) rejected due to sensor errors
+   - Error pattern: SNR=-1, O2=-100 (instrument malfunction)
+   - 47 valid wells have good O2/SNR but insufficient data for heart rate
+
+2. Exp4 Baseline:
+   - All 175 measurements passed initial quality filters
+   - Higher sampling rate (10 Hz) suitable for heart rate analysis
+   - More measurements per well (~82 vs 4)
+
+3. Heart Rate Analysis Suitability:
+   - Exp3: NOT SUITABLE (insufficient measurements)
+   - Exp4: SUITABLE (adequate sampling and measurements)
+
+================================================================================
+END OF REPORT
+================================================================================
