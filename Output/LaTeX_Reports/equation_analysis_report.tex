@@ -1,0 +1,324 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{float}
+
+\geometry{margin=1in}
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
+
+\title{Equation Selection Analysis\\for Cardiac Drug Response Modeling}
+\author{Cardiac RODEO Project}
+\date{December 31, 2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This report presents a comprehensive analysis of 12 candidate equations
+for modeling cardiac drug response data. Each equation was fit to both Contractility and O$_2$ consumption
+measurements across 25 drugs. The equations are evaluated based
+on their coefficient of determination ($R^2$), and parameter interpretability.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+% =============================================================================
+\section{Executive Summary}
+% =============================================================================
+
+\subsection{Top Performing Equations}
+
+\begin{table}[H]
+\centering
+\caption{Top 5 Equations by Mean $R^2$}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Rank} & \textbf{Equation} & \textbf{Contractility} & \textbf{O$_2$} \\
+\midrule
+1 & Dual Exponential (Eq1) & 0.4971 & 0.5656 \\
+2 & Modified Hill (Hormesis) (Eq4) & 0.4509 & 0.5440 \\
+3 & Hormesis V0 (Legacy) (Eq12) & 0.4265 & 0.4758 \\
+4 & Biphasic Response (Eq7) & 0.3993 & 0.4836 \\
+5 & PKPD Elimination (Eq11) & 0.1809 & 0.5026 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/r2_comparison_scatter.pdf}
+\caption{Scatter plot comparing mean $R^2$ values. Points above the diagonal indicate better O$_2$ fit.}
+\label{fig:scatter}
+\end{figure}
+
+\newpage
+
+% =============================================================================
+\section{Candidate Equations}
+% =============================================================================
+
+
+\subsection{Dual Exponential (Eq1)}
+
+\textbf{Description:} Separate exponential terms for beneficial and toxic effects.
+
+\textbf{Mathematical Form:}
+\begin{equation}
+R(C,t) = R_0 + A_{\mathrm{benefit}}\left(1-e^{-k_b C^{n_b}}\right)(1-e^{-t/\tau_b})^{m_b}
+                 - A_{\mathrm{tox}}\left(1-e^{-k_t C^{n_t}}\right)(1-e^{-t/\tau_t})^{m_t}
+\end{equation}
+
+\textbf{Parameters:} $R_0$, $A_{\mathrm{benefit}}$, $A_{\mathrm{tox}}$, $k_b$, $k_t$, $\tau_b$, $\tau_t$, $n_b$, $n_t$, $m_b$, $m_t$
+
+
+\subsection{Bivariate Gaussian (Eq2)}
+
+\textbf{Description:} Sum of two bivariate Gaussian surfaces for localized effects.
+
+\textbf{Mathematical Form:}
+\begin{equation}
+R(C,t) = R_0 + A_1 G_1(C,t) + A_2 G_2(C,t)
+\end{equation}
+
+where $G_i(C,t) = \exp\left(-\frac{1}{2(1-\rho_i^2)}\left[\frac{(C-\mu_{C,i})^2}{\sigma_{C,i}^2} + \frac{(t-\mu_{t,i})^2}{\sigma_{t,i}^2} - \frac{2\rho_i(C-\mu_{C,i})(t-\mu_{t,i})}{\sigma_{C,i}\sigma_{t,i}}\right]\right)$
+
+\textbf{Parameters:} $R_0$, $A_1$, $A_2$, $\mu_{C,1}$, $\mu_{T,1}$, $\sigma_{C,1}$, $\sigma_{T,1}$, $\rho_1$, $\mu_{C,2}$, $\mu_{T,2}$, $\sigma_{C,2}$, $\sigma_{T,2}$, $\rho_2$
+
+
+\subsection{Gaussian-Hill Hybrid (Eq3)}
+
+\textbf{Description:} Combines Hill concentration dependence with Gaussian time profile.
+
+\textbf{Mathematical Form:}
+\begin{equation}
+R(C,t) = R_0 + E_{\mathrm{max}} H(C) G(t) - E_{\mathrm{tox}} T(C) f(t)
+\end{equation}
+
+where:
+\begin{itemize}
+\item $H(C) = \exp\left(-\frac{(C-\mu_C)^2}{2\sigma_C^2}\right)$ (Gaussian concentration profile)
+\item $G(t) = \frac{(t/\tau)^m}{1+(t/\tau)^m}$ (Hill-type time dependence)
+\item $T(C) = \frac{C^n}{TC_{50}^n + C^n}$ (toxic Hill function)
+\item $f(t) = 1 - e^{-t/\tau_{\mathrm{tox}}}$ (time onset of toxicity)
+\end{itemize}
+
+\textbf{Parameters:} $R_0$, $E_{\mathrm{max}}$, $\mu_c$, $\sigma_c$, $\tau$, $m$, $E_{\mathrm{tox}}$, $n$, $TC_{50}$, $\tau_{\mathrm{tox}}$
+
+
+\subsection{Modified Hill (Hormesis) (Eq4)}
+
+\textbf{Description:} Modified Hill equation with hormesis (low-dose benefit, high-dose toxicity).
+
+\textbf{Mathematical Form:}
+\begin{equation}
+R(C,t) = R_0 + E_{\mathrm{benefit}} H_b(C) f_b(t) - E_{\mathrm{tox}} H_t(C) f_t(t)
+\end{equation}
+
+where:
+\begin{itemize}
+\item $H_b(C) = \frac{C^{n_b}}{EC_{50,b}^{n_b} + C^{n_b}}$ (benefit Hill function)
+\item $H_t(C) = \frac{C^{n_t}}{TC_{50}^{n_t} + C^{n_t}}$ (toxicity Hill function)
+\item $f_b(t) = 1 - e^{-t/\tau_b}$, $f_t(t) = 1 - e^{-t/\tau_t}$ (time onset functions)
+\end{itemize}
+
+\textbf{Parameters:} $R_0$, $E_{\mathrm{benefit}}$, $E_{\mathrm{tox}}$, $EC50_b$, $TC_{50}$, $n_b$, $n_t$, $\tau_b$, $\tau_t$
+
+
+\subsection{Gaussian Ridge (Eq5)}
+
+\textbf{Description:} Simple 2D Gaussian ridge centered at optimal concentration-time.
+
+\textbf{Mathematical Form:}
+\begin{equation}
+R(C,t) = R_0 + A \exp\left(-\frac{(C-\mu_C)^2}{2\sigma_C^2} - \frac{(t-\mu_t)^2}{2\sigma_t^2}\right)
+\end{equation}
+
+\textbf{Parameters:} $R_0$, $A$, $B$, $\mu_c$, $\sigma_c$, $\mu_{\mathrm{tox}}$, $\sigma_{\mathrm{tox}}$, $\kappa$, $\tau$, $m$, $\lambda$
+
+
+\subsection{Adaptive Response (Eq6)}
+
+\textbf{Description:} Models initial effect with adaptive tolerance over time.
+
+\textbf{Mathematical Form:}
+\begin{equation}
+R(C,t) = R_0 + E_{\mathrm{max}} \frac{C^n}{EC_{50}^n + C^n} \cdot e^{-t/\tau_{\mathrm{adapt}}} (1-e^{-t/\tau_{\mathrm{onset}}})
+\end{equation}
+
+\textbf{Parameters:} $R_0$, $E_{\mathrm{max}}$, $EC_{50}$, $n$, $\tau_{\mathrm{onset}}$, $\tau_{\mathrm{adapt}}$
+
+
+\subsection{Biphasic Response (Eq7)}
+
+\textbf{Description:} Biphasic model with low-dose stimulation and high-dose inhibition.
+
+\textbf{Mathematical Form:}
+\begin{equation}
+R(C,t) = R_0 + E_{\mathrm{stim}} H_1(C) f_1(t) - E_{\mathrm{inhib}} H_2(C) f_2(t)
+\end{equation}
+
+where:
+\begin{itemize}
+\item $H_1(C) = \frac{C^{n_1}}{EC_{50,\mathrm{stim}}^{n_1} + C^{n_1}}$ (stimulation Hill function)
+\item $H_2(C) = \frac{C^{n_2}}{IC_{50}^{n_2} + C^{n_2}}$ (inhibition Hill function)
+\item $f_1(t) = 1 - e^{-t/\tau_{\mathrm{stim}}}$ (stimulation time onset)
+\item $f_2(t) = 1 - e^{-t/\tau_{\mathrm{inhib}}}$ (inhibition time onset)
+\end{itemize}
+
+\textbf{Parameters:} $R_0$, $E_{\mathrm{stim}}$, $E_{\mathrm{inhib}}$, $EC50_{\mathrm{stim}}$, $IC_{50}$, $n_1$, $n_2$, $\tau_{\mathrm{stim}}$, $\tau_{\mathrm{inhib}}$
+
+
+\subsection{Cumulative Exposure (Eq8)}
+
+\textbf{Description:} AUC-dependent toxicity based on cumulative drug exposure.
+
+\textbf{Mathematical Form:}
+\begin{equation}
+R(C_0,t) = R_0 - E_{\mathrm{tox}}\left(1-e^{-\alpha \cdot \mathrm{AUC}(t)/TC_{50}}\right)
+\end{equation}
+
+where $\mathrm{AUC}(t) = \frac{C_0}{k_{\mathrm{elim}}}(1-e^{-k_{\mathrm{elim}} t})$ is the area under the concentration-time curve.
+
+\textbf{Parameters:} $R_0$, $E_{\mathrm{tox}}$, $\alpha$, $TC_{50}$, $k_{\mathrm{elim}}$
+
+
+\subsection{Recovery Model (Eq9)}
+
+\textbf{Description:} Reversible damage with exponential recovery kinetics.
+
+\textbf{Mathematical Form:}
+\begin{equation}
+R(C,t) = R_0 - E_{\mathrm{damage}}(1-e^{-k_{\mathrm{damage}} C t}) \cdot e^{-k_{\mathrm{recovery}} t}
+\end{equation}
+
+\textbf{Parameters:} $R_0$, $E_{\mathrm{damage}}$, $k_{\mathrm{damage}}$, $k_{\mathrm{recovery}}$
+
+
+\subsection{Modified Hill (Simple) (Eq10)}
+
+\textbf{Description:} Simplified Hill model with combined concentration-time effect.
+
+\textbf{Mathematical Form:}
+\begin{equation}
+R(C,t) = R_0 + E_{\mathrm{max}}\left(1 - e^{-\kappa C^n (t/\tau)^m}\right)
+\end{equation}
+
+\textbf{Parameters:} $R_0$, $E_{\mathrm{max}}$, $\kappa$, $\tau$, $n$, $m$
+
+
+\subsection{PKPD Elimination (Eq11)}
+
+\textbf{Description:} PK-PD model with first-order drug elimination kinetics.
+
+\textbf{Mathematical Form:}
+\begin{equation}
+R(C_0,t) = R_0 + E_{\mathrm{max}}\left(1 - e^{-\kappa (C_0 e^{-k_{\mathrm{elim}} t})^n (t/\tau)^m}\right)
+\end{equation}
+
+where $C(t) = C_0 e^{-k_{\mathrm{elim}} t}$ is the drug concentration at time $t$ following first-order elimination.
+
+\textbf{Parameters:} $R_0$, $E_{\mathrm{max}}$, $\kappa$, $n$, $m$, $\tau$, $k_{\mathrm{elim}}$
+
+
+\subsection{Hormesis V0 (Legacy) (Eq12)}
+
+\textbf{Description:} Legacy hormesis model (similar to modified Hill hormesis).
+
+\textbf{Mathematical Form:}
+\begin{equation}
+R(C,t) = R_0 + E_{\mathrm{benefit}} H_b(C) f_b(t) - E_{\mathrm{tox}} H_t(C) f_t(t)
+\end{equation}
+
+where:
+\begin{itemize}
+\item $H_b(C) = \frac{(C/EC_{50,b})^{n_b}}{1 + (C/EC_{50,b})^{n_b}}$ (benefit Hill function)
+\item $H_t(C) = \frac{(C/TC_{50})^{n_t}}{1 + (C/TC_{50})^{n_t}}$ (toxicity Hill function)
+\item $f_b(t) = 1 - e^{-t/\tau_b}$, $f_t(t) = 1 - e^{-t/\tau_t}$ (time onset functions)
+\end{itemize}
+
+\textbf{Parameters:} $R_0$, $E_{\mathrm{benefit}}$, $E_{\mathrm{tox}}$, $EC50_b$, $TC_{50}$, $n_b$, $n_t$, $\tau_b$, $\tau_t$
+
+
+\newpage
+
+% =============================================================================
+\section{Complete Results}
+% =============================================================================
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.5\textwidth]{figures/r2_heatmap.pdf}
+\caption{Heatmap of mean $R^2$ values. Green = good fit, Red = poor fit.}
+\label{fig:heatmap}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/r2_distributions.pdf}
+\caption{Distribution of $R^2$ values across drugs.}
+\label{fig:distributions}
+\end{figure}
+
+\subsection{Full Statistics Table}
+
+\begin{longtable}{lcccc}
+\caption{Complete $R^2$ Results by Equation} \\
+\toprule
+\textbf{Equation} & \textbf{Cont. Mean} & \textbf{Cont. Std} & \textbf{O$_2$ Mean} & \textbf{O$_2$ Std} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Equation} & \textbf{Cont. Mean} & \textbf{Cont. Std} & \textbf{O$_2$ Mean} & \textbf{O$_2$ Std} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Dual Exponential (Eq1) & 0.4971 & 0.2120 & 0.5656 & 0.2297 \\
+Modified Hill (Hormesis) (Eq4) & 0.4509 & 0.2264 & 0.5440 & 0.2273 \\
+Hormesis V0 (Legacy) (Eq12) & 0.4265 & 0.2184 & 0.4758 & 0.2017 \\
+Biphasic Response (Eq7) & 0.3993 & 0.2207 & 0.4836 & 0.1918 \\
+PKPD Elimination (Eq11) & 0.1809 & 0.2155 & 0.5026 & 0.2538 \\
+Modified Hill (Simple) (Eq10) & 0.1541 & 0.2085 & 0.4716 & 0.2808 \\
+Adaptive Response (Eq6) & 0.1638 & 0.1922 & 0.3631 & 0.1916 \\
+Gaussian Ridge (Eq5) & 0.4462 & 0.2394 & -0.1494 & 1.2168 \\
+Bivariate Gaussian (Eq2) & 0.3625 & 0.3081 & -0.2239 & 1.2270 \\
+Gaussian-Hill Hybrid (Eq3) & 0.3188 & 0.2822 & -0.2709 & 1.2355 \\
+Recovery Model (Eq9) & 0.0854 & 0.1426 & -0.6276 & 1.9000 \\
+Cumulative Exposure (Eq8) & 0.0897 & 0.1450 & -0.6666 & 1.8863 \\
+
+\end{longtable}
+
+\newpage
+
+% =============================================================================
+\section{Conclusions}
+% =============================================================================
+
+Based on the analysis of 12 equations:
+
+\begin{enumerate}
+    \item The \textbf{Dual Exponential (Eq1)} equation achieved the highest overall performance with mean $R^2$ values of 0.4971 (Contractility) and 0.5656 (O$_2$).
+    \item Equations with separate benefit and toxicity components generally performed well.
+    \item The PK-PD elimination model provides interpretable pharmacokinetic parameters.
+\end{enumerate}
+
+\subsection{Recommendations}
+
+For cardiotoxicity prediction, we recommend:
+\begin{itemize}
+    \item \textbf{Dual Exponential (Eq1)}: Mean $R^2$ = 0.5313
+    \item \textbf{Modified Hill (Hormesis) (Eq4)}: Mean $R^2$ = 0.4975
+    \item \textbf{Hormesis V0 (Legacy) (Eq12)}: Mean $R^2$ = 0.4512
+
+\end{itemize}
+
+\end{document}

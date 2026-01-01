@@ -1,0 +1,7 @@
+Setting,Model,AUC,Accuracy
+Paper (DICTrank CV),ADMET-AI,0.72,-
+Paper (DICTrank CV),SwissADME,0.67,-
+DICTrank on 25 drugs,ADMET-AI,0.42000000000000004,0.64
+DICTrank on 25 drugs,SwissADME,0.6,0.6
+LOOCV (25 drugs),ADMET-AI,0.51,0.6
+LOOCV (25 drugs),SwissADME,0.53,0.72

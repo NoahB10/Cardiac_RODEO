@@ -1,0 +1,15 @@
+Feature,Importance
+R0_Contractility,0.26979893
+k_elim_Contractility,0.10497944
+tau_Contractility,0.10358732
+m_Contractility,0.099337675
+R0_O2,0.09483658
+n_O2,0.07446597
+kappa_Contractility,0.050018724
+kappa_O2,0.04784835
+Emax_O2,0.046190493
+m_O2,0.041327406
+n_Contractility,0.03421618
+Emax_Contractility,0.021542443
+k_elim_O2,0.011850488
+tau_O2,0.0

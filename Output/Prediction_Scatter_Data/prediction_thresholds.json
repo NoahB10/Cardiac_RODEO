@@ -1,0 +1,9 @@
+{
+  "Arrhythmia_threshold_pct": 25.0,
+  "Heart_Damage_threshold_pct": 100.0,
+  "Concern_thresholds_pct": {
+    "No Concern": 15.0,
+    "Less Concern": 25.0,
+    "Most Concern": 40.0
+  }
+}

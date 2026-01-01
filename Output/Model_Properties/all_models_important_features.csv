@@ -1,0 +1,67 @@
+Model,Feature,Importance
+Arrhythmia,R0_Contractility,0.15061204135417938
+Arrhythmia,kappa_t_O2,0.10583696514368057
+Arrhythmia,m_b_O2,0.08213511109352112
+Arrhythmia,m_t_O2,0.07875335961580276
+Arrhythmia,tau_b_Contractility,0.06494198739528656
+Arrhythmia,n_b_Contractility,0.06442923843860626
+Arrhythmia,E_benefit_Contractility,0.05831471458077431
+Arrhythmia,n_b_O2,0.05465653911232948
+Arrhythmia,n_t_Contractility,0.04582971706986427
+Arrhythmia,R0_O2,0.0412592738866806
+Arrhythmia,kappa_b_Contractility,0.040706612169742584
+Arrhythmia,tau_b_O2,0.03713411092758179
+Arrhythmia,kappa_b_O2,0.03667813912034035
+Arrhythmia,E_tox_Contractility,0.03607480600476265
+Arrhythmia,kappa_t_Contractility,0.0335732027888298
+Arrhythmia,m_t_Contractility,0.032974231988191605
+Arrhythmia,E_benefit_O2,0.025097662582993507
+Arrhythmia,m_b_Contractility,0.008944551460444927
+Arrhythmia,n_t_O2,0.0020478281658142805
+Arrhythmia,tau_t_Contractility,0.0
+Arrhythmia,E_tox_O2,0.0
+Arrhythmia,tau_t_O2,0.0
+Heart Damage,E_tox_Contractility,0.0025000000000000022
+Heart Damage,m_t_O2,0.001150000000000001
+Heart Damage,E_benefit_Contractility,0.0
+Heart Damage,kappa_b_Contractility,0.0
+Heart Damage,kappa_t_Contractility,0.0
+Heart Damage,R0_Contractility,0.0
+Heart Damage,tau_b_Contractility,0.0
+Heart Damage,tau_t_Contractility,0.0
+Heart Damage,n_t_Contractility,0.0
+Heart Damage,n_b_Contractility,0.0
+Heart Damage,m_t_Contractility,0.0
+Heart Damage,R0_O2,0.0
+Heart Damage,E_benefit_O2,0.0
+Heart Damage,m_b_Contractility,0.0
+Heart Damage,E_tox_O2,0.0
+Heart Damage,kappa_b_O2,0.0
+Heart Damage,tau_b_O2,0.0
+Heart Damage,kappa_t_O2,0.0
+Heart Damage,tau_t_O2,0.0
+Heart Damage,n_b_O2,0.0
+Heart Damage,n_t_O2,0.0
+Heart Damage,m_b_O2,0.0
+Concern,E_tox_O2,0.11773825446249281
+Concern,tau_t_O2,0.08474664520480582
+Concern,tau_b_O2,0.06821121512560784
+Concern,kappa_b_O2,0.0563332932938561
+Concern,n_b_O2,0.05523909321254872
+Concern,E_benefit_O2,0.05499346084726144
+Concern,n_t_Contractility,0.050809189655609294
+Concern,kappa_t_O2,0.04995008260007925
+Concern,tau_b_Contractility,0.047087458243309045
+Concern,kappa_t_Contractility,0.04678048136057187
+Concern,E_tox_Contractility,0.045693028269049384
+Concern,m_t_O2,0.04420909122099569
+Concern,kappa_b_Contractility,0.04043439239072404
+Concern,R0_Contractility,0.036229857544408064
+Concern,E_benefit_Contractility,0.031699183499824
+Concern,m_b_Contractility,0.029648587503707656
+Concern,n_b_Contractility,0.027552879808514456
+Concern,n_t_O2,0.026888360704982465
+Concern,m_b_O2,0.02458171674353177
+Concern,tau_t_Contractility,0.023919030239647976
+Concern,m_t_Contractility,0.021931477964951242
+Concern,R0_O2,0.015323220103521195

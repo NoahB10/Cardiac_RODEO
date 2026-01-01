@@ -1,0 +1,6 @@
+,precision,recall,f1-score,support
+No Damage,0.0,0.0,0.0,5.0
+Damage,0.75,0.75,0.75,20.0
+accuracy,0.6,0.6,0.6,0.6
+macro avg,0.375,0.375,0.375,25.0
+weighted avg,0.6,0.6,0.6,25.0
