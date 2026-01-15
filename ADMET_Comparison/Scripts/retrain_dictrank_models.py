@@ -39,17 +39,23 @@ OUTPUT_DIR = PROJECT_ROOT / "Output" / "ADMET_Comparison"
 MODEL_DIR = ADMET_COMPARE_DIR / "Models" / "dictrank_retrain"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
-SMILES_PATH = OUTPUT_DIR / "cardiac_rodeo_drugs_smiles.csv"
+
+CLEANED_DATA_DIR = PROJECT_ROOT / "Cleaned_Data"
+SMILES_PATH = CLEANED_DATA_DIR / "drug_smiles.csv"
 if not SMILES_PATH.exists():
-    fallback = DATA_DIR / "cardiac_rodeo_drugs_smiles.csv"
+    fallback = OUTPUT_DIR / "cardiac_rodeo_drugs_smiles.csv"
     if fallback.exists():
         SMILES_PATH = fallback
     else:
-        raise FileNotFoundError(
-            "Missing cardiac_rodeo_drugs_smiles.csv. "
-            f"Expected at {OUTPUT_DIR / 'cardiac_rodeo_drugs_smiles.csv'} "
-            f"(or {fallback})."
-        )
+        fallback = DATA_DIR / "cardiac_rodeo_drugs_smiles.csv"
+        if fallback.exists():
+            SMILES_PATH = fallback
+        else:
+            raise FileNotFoundError(
+                "Missing drug_smiles.csv. "
+                f"Expected at {CLEANED_DATA_DIR / 'drug_smiles.csv'} "
+                f"(or {fallback})."
+            )
 
 
 def load_dictrank_inputs():
@@ -287,15 +293,29 @@ def main():
         joblib.dump(xgb, MODEL_DIR / f"{f}_xgb.pkl")
         full_models[f] = xgb
 
-    # Predict on 25-drug set
-    drug_names = pd.read_csv(SMILES_PATH)["Drug"].tolist()
+    # Predict on 25-drug set (SwissADME only has 23 drugs)
+    drugs_df = pd.read_csv(SMILES_PATH)
+    drug_names = drugs_df["Drug"].tolist()
+
     admet_25 = pd.read_csv(OUTPUT_DIR / "cardiac_rodeo_full_ADMET.csv")
     admet_feat_cols = ad_X.columns.tolist()
     X_admet_25 = admet_25[admet_feat_cols].copy()
 
     swiss_25 = pd.read_csv(OUTPUT_DIR / "cardiac_rodeo_full_swissadme.csv")
     swiss_feat_cols = swiss_X.columns.tolist()
-    X_swiss_25 = prepare_swiss_features(swiss_25, swiss_feat_cols)
+    if "Drug" not in swiss_25.columns:
+        raise KeyError("SwissADME features must include a Drug column.")
+
+    swiss_indexed = swiss_25.set_index("Drug")
+    swiss_drug_names = [d for d in drug_names if d in swiss_indexed.index]
+    missing_swiss = [d for d in drug_names if d not in swiss_indexed.index]
+    if missing_swiss:
+        print("SwissADME missing drugs (expected 23 rows):")
+        for drug in missing_swiss:
+            print(f"  - {drug}")
+
+    swiss_25_aligned = swiss_indexed.loc[swiss_drug_names].reset_index()
+    X_swiss_25 = prepare_swiss_features(swiss_25_aligned, swiss_feat_cols)
 
     admet_probs = full_models["ADMET-AI"].predict_proba(X_admet_25)[:, 1]
     swiss_probs = full_models["SwissADME"].predict_proba(X_swiss_25)[:, 1]
@@ -304,25 +324,37 @@ def main():
         {
             "Drug": drug_names,
             "ADMET_AI_Prob": admet_probs,
-            "SwissADME_Prob": swiss_probs,
         }
     )
+    preds_df["SwissADME_Prob"] = np.nan
+    preds_df.loc[preds_df["Drug"].isin(swiss_drug_names), "SwissADME_Prob"] = swiss_probs
     preds_df.to_csv(OUTPUT_DIR / "dictrank_retrain_predictions_25.csv", index=False)
 
-    # Evaluate against 25-drug labels
+    # Evaluate against 25-drug labels (SwissADME evaluated on 23 drugs only)
     labels = pd.read_csv(PROJECT_ROOT / "Cleaned_Data" / "drug_classification.csv")
-    y_true = labels.set_index("Drug").loc[drug_names, "heart_damage"].astype(bool).astype(int).values
+    y_true_all = labels.set_index("Drug").loc[drug_names, "heart_damage"].astype(bool).astype(int).values
     metrics_25 = []
-    for model_name, probs in [("ADMET-AI", admet_probs), ("SwissADME", swiss_probs)]:
-        preds = (probs >= 0.5).astype(int)
-        fpr, tpr, _ = metrics.roc_curve(y_true, probs)
-        roc_auc = metrics.auc(fpr, tpr)
-        acc = metrics.accuracy_score(y_true, preds)
+    preds_admet = (admet_probs >= 0.5).astype(int)
+    fpr, tpr, _ = metrics.roc_curve(y_true_all, admet_probs)
+    metrics_25.append(
+        {
+            "Model": "ADMET-AI",
+            "ROC_AUC": float(metrics.auc(fpr, tpr)),
+            "Accuracy": float(metrics.accuracy_score(y_true_all, preds_admet)),
+            "N": int(len(y_true_all)),
+        }
+    )
+
+    if swiss_drug_names:
+        y_true_swiss = labels.set_index("Drug").loc[swiss_drug_names, "heart_damage"].astype(bool).astype(int).values
+        preds_swiss = (swiss_probs >= 0.5).astype(int)
+        fpr, tpr, _ = metrics.roc_curve(y_true_swiss, swiss_probs)
         metrics_25.append(
             {
-                "Model": model_name,
-                "ROC_AUC": float(roc_auc),
-                "Accuracy": float(acc),
+                "Model": "SwissADME",
+                "ROC_AUC": float(metrics.auc(fpr, tpr)),
+                "Accuracy": float(metrics.accuracy_score(y_true_swiss, preds_swiss)),
+                "N": int(len(y_true_swiss)),
             }
         )
     pd.DataFrame(metrics_25).to_csv(OUTPUT_DIR / "dictrank_retrain_metrics_25.csv", index=False)

@@ -21,11 +21,17 @@ DATA_DIR = ADMETHYST_MAIN_DIR / "data"
 OUTPUT_DIR = PROJECT_ROOT / "Output" / "ADMET_Comparison"
 DEFAULT_MODELS_DIR = ADMET_COMPARE_DIR / "Models" / "dictrank_retrain"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-SMILES_PATH = OUTPUT_DIR / "cardiac_rodeo_drugs_smiles.csv"
+
+CLEANED_DATA_DIR = PROJECT_ROOT / "Cleaned_Data"
+SMILES_PATH = CLEANED_DATA_DIR / "drug_smiles.csv"
 if not SMILES_PATH.exists():
-    fallback = DATA_DIR / "cardiac_rodeo_drugs_smiles.csv"
+    fallback = OUTPUT_DIR / "cardiac_rodeo_drugs_smiles.csv"
     if fallback.exists():
         SMILES_PATH = fallback
+    else:
+        fallback = DATA_DIR / "cardiac_rodeo_drugs_smiles.csv"
+        if fallback.exists():
+            SMILES_PATH = fallback
 
 
 def prepare_swiss_features(df: pd.DataFrame, feature_cols: list[str]) -> pd.DataFrame:
@@ -82,13 +88,19 @@ def main():
             drug_names_path = fallback
         else:
             raise FileNotFoundError(
-                "Missing cardiac_rodeo_drugs_smiles.csv. "
+                "Missing drug_smiles.csv. "
                 f"Expected at {SMILES_PATH} (or {fallback})."
             )
     drug_names = pd.read_csv(drug_names_path)["Drug"].tolist()
 
     X_admet = admet_df[admet_Xcols].copy()
-    X_swiss = prepare_swiss_features(swiss_df, swiss_Xcols)
+
+    if "Drug" not in swiss_df.columns:
+        raise KeyError("SwissADME features must include a Drug column.")
+    swiss_indexed = swiss_df.set_index("Drug")
+    swiss_drug_names = [d for d in drug_names if d in swiss_indexed.index]
+    swiss_aligned = swiss_indexed.loc[swiss_drug_names].reset_index()
+    X_swiss = prepare_swiss_features(swiss_aligned, swiss_Xcols)
 
     admet_probs = admet_model.predict_proba(X_admet)[:, 1]
     swiss_probs = swiss_model.predict_proba(X_swiss)[:, 1]
@@ -97,9 +109,10 @@ def main():
         {
             "Drug": drug_names,
             "ADMET_AI_Prob": admet_probs,
-            "SwissADME_Prob": swiss_probs,
         }
     )
+    out_df["SwissADME_Prob"] = pd.NA
+    out_df.loc[out_df["Drug"].isin(swiss_drug_names), "SwissADME_Prob"] = swiss_probs
     out_path = Path(args.out)
     out_df.to_csv(out_path, index=False)
     print(f"Saved predictions to {out_path}")
