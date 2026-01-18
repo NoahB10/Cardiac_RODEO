@@ -998,6 +998,7 @@
                     xaxis: {
                         title: { text: 'Time (h)', font: { size: 12 } },
                         range: [96, 0],  // Reversed so 0 is at front
+                        autorange: false,
                         dtick: 24,
                         showgrid: true,
                         gridcolor: '#ccc',
@@ -1006,12 +1007,15 @@
                     yaxis: {
                         title: { text: 'Dose/Cmax', font: { size: 12 } },
                         range: [maxDoseRatio, 0],  // Reversed so 0 meets Time 0
+                        autorange: false,
                         showgrid: true,
                         gridcolor: '#ccc',
                         zeroline: false
                     },
                     zaxis: {
                         title: { text: 'Response', font: { size: 12 } },
+                        range: [baseZMin - (baseZMax - baseZMin) * 0.1, baseZMax + (baseZMax - baseZMin) * 0.1],
+                        autorange: false,  // CRITICAL: prevent auto-adjusting when data changes
                         showgrid: true,
                         gridcolor: '#ccc',
                         zeroline: false
@@ -1579,6 +1583,7 @@
                     xaxis: {
                         title: { text: 'Time (h)', font: { size: 12 } },
                         range: ranges.x,  // Reversed so 0 at front
+                        autorange: false,
                         dtick: xDtick,
                         showgrid: true,
                         gridcolor: '#ccc',
@@ -1587,6 +1592,7 @@
                     yaxis: {
                         title: { text: 'Dose/Cmax', font: { size: 12 } },
                         range: ranges.y,  // Reversed so 0 meets Time 0
+                        autorange: false,
                         dtick: yDtick,
                         showgrid: true,
                         gridcolor: '#ccc',
@@ -1595,6 +1601,7 @@
                     zaxis: {
                         title: { text: 'Response', font: { size: 12 } },
                         range: [Math.max(0, zMin - zPadding), zMax + zPadding],
+                        autorange: false,
                         showgrid: true,
                         gridcolor: '#ccc',
                         zeroline: false
