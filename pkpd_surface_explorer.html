@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PKPD Surface Explorer</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            font-weight: 500;
+        }
+
+        .mode-toggle {
+            display: flex;
+            background: #e8f4fc;
+            border-radius: 25px;
+            overflow: hidden;
+            border: 1px solid #3498db;
+        }
+
+        .mode-btn {
+            padding: 8px 20px;
+            border: none;
+            background: transparent;
+            color: #3498db;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+
+        .mode-btn.active {
+            background: #3498db;
+            color: white;
+            font-weight: 600;
+        }
+
+        .mode-btn:hover:not(.active) {
+            background: rgba(52, 152, 219, 0.2);
+        }
+
+        .equation-bar {
+            background: white;
+            padding: 15px 20px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        .equation {
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+        }
+
+        .main-container {
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .plot-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 950px;
+            flex-shrink: 0;
+        }
+
+        .plot-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 10px;
+            width: 950px;
+            height: 750px;
+            min-width: 950px;
+            max-width: 950px;
+            min-height: 750px;
+            max-height: 750px;
+            flex-shrink: 0;
+            flex-grow: 0;
+        }
+
+        #plot {
+            width: 930px !important;
+            height: 730px !important;
+            min-width: 930px;
+            max-width: 930px;
+            min-height: 730px;
+            max-height: 730px;
+        }
+
+        .colorbar-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 950px;
+        }
+
+        .colorbar-label {
+            font-weight: 500;
+            color: #333;
+            white-space: nowrap;
+        }
+
+        .colorbar-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .colorbar-value {
+            font-size: 0.85em;
+            color: #666;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        #colorbar {
+            flex: 1;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .controls-container {
+            width: 320px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px;
+            flex-shrink: 0;
+        }
+
+        .drug-panel {
+            width: 280px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px;
+            flex-shrink: 0;
+            height: fit-content;
+        }
+
+        .controls-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .param-group {
+            margin-bottom: 18px;
+        }
+
+        .param-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .param-label {
+            font-weight: 500;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .param-symbol {
+            color: #3498db;
+            font-weight: 600;
+        }
+
+        .param-bounds {
+            font-size: 0.75em;
+            color: #888;
+        }
+
+        .param-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .param-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e0e0;
+            outline: none;
+        }
+
+        .param-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+
+        .param-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+        .param-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            border: none;
+        }
+
+        .param-input {
+            width: 75px;
+            padding: 5px 6px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.85em;
+            text-align: right;
+        }
+
+        .param-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .reset-btn {
+            flex: 1;
+            padding: 10px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .reset-btn:hover {
+            background: #c0392b;
+        }
+
+        .reset-view-btn {
+            flex: 1;
+            padding: 10px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .reset-view-btn:hover {
+            background: #2980b9;
+        }
+
+        .boundary-btn {
+            width: 100%;
+            padding: 10px;
+            background: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+
+        .boundary-btn:hover {
+            background: #7f8c8d;
+        }
+
+        .boundary-btn.active {
+            background: #27ae60;
+        }
+
+        .boundary-btn.active:hover {
+            background: #229954;
+        }
+
+        .instructions {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.8em;
+            color: #666;
+        }
+
+        .instructions p {
+            margin-bottom: 4px;
+        }
+
+        /* Fixed layout - no responsive changes */
+
+        /* Drug Selection Section in Controls Panel */
+        .drug-selection-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #3498db;
+        }
+
+        .section-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .mode-toggle-row {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+
+        .mode-toggle-row .mode-toggle {
+            width: 100%;
+        }
+
+        .mode-toggle-row .mode-btn {
+            flex: 1;
+            padding: 6px 10px;
+            font-size: 0.85em;
+        }
+
+        .drug-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .drug-selector label {
+            color: #555;
+            font-weight: 500;
+            font-size: 0.9em;
+        }
+
+        #drug-select {
+            padding: 8px 30px 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9em;
+            background: white;
+            cursor: pointer;
+            width: 100%;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+        }
+
+        #drug-select:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+
+        /* Drug Info Box */
+        .drug-info-box {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            display: none;
+        }
+
+        .drug-info-box.visible {
+            display: block;
+        }
+
+        .drug-name-display {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .drug-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .badge-concern {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .badge-concern.less {
+            background: #f39c12;
+        }
+
+        .badge-concern.no {
+            background: #27ae60;
+        }
+
+        .badge-arrhythmia {
+            background: #9b59b6;
+            color: white;
+        }
+
+        .badge-arrhythmia.false {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .badge-heart-damage {
+            background: #c0392b;
+            color: white;
+        }
+
+        .badge-heart-damage.false {
+            background: #95a5a6;
+            color: white;
+        }
+
+        /* Reset to Drug Button */
+        .reset-drug-btn {
+            width: 100%;
+            padding: 10px;
+            background: #9b59b6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .reset-drug-btn:hover {
+            background: #8e44ad;
+        }
+
+        .reset-drug-btn.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>PKPD Elimination Equation Explorer</h1>
+    </div>
+
+    <div class="equation-bar">
+        <span class="equation">
+            R(C<sub>0</sub>, t) = R<sub>0</sub> + E<sub>max</sub> &middot;
+            (1 - e<sup>-&kappa; &middot; (C<sub>0</sub>/C<sub>max</sub> &middot; e<sup>-k<sub>elim</sub>&middot;t</sup>)<sup>n</sup> &middot; (t/&tau;)<sup>m</sup></sup>)
+        </span>
+    </div>
+
+    <div class="main-container">
+        <div class="plot-wrapper">
+            <div class="plot-container">
+                <div id="plot"></div>
+            </div>
+            <div class="colorbar-container">
+                <span class="colorbar-label">Response</span>
+                <div class="colorbar-wrapper">
+                    <span class="colorbar-value" id="colorbar-min">0.00</span>
+                    <canvas id="colorbar"></canvas>
+                    <span class="colorbar-value" id="colorbar-max">0.20</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-container">
+            <div class="controls-title">Parameters</div>
+
+            <div id="params-container"></div>
+
+            <div class="param-group" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
+                <div class="param-header">
+                    <span class="param-label">
+                        <span class="param-symbol">C<sub>max</sub></span> Dose Scale
+                    </span>
+                    <span class="param-bounds">[0.5, 5]</span>
+                </div>
+                <div class="param-controls">
+                    <input type="range"
+                           class="param-slider"
+                           id="slider-cmax"
+                           min="0.5"
+                           max="5"
+                           step="0.1"
+                           value="2">
+                    <input type="number"
+                           class="param-input"
+                           id="input-cmax"
+                           min="0.5"
+                           max="5"
+                           step="0.5"
+                           value="2.0">
+                </div>
+            </div>
+
+            <div class="button-row">
+                <button class="reset-btn" onclick="resetDefaults()">Reset Params</button>
+                <button class="reset-view-btn" onclick="resetView()">Reset View</button>
+            </div>
+
+            <button class="boundary-btn" id="boundary-btn" onclick="toggleBoundaries()">Remove Boundaries</button>
+
+            <div class="instructions">
+                <p><strong>Left-drag</strong> to rotate view</p>
+                <p><strong>Right-drag</strong> to pan all axes</p>
+                <p><strong>Scroll</strong> to zoom all axes</p>
+                <p><strong>Double-click</strong> to reset view</p>
+            </div>
+        </div>
+
+        <!-- Drug Selection Panel -->
+        <div class="drug-panel">
+            <div class="controls-title">Drug Selection</div>
+
+            <div class="mode-toggle-row">
+                <div class="mode-toggle">
+                    <button class="mode-btn active" id="btn-contractility" onclick="setMode('contractility')">Contractility</button>
+                    <button class="mode-btn" id="btn-o2" onclick="setMode('o2')">O2</button>
+                </div>
+            </div>
+
+            <div class="drug-selector">
+                <label for="drug-select">Drug Preset:</label>
+                <select id="drug-select" onchange="selectDrug(this.value)">
+                    <option value="">-- Custom --</option>
+                </select>
+            </div>
+
+            <div id="drug-info-box" class="drug-info-box">
+                <div class="drug-name-display" id="drug-name-display">Drug Name</div>
+                <div class="drug-badges">
+                    <span class="badge badge-concern" id="badge-concern">most concern</span>
+                    <span class="badge badge-arrhythmia" id="badge-arrhythmia">Arrhythmia</span>
+                    <span class="badge badge-heart-damage" id="badge-heart-damage">Heart Damage</span>
+                </div>
+            </div>
+
+            <button class="reset-drug-btn" id="reset-drug-btn" onclick="resetToDrugValues()">Reset to Drug Values</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // CONFIGURATION
+        // ============================================================================
+
+        const CONFIG = {
+            contractility: {
+                bounds: {
+                    R0: [0, 0.2],
+                    Emax: [0, 0.2],
+                    kappa: [1e-6, 100],
+                    n: [0.1, 6.0],
+                    m: [0.1, 6.0],
+                    tau: [0.1, 96],
+                    k_elim: [1e-6, 1.0]
+                },
+                defaults: {
+                    R0: 0.1,
+                    Emax: 0.1,
+                    kappa: 1.0,
+                    n: 2.0,
+                    m: 2.0,
+                    tau: 24.0,
+                    k_elim: 0.05
+                }
+            },
+            o2: {
+                bounds: {
+                    R0: [5, 25],
+                    Emax: [0, 100],
+                    kappa: [1e-6, 100],
+                    n: [0.1, 6.0],
+                    m: [0.1, 6.0],
+                    tau: [0.1, 96],
+                    k_elim: [1e-6, 1.0]
+                },
+                defaults: {
+                    R0: 15.0,
+                    Emax: 50.0,
+                    kappa: 1.0,
+                    n: 2.0,
+                    m: 2.0,
+                    tau: 24.0,
+                    k_elim: 0.05
+                }
+            }
+        };
+
+        const PARAM_INFO = {
+            R0: { symbol: 'R\u2080', desc: 'Baseline Response', step: 0.01, stepO2: 1.0, decimals: 3, decimalsO2: 1 },
+            Emax: { symbol: 'E\u2098\u2090\u2093', desc: 'Max Effect', step: 0.01, stepO2: 5.0, decimals: 3, decimalsO2: 1 },
+            kappa: { symbol: '\u03BA', desc: 'Potency', step: 1.0, stepO2: 1.0, decimals: 2, decimalsO2: 2 },
+            n: { symbol: 'n', desc: 'Conc Hill Coef', step: 0.1, stepO2: 0.1, decimals: 2, decimalsO2: 2 },
+            m: { symbol: 'm', desc: 'Time Hill Coef', step: 0.1, stepO2: 0.1, decimals: 2, decimalsO2: 2 },
+            tau: { symbol: '\u03C4', desc: 'Time Scale (h)', step: 2.0, stepO2: 2.0, decimals: 1, decimalsO2: 1 },
+            k_elim: { symbol: 'k\u2091\u2097\u1d62\u2098', desc: 'Elim Rate (1/h)', step: 0.01, stepO2: 0.01, decimals: 4, decimalsO2: 4 }
+        };
+
+        const PARAM_ORDER = ['R0', 'Emax', 'kappa', 'n', 'm', 'tau', 'k_elim'];
+
+        // ============================================================================
+        // DRUG DATA - Extracted from EQN_Coefficients/all_equations_coefficients.xlsx
+        // ============================================================================
+
+        const DRUG_DATA = {
+            "Amiodarone": {
+                "contractility": {"R0": 0.064755, "Emax": 0.015696, "kappa": 100.0, "n": 0.147628, "m": 0.1, "tau": 0.1, "k_elim": 1.0},
+                "o2": {"R0": 19.955595, "Emax": 44.026275, "kappa": 1.439241, "n": 1.677312, "m": 2.355303, "tau": 79.297728, "k_elim": 0.011736},
+                "classification": {"arrhythmia": true, "heart_damage": true, "concern": "less"}
+            },
+            "Bortezomib": {
+                "contractility": {"R0": 0.082926, "Emax": 0.053587, "kappa": 8.545975, "n": 0.330276, "m": 0.1, "tau": 46.441013, "k_elim": 0.249171},
+                "o2": {"R0": 13.044107, "Emax": 16.109026, "kappa": 2.275122, "n": 0.70777, "m": 5.82604, "tau": 30.719173, "k_elim": 1e-06},
+                "classification": {"arrhythmia": true, "heart_damage": true, "concern": "most"}
+            },
+            "Chlorpromazine": {
+                "contractility": {"R0": 0.08882, "Emax": 0.022111, "kappa": 36.380493, "n": 0.1, "m": 0.1, "tau": 56.743577, "k_elim": 1.0},
+                "o2": {"R0": 19.275077, "Emax": 43.442383, "kappa": 0.024257, "n": 3.873025, "m": 1.272522, "tau": 82.15451, "k_elim": 0.003192},
+                "classification": {"arrhythmia": true, "heart_damage": true, "concern": "less"}
+            },
+            "Cobimetinib": {
+                "contractility": {"R0": 0.058869, "Emax": 0.024533, "kappa": 22.164083, "n": 1.791871, "m": 1.476862, "tau": 4.446107, "k_elim": 0.056913},
+                "o2": {"R0": 13.290896, "Emax": 100.0, "kappa": 0.268296, "n": 0.401939, "m": 2.08956, "tau": 23.19316, "k_elim": 0.077364},
+                "classification": {"arrhythmia": false, "heart_damage": true, "concern": "most"}
+            },
+            "Dactinomycin": {
+                "contractility": {"R0": 0.067526, "Emax": 0.028821, "kappa": 3e-06, "n": 5.996795, "m": 0.183217, "tau": 81.850099, "k_elim": 0.001786},
+                "o2": {"R0": 18.157741, "Emax": 56.30879, "kappa": 1.567244, "n": 0.329038, "m": 1.591798, "tau": 61.1315, "k_elim": 0.018793},
+                "classification": {"arrhythmia": false, "heart_damage": false, "concern": "no"}
+            },
+            "Daunorubicin": {
+                "contractility": {"R0": 0.10548, "Emax": 0.096748, "kappa": 0.805848, "n": 1.637432, "m": 2.243916, "tau": 33.789169, "k_elim": 0.033218},
+                "o2": {"R0": 10.826559, "Emax": 63.708288, "kappa": 1.014506, "n": 0.89843, "m": 3.473335, "tau": 56.200622, "k_elim": 0.047982},
+                "classification": {"arrhythmia": false, "heart_damage": true, "concern": "most"}
+            },
+            "Doxorubicin": {
+                "contractility": {"R0": 0.106251, "Emax": 0.098574, "kappa": 7e-05, "n": 6.0, "m": 4.762491, "tau": 80.780557, "k_elim": 0.031412},
+                "o2": {"R0": 13.704379, "Emax": 100.0, "kappa": 0.697881, "n": 0.53596, "m": 2.429097, "tau": 73.18874, "k_elim": 0.05222},
+                "classification": {"arrhythmia": true, "heart_damage": true, "concern": "most"}
+            },
+            "Epirubicin": {
+                "contractility": {"R0": 0.076242, "Emax": 0.080393, "kappa": 0.001288, "n": 6.0, "m": 0.1, "tau": 56.94893, "k_elim": 0.009825},
+                "o2": {"R0": 14.783836, "Emax": 100.0, "kappa": 1.874794, "n": 0.401614, "m": 3.021164, "tau": 48.593231, "k_elim": 0.109443},
+                "classification": {"arrhythmia": true, "heart_damage": true, "concern": "most"}
+            },
+            "Erlotinib": {
+                "contractility": {"R0": 0.06392, "Emax": 0.013382, "kappa": 12.595702, "n": 3.185209, "m": 3.23788, "tau": 2.383776, "k_elim": 0.056364},
+                "o2": {"R0": 13.816345, "Emax": 100.0, "kappa": 1.139413, "n": 0.415311, "m": 2.612646, "tau": 59.07766, "k_elim": 0.083153},
+                "classification": {"arrhythmia": false, "heart_damage": false, "concern": "no"}
+            },
+            "Etomoxir": {
+                "contractility": {"R0": 0.062319, "Emax": 0.024326, "kappa": 1e-06, "n": 4.457, "m": 4.832725, "tau": 96.0, "k_elim": 0.023648},
+                "o2": {"R0": 22.162402, "Emax": 22.749919, "kappa": 2.685984, "n": 0.517848, "m": 4.895796, "tau": 33.015492, "k_elim": 0.15546},
+                "classification": {"arrhythmia": false, "heart_damage": false, "concern": "no"}
+            },
+            "Gemcitibine": {
+                "contractility": {"R0": 0.07271, "Emax": 0.032164, "kappa": 57.62399, "n": 0.938908, "m": 2.503409, "tau": 11.63509, "k_elim": 0.182051},
+                "o2": {"R0": 23.608385, "Emax": 27.761953, "kappa": 25.327201, "n": 3.513408, "m": 6.0, "tau": 28.050697, "k_elim": 0.034098},
+                "classification": {"arrhythmia": true, "heart_damage": true, "concern": "less"}
+            },
+            "Ibrutinib": {
+                "contractility": {"R0": 0.099156, "Emax": 0.036382, "kappa": 0.157325, "n": 6.0, "m": 0.126538, "tau": 95.980406, "k_elim": 0.00105},
+                "o2": {"R0": 18.223371, "Emax": 100.0, "kappa": 6.308157, "n": 0.251707, "m": 4.152554, "tau": 54.37112, "k_elim": 0.268829},
+                "classification": {"arrhythmia": true, "heart_damage": true, "concern": "most"}
+            },
+            "Ibuprofen": {
+                "contractility": {"R0": 0.004622, "Emax": 0.2, "kappa": 0.17771, "n": 4.275799, "m": 6.0, "tau": 41.98875, "k_elim": 0.021912},
+                "o2": {"R0": 25.0, "Emax": 28.112224, "kappa": 8.433808, "n": 0.275129, "m": 0.518518, "tau": 63.798203, "k_elim": 0.129588},
+                "classification": {"arrhythmia": false, "heart_damage": true, "concern": "most"}
+            },
+            "Isoproterenol": {
+                "contractility": {"R0": 0.088049, "Emax": 0.011405, "kappa": 99.999969, "n": 0.231064, "m": 0.567367, "tau": 0.1, "k_elim": 1.0},
+                "o2": {"R0": 13.322575, "Emax": 9.587327, "kappa": 1.114545, "n": 0.1, "m": 6.0, "tau": 32.524021, "k_elim": 2e-06},
+                "classification": {"arrhythmia": true, "heart_damage": true, "concern": "most"}
+            },
+            "Mexiletine": {
+                "contractility": {"R0": 0.070943, "Emax": 0.055284, "kappa": 100.0, "n": 6.0, "m": 0.439875, "tau": 0.1, "k_elim": 0.002259},
+                "o2": {"R0": 16.294686, "Emax": 32.588091, "kappa": 1.217338, "n": 0.340341, "m": 2.909866, "tau": 24.890541, "k_elim": 0.141867},
+                "classification": {"arrhythmia": true, "heart_damage": false, "concern": "most"}
+            },
+            "Nifedipine": {
+                "contractility": {"R0": 0.069602, "Emax": 0.014235, "kappa": 99.998002, "n": 0.231045, "m": 0.1, "tau": 0.100001, "k_elim": 1.0},
+                "o2": {"R0": 19.071673, "Emax": 100.0, "kappa": 0.00165, "n": 2.171059, "m": 0.800765, "tau": 80.417053, "k_elim": 0.005045},
+                "classification": {"arrhythmia": true, "heart_damage": true, "concern": "less"}
+            },
+            "Panobinostat": {
+                "contractility": {"R0": 0.069083, "Emax": 0.069096, "kappa": 99.99971, "n": 5.999914, "m": 0.991993, "tau": 0.1, "k_elim": 0.01049},
+                "o2": {"R0": 14.987788, "Emax": 99.999686, "kappa": 1.549711, "n": 0.1, "m": 4.85368, "tau": 52.455313, "k_elim": 0.520799},
+                "classification": {"arrhythmia": true, "heart_damage": true, "concern": "most"}
+            },
+            "Plicamycin": {
+                "contractility": {"R0": 0.053475, "Emax": 0.026465, "kappa": 0.000219, "n": 5.99757, "m": 0.913064, "tau": 95.997055, "k_elim": 0.009838},
+                "o2": {"R0": 17.522643, "Emax": 67.516845, "kappa": 0.111498, "n": 0.513344, "m": 1.769344, "tau": 54.826457, "k_elim": 0.010511},
+                "classification": {"arrhythmia": false, "heart_damage": false, "concern": "no"}
+            },
+            "Rosiglitazone": {
+                "contractility": {"R0": 0.003044, "Emax": 0.00193, "kappa": 24.130619, "n": 0.1, "m": 0.1, "tau": 65.47718, "k_elim": 1.0},
+                "o2": {"R0": 25.0, "Emax": 45.843692, "kappa": 0.609837, "n": 0.1, "m": 0.212382, "tau": 66.652433, "k_elim": 0.058284},
+                "classification": {"arrhythmia": false, "heart_damage": true, "concern": "most"}
+            },
+            "Sotalol": {
+                "contractility": {"R0": 0.090965, "Emax": 0.018437, "kappa": 19.251616, "n": 0.1, "m": 0.1, "tau": 44.968674, "k_elim": 1.0},
+                "o2": {"R0": 24.45659, "Emax": 25.706486, "kappa": 0.264021, "n": 0.901024, "m": 1.795165, "tau": 24.246576, "k_elim": 0.028392},
+                "classification": {"arrhythmia": true, "heart_damage": true, "concern": "most"}
+            },
+            "Sunitinib": {
+                "contractility": {"R0": 0.067023, "Emax": 0.002385, "kappa": 0.001778, "n": 5.303862, "m": 5.956545, "tau": 91.389737, "k_elim": 0.772058},
+                "o2": {"R0": 17.166925, "Emax": 100.0, "kappa": 2.65953, "n": 0.513216, "m": 3.773657, "tau": 72.880372, "k_elim": 0.080835},
+                "classification": {"arrhythmia": true, "heart_damage": true, "concern": "most"}
+            },
+            "Vandetanib": {
+                "contractility": {"R0": 0.113841, "Emax": 0.02262, "kappa": 22.496473, "n": 0.236959, "m": 2.904804, "tau": 8.240362, "k_elim": 1.0},
+                "o2": {"R0": 9.691657, "Emax": 100.0, "kappa": 4.934677, "n": 0.238601, "m": 2.402865, "tau": 65.617908, "k_elim": 0.157476},
+                "classification": {"arrhythmia": true, "heart_damage": true, "concern": "most"}
+            },
+            "Vincristine": {
+                "contractility": {"R0": 0.069749, "Emax": 0.024614, "kappa": 1e-06, "n": 5.978626, "m": 4.599125, "tau": 95.992315, "k_elim": 0.018906},
+                "o2": {"R0": 9.803033, "Emax": 16.400767, "kappa": 4.618773, "n": 5.44363, "m": 5.99184, "tau": 57.502694, "k_elim": 0.020259},
+                "classification": {"arrhythmia": false, "heart_damage": true, "concern": "less"}
+            },
+            "Vioxx": {
+                "contractility": {"R0": 0.003684, "Emax": 0.001323, "kappa": 19.578953, "n": 0.160567, "m": 0.1, "tau": 45.889848, "k_elim": 0.999977},
+                "o2": {"R0": 25.0, "Emax": 11.772666, "kappa": 15.07975, "n": 0.1, "m": 1.684065, "tau": 17.408009, "k_elim": 0.862252},
+                "classification": {"arrhythmia": false, "heart_damage": true, "concern": "most"}
+            },
+            "Vorinostat": {
+                "contractility": {"R0": 0.06144, "Emax": 0.001851, "kappa": 0.099218, "n": 4.646847, "m": 5.608216, "tau": 87.329716, "k_elim": 0.774491},
+                "o2": {"R0": 15.81478, "Emax": 100.0, "kappa": 13.392197, "n": 0.382449, "m": 6.0, "tau": 55.592072, "k_elim": 0.20035},
+                "classification": {"arrhythmia": false, "heart_damage": true, "concern": "less"}
+            }
+        };
+
+        // Drug names sorted alphabetically for dropdown
+        const DRUG_NAMES = Object.keys(DRUG_DATA).sort();
+
+        // Currently selected drug (null = no drug selected, using defaults)
+        let selectedDrug = null;
+
+        // Viridis colorscale for custom colorbar
+        const VIRIDIS = [
+            [0.0, '#440154'], [0.1, '#482878'], [0.2, '#3e4a89'], [0.3, '#31688e'],
+            [0.4, '#26838f'], [0.5, '#1f9e89'], [0.6, '#35b779'], [0.7, '#6ece58'],
+            [0.8, '#b5de2b'], [0.9, '#fde725'], [1.0, '#fde725']
+        ];
+
+        // Camera position - oriented so 0,0 corner is visible (front-right)
+        const DEFAULT_CAMERA = {
+            eye: { x: 1.8, y: -1.5, z: 1.2 },
+            center: { x: 0, y: 0, z: 0 },
+            up: { x: 0, y: 0, z: 1 }
+        };
+
+        // Axis ranges (full extent)
+        const TIME_RANGE = [0, 96];
+        let maxDoseRatio = 2.0;  // Adjustable Cmax scale
+
+        // Current view state
+        let zoomLevel = 1.0;
+        let panOffsetX = 0;  // Pan offset for Time axis
+        let panOffsetY = 0;  // Pan offset for Dose axis
+        let panOffsetZ = 0;  // Pan offset for Response axis
+        const MIN_ZOOM_LEVEL = 0.2;
+        let maxZoomLevel = 3.0;  // Allow zooming out to see graph shrink
+        let boundariesRemoved = false;
+        let baseZMin = 0, baseZMax = 0.2;  // Base Z range before zoom/pan
+
+        // ============================================================================
+        // STATE
+        // ============================================================================
+
+        let currentMode = 'contractility';
+        let currentParams = { ...CONFIG.contractility.defaults };
+        let zMin = 0, zMax = 0.2;
+
+        // Grid resolution
+        const GRID_SIZE = 50;
+        let timeRange = linspace(0, 96, GRID_SIZE);
+        let doseRange = linspace(0, 2, GRID_SIZE);
+
+        // Dynamic grid bounds (change when boundaries removed)
+        let gridTimeMin = 0, gridTimeMax = 96;
+        let gridDoseMin = 0, gridDoseMax = 2;
+
+        function updateGridRanges() {
+            // When boundaries are removed, extend the grid to cover larger area
+            if (boundariesRemoved) {
+                // Extended ranges: 3x in all directions, including negative for panning
+                gridTimeMin = -96;
+                gridTimeMax = 288;
+                gridDoseMin = -maxDoseRatio;
+                gridDoseMax = maxDoseRatio * 3;
+                timeRange = linspace(gridTimeMin, gridTimeMax, GRID_SIZE * 2);
+                doseRange = linspace(gridDoseMin, gridDoseMax, GRID_SIZE * 2);
+            } else {
+                gridTimeMin = 0;
+                gridTimeMax = 96;
+                gridDoseMin = 0;
+                gridDoseMax = maxDoseRatio;
+                timeRange = linspace(gridTimeMin, gridTimeMax, GRID_SIZE);
+                doseRange = linspace(gridDoseMin, gridDoseMax, GRID_SIZE);
+            }
+        }
+
+        // ============================================================================
+        // UTILITY FUNCTIONS
+        // ============================================================================
+
+        function linspace(start, end, n) {
+            const arr = [];
+            const step = (end - start) / (n - 1);
+            for (let i = 0; i < n; i++) {
+                arr.push(start + step * i);
+            }
+            return arr;
+        }
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        }
+
+        // ============================================================================
+        // PKPD EQUATION
+        // ============================================================================
+
+        function computeResponse(C0_norm, t, params) {
+            const { R0, Emax, kappa, n, m, tau, k_elim } = params;
+
+            const kappaSafe = Math.max(kappa, 1e-9);
+            const tauSafe = Math.max(tau, 1e-9);
+            const k_elimSafe = Math.max(k_elim, 1e-9);
+            const tSafe = Math.max(t, 0);
+
+            const C_t = C0_norm * Math.exp(-k_elimSafe * tSafe);
+            const drivingForce = kappaSafe * Math.pow(C_t, n) * Math.pow(tSafe / tauSafe, m);
+            const R = R0 + Emax * (1 - Math.exp(-drivingForce));
+
+            return R;
+        }
+
+        function generateSurface(updateBaseRange = false) {
+            const z = [];
+            let minZ = Infinity, maxZ = -Infinity;
+
+            for (let i = 0; i < doseRange.length; i++) {
+                const row = [];
+                for (let j = 0; j < timeRange.length; j++) {
+                    const val = computeResponse(doseRange[i], timeRange[j], currentParams);
+                    row.push(val);
+                    if (val < minZ) minZ = val;
+                    if (val > maxZ) maxZ = val;
+                }
+                z.push(row);
+            }
+
+            zMin = minZ;
+            zMax = maxZ;
+
+            // Only update base Z range when explicitly requested (mode change, drug select, init)
+            // NOT when just changing parameters - that should only change the surface shape
+            if (updateBaseRange) {
+                baseZMin = minZ;
+                baseZMax = maxZ;
+            }
+            return z;
+        }
+
+        // ============================================================================
+        // COLORBAR
+        // ============================================================================
+
+        function drawColorbar() {
+            const canvas = document.getElementById('colorbar');
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas size
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = canvas.offsetHeight * 2;
+            ctx.scale(2, 2);
+
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+
+            // Create gradient
+            const gradient = ctx.createLinearGradient(0, 0, width, 0);
+            VIRIDIS.forEach(([stop, color]) => {
+                gradient.addColorStop(stop, color);
+            });
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // Update labels
+            const decimals = currentMode === 'contractility' ? 3 : 1;
+            document.getElementById('colorbar-min').textContent = zMin.toFixed(decimals);
+            document.getElementById('colorbar-max').textContent = zMax.toFixed(decimals);
+        }
+
+        // ============================================================================
+        // PLOT FUNCTIONS
+        // ============================================================================
+
+        function initPlot() {
+            const z = generateSurface(true);  // Update base Z range on init
+
+            const data = [{
+                type: 'surface',
+                x: timeRange,
+                y: doseRange,
+                z: z,
+                colorscale: 'Viridis',
+                showscale: false,  // We use our own colorbar
+                opacity: 0.95,
+                lighting: {
+                    ambient: 0.6,
+                    diffuse: 0.5,
+                    specular: 0.2,
+                    roughness: 0.5
+                },
+                contours: {
+                    z: {
+                        show: true,
+                        usecolormap: true,
+                        highlightcolor: "#fff",
+                        project: { z: false }
+                    }
+                }
+            }];
+
+            const layout = {
+                width: 930,
+                height: 730,
+                autosize: false,
+                title: {
+                    text: `PKPD Elimination: ${currentMode === 'contractility' ? 'Contractility' : 'O2'}`,
+                    font: { size: 16 }
+                },
+                scene: {
+                    xaxis: {
+                        title: { text: 'Time (h)', font: { size: 12 } },
+                        range: [96, 0],  // Reversed so 0 is at front
+                        dtick: 24,
+                        showgrid: true,
+                        gridcolor: '#ccc',
+                        zeroline: false
+                    },
+                    yaxis: {
+                        title: { text: 'Dose/Cmax', font: { size: 12 } },
+                        range: [maxDoseRatio, 0],  // Reversed so 0 meets Time 0
+                        showgrid: true,
+                        gridcolor: '#ccc',
+                        zeroline: false
+                    },
+                    zaxis: {
+                        title: { text: 'Response', font: { size: 12 } },
+                        showgrid: true,
+                        gridcolor: '#ccc',
+                        zeroline: false
+                    },
+                    camera: DEFAULT_CAMERA,
+                    aspectmode: 'manual',
+                    aspectratio: { x: 1.2, y: 1, z: 0.8 },
+                    dragmode: 'turntable',  // Left-click rotates camera
+                    domain: { x: [0, 1], y: [0.05, 1] }  // Shift scene up slightly
+                },
+                margin: { l: 0, r: 0, t: 40, b: 60 },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)'
+            };
+
+            const config = {
+                responsive: false,  // Fixed size
+                displayModeBar: true,
+                modeBarButtonsToRemove: ['toImage', 'sendDataToCloud', 'resetCameraLastSave3d'],
+                scrollZoom: false  // Disable default zoom - we use custom
+            };
+
+            Plotly.newPlot('plot', data, layout, config);
+            drawColorbar();
+            setupCustomZoom();
+        }
+
+        function getAxisRanges() {
+            // Use dynamic grid bounds when boundaries removed, otherwise original bounds
+            const xFull = boundariesRemoved ? (gridTimeMax - gridTimeMin) : (TIME_RANGE[1] - TIME_RANGE[0]);
+            const yFull = boundariesRemoved ? (gridDoseMax - gridDoseMin) : maxDoseRatio;
+            const xBase = boundariesRemoved ? gridTimeMin : 0;
+            const yBase = boundariesRemoved ? gridDoseMin : 0;
+
+            const zFull = baseZMax - baseZMin;
+            const zPadding = zFull * 0.1 || 0.01;
+
+            const xHalfRange = xFull / 2 * zoomLevel;
+            const yHalfRange = yFull / 2 * zoomLevel;
+            const zHalfRange = (zFull + 2 * zPadding) / 2 * zoomLevel;
+
+            // Center point (middle of grid + pan offset)
+            const xCenter = xBase + xFull / 2 + panOffsetX;
+            const yCenter = yBase + yFull / 2 + panOffsetY;
+            const zCenter = (baseZMin + baseZMax) / 2 + panOffsetZ;
+
+            let xMin = xCenter - xHalfRange;
+            let xMax = xCenter + xHalfRange;
+            let yMin = yCenter - yHalfRange;
+            let yMax = yCenter + yHalfRange;
+            let zMin = zCenter - zHalfRange;
+            let zMax = zCenter + zHalfRange;
+
+            // Only clamp when zoomed IN (zoomLevel < 1) and boundaries enforced
+            if (!boundariesRemoved && zoomLevel < 1) {
+                xMin = Math.max(0, xMin);
+                xMax = Math.min(TIME_RANGE[1], xMax);
+                yMin = Math.max(0, yMin);
+                yMax = Math.min(maxDoseRatio, yMax);
+            }
+
+            // Return reversed for display (0 at front corner) - Z is not reversed
+            return { x: [xMax, xMin], y: [yMax, yMin], z: [zMin, zMax] };
+        }
+
+        function calculateDtick(rangeSize, targetTicks = 5) {
+            // Calculate appropriate tick interval for the visible range
+            if (rangeSize <= 0) return 1;
+            const rawStep = rangeSize / targetTicks;
+            // Round to nice numbers: 1, 2, 5, 10, 20, 50, etc.
+            const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+            const normalized = rawStep / magnitude;
+            let niceStep;
+            if (normalized <= 1.5) niceStep = 1;
+            else if (normalized <= 3) niceStep = 2;
+            else if (normalized <= 7) niceStep = 5;
+            else niceStep = 10;
+            return niceStep * magnitude;
+        }
+
+        function updateAxisRanges() {
+            const ranges = getAxisRanges();
+
+            // Calculate visible range sizes (absolute values since reversed)
+            const xRangeSize = Math.abs(ranges.x[0] - ranges.x[1]);
+            const yRangeSize = Math.abs(ranges.y[0] - ranges.y[1]);
+            const zRangeSize = Math.abs(ranges.z[1] - ranges.z[0]);
+
+            // Calculate appropriate tick intervals
+            const xDtick = calculateDtick(xRangeSize);
+            const yDtick = calculateDtick(yRangeSize, 4);
+            const zDtick = calculateDtick(zRangeSize, 4);
+
+            Plotly.relayout('plot', {
+                'scene.xaxis.range': ranges.x,
+                'scene.yaxis.range': ranges.y,
+                'scene.zaxis.range': ranges.z,
+                'scene.xaxis.dtick': xDtick,
+                'scene.yaxis.dtick': yDtick,
+                'scene.zaxis.dtick': zDtick
+            });
+        }
+
+        function setupCustomZoom() {
+            const plotDiv = document.getElementById('plot');
+            let isPanning = false;
+            let lastMouseX = 0;
+            let lastMouseY = 0;
+
+            // Prevent context menu on right-click
+            plotDiv.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+            });
+
+            // Scroll to zoom
+            plotDiv.addEventListener('wheel', function(e) {
+                e.preventDefault();
+
+                const zoomSpeed = 0.05;
+
+                if (e.deltaY < 0) {
+                    zoomLevel = Math.max(MIN_ZOOM_LEVEL, zoomLevel - zoomSpeed);
+                } else {
+                    zoomLevel = Math.min(maxZoomLevel, zoomLevel + zoomSpeed);
+                }
+
+                updateAxisRanges();
+            }, { passive: false });
+
+            // Right-click to pan (button 2)
+            plotDiv.addEventListener('mousedown', function(e) {
+                if (e.button === 2) {  // Right click for panning
+                    isPanning = true;
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                    e.preventDefault();
+                }
+                // Left-click (button 0) is handled by Plotly for rotation
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!isPanning) return;
+
+                const dx = e.clientX - lastMouseX;
+                const dy = e.clientY - lastMouseY;
+
+                // Convert pixel movement to axis units (use dynamic bounds)
+                const xFull = boundariesRemoved ? (gridTimeMax - gridTimeMin) : (TIME_RANGE[1] - TIME_RANGE[0]);
+                const yFull = boundariesRemoved ? (gridDoseMax - gridDoseMin) : maxDoseRatio;
+                const zFull = baseZMax - baseZMin;
+                const zPadding = zFull * 0.1 || 0.01;
+                const panSpeed = 0.5;
+
+                // Pan ALL 3 axes together:
+                // - Horizontal mouse (dx) controls X (Time)
+                // - Vertical mouse (dy) controls Y (Dose) and Z (Response)
+                panOffsetX -= dx * panSpeed * xFull * zoomLevel / 500;
+                panOffsetY += dy * panSpeed * yFull * zoomLevel / 500;
+                panOffsetZ -= dy * panSpeed * (zFull + 2 * zPadding) * zoomLevel / 500;
+
+                // Clamp X/Y only when zoomed IN and boundaries enforced
+                if (!boundariesRemoved && zoomLevel < 1) {
+                    const origXFull = TIME_RANGE[1] - TIME_RANGE[0];
+                    const origYFull = maxDoseRatio;
+                    const maxPanX = origXFull * (1 - zoomLevel) / 2;
+                    const maxPanY = origYFull * (1 - zoomLevel) / 2;
+                    if (maxPanX > 0) {
+                        panOffsetX = Math.max(-maxPanX, Math.min(maxPanX, panOffsetX));
+                    }
+                    if (maxPanY > 0) {
+                        panOffsetY = Math.max(-maxPanY, Math.min(maxPanY, panOffsetY));
+                    }
+                }
+
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+
+                updateAxisRanges();
+            });
+
+            document.addEventListener('mouseup', function(e) {
+                if (e.button === 2) {
+                    isPanning = false;
+                }
+            });
+
+            // Hook into Plotly's home/reset button
+            plotDiv.on('plotly_doubleclick', function() {
+                resetView();
+                return false;
+            });
+        }
+
+        function updatePlot() {
+            // generateSurface(false) - don't update baseZMin/baseZMax
+            // This keeps the Z axis scale fixed when parameters change
+            const z = generateSurface(false);
+
+            // Only update the surface data - preserve camera, zoom, pan, axis ranges
+            Plotly.restyle('plot', {
+                z: [z],
+                x: [timeRange],
+                y: [doseRange]
+            }, 0);
+
+            // Update title only
+            Plotly.relayout('plot', {
+                'title.text': `PKPD Elimination: ${currentMode === 'contractility' ? 'Contractility' : 'O2'}`
+            });
+
+            drawColorbar();
+        }
+
+        function resetView() {
+            zoomLevel = 1.0;
+            panOffsetX = 0;
+            panOffsetY = 0;
+            panOffsetZ = 0;
+
+            const zPadding = (baseZMax - baseZMin) * 0.1 || 0.01;
+            const zDtick = calculateDtick(baseZMax - baseZMin + 2 * zPadding, 4);
+
+            Plotly.relayout('plot', {
+                'scene.camera': DEFAULT_CAMERA,
+                'scene.xaxis.range': [96, 0],  // Reversed so 0 at front
+                'scene.yaxis.range': [maxDoseRatio, 0],  // Reversed so 0 meets Time 0
+                'scene.zaxis.range': [baseZMin - zPadding, baseZMax + zPadding],
+                'scene.xaxis.dtick': 24,
+                'scene.yaxis.dtick': 0.5,
+                'scene.zaxis.dtick': zDtick
+            });
+        }
+
+        // ============================================================================
+        // DRUG SELECTION FUNCTIONS
+        // ============================================================================
+
+        function populateDrugDropdown() {
+            const select = document.getElementById('drug-select');
+            DRUG_NAMES.forEach(drug => {
+                const option = document.createElement('option');
+                option.value = drug;
+                option.textContent = drug;
+                select.appendChild(option);
+            });
+        }
+
+        function selectDrug(drugName) {
+            const infoBox = document.getElementById('drug-info-box');
+            const resetDrugBtn = document.getElementById('reset-drug-btn');
+
+            if (!drugName || drugName === '') {
+                // No drug selected - hide info box
+                selectedDrug = null;
+                infoBox.classList.remove('visible');
+                resetDrugBtn.classList.remove('visible');
+                return;
+            }
+
+            selectedDrug = drugName;
+            const drugData = DRUG_DATA[drugName];
+
+            if (!drugData) {
+                console.error(`Drug not found: ${drugName}`);
+                return;
+            }
+
+            // Update info box
+            updateDrugInfoBar(drugName, drugData.classification);
+            infoBox.classList.add('visible');
+            resetDrugBtn.classList.add('visible');
+
+            // Load drug coefficients into current parameters
+            loadDrugCoefficients(drugName);
+
+            // Reset view for new drug (new data = new default view)
+            zoomLevel = 1.0;
+            panOffsetX = 0;
+            panOffsetY = 0;
+            panOffsetZ = 0;
+
+            // Update UI and regenerate plot with new base Z range
+            createParamControls();
+            regeneratePlot();
+        }
+
+        function updateDrugInfoBar(drugName, classification) {
+            // Update drug name
+            document.getElementById('drug-name-display').textContent = drugName;
+
+            // Update concern badge
+            const concernBadge = document.getElementById('badge-concern');
+            concernBadge.textContent = classification.concern + ' concern';
+            concernBadge.className = 'badge badge-concern ' + classification.concern;
+
+            // Update arrhythmia badge
+            const arrhythmiaBadge = document.getElementById('badge-arrhythmia');
+            if (classification.arrhythmia) {
+                arrhythmiaBadge.textContent = 'Arrhythmia';
+                arrhythmiaBadge.className = 'badge badge-arrhythmia';
+            } else {
+                arrhythmiaBadge.textContent = 'No Arrhythmia';
+                arrhythmiaBadge.className = 'badge badge-arrhythmia false';
+            }
+
+            // Update heart damage badge
+            const hdBadge = document.getElementById('badge-heart-damage');
+            if (classification.heart_damage) {
+                hdBadge.textContent = 'Heart Damage';
+                hdBadge.className = 'badge badge-heart-damage';
+            } else {
+                hdBadge.textContent = 'No Heart Damage';
+                hdBadge.className = 'badge badge-heart-damage false';
+            }
+        }
+
+        function loadDrugCoefficients(drugName) {
+            const drugData = DRUG_DATA[drugName];
+            if (!drugData) return;
+
+            // Get coefficients for current mode
+            const coeffs = currentMode === 'contractility'
+                ? drugData.contractility
+                : drugData.o2;
+
+            // Load into currentParams (with fallback to defaults for null values)
+            const defaults = CONFIG[currentMode].defaults;
+            PARAM_ORDER.forEach(param => {
+                const value = coeffs[param];
+                if (value !== null && value !== undefined && !isNaN(value)) {
+                    currentParams[param] = value;
+                } else {
+                    // Fallback to default if coefficient is missing
+                    currentParams[param] = defaults[param];
+                    console.warn(`Missing ${param} for ${drugName} in ${currentMode} mode, using default`);
+                }
+            });
+        }
+
+        function resetToDrugValues() {
+            if (!selectedDrug) {
+                resetDefaults();
+                return;
+            }
+
+            loadDrugCoefficients(selectedDrug);
+            createParamControls();
+            updatePlot();
+        }
+
+        // ============================================================================
+        // UI FUNCTIONS
+        // ============================================================================
+
+        function createParamControls() {
+            const container = document.getElementById('params-container');
+            container.innerHTML = '';
+
+            const bounds = CONFIG[currentMode].bounds;
+
+            PARAM_ORDER.forEach(param => {
+                const info = PARAM_INFO[param];
+                const [min, max] = bounds[param];
+                const value = currentParams[param];
+                const decimals = currentMode === 'o2' ? info.decimalsO2 : info.decimals;
+
+                const group = document.createElement('div');
+                group.className = 'param-group';
+                group.innerHTML = `
+                    <div class="param-header">
+                        <span class="param-label">
+                            <span class="param-symbol">${info.symbol}</span> ${info.desc}
+                        </span>
+                        <span class="param-bounds">[${formatBound(min)}, ${formatBound(max)}]</span>
+                    </div>
+                    <div class="param-controls">
+                        <input type="range"
+                               class="param-slider"
+                               id="slider-${param}"
+                               min="${min}"
+                               max="${max}"
+                               step="${(max - min) / 1000}"
+                               value="${value}">
+                        <input type="number"
+                               class="param-input"
+                               id="input-${param}"
+                               min="${min}"
+                               max="${max}"
+                               step="${currentMode === 'o2' ? info.stepO2 : info.step}"
+                               value="${value.toFixed(decimals)}">
+                    </div>
+                `;
+                container.appendChild(group);
+
+                const slider = document.getElementById(`slider-${param}`);
+                const input = document.getElementById(`input-${param}`);
+
+                slider.addEventListener('input', () => {
+                    const val = parseFloat(slider.value);
+                    currentParams[param] = val;
+                    input.value = val.toFixed(decimals);
+                    updatePlot();
+                });
+
+                input.addEventListener('change', () => {
+                    let val = parseFloat(input.value);
+                    if (isNaN(val)) val = CONFIG[currentMode].defaults[param];
+                    val = clamp(val, min, max);
+                    currentParams[param] = val;
+                    slider.value = val;
+                    input.value = val.toFixed(decimals);
+                    updatePlot();
+                });
+            });
+        }
+
+        function formatBound(val) {
+            if (val < 0.001) return val.toExponential(0);
+            if (val >= 10) return val.toFixed(0);
+            return val.toFixed(2);
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+
+            // If a drug is selected, load its coefficients for the new mode
+            if (selectedDrug) {
+                loadDrugCoefficients(selectedDrug);
+            } else {
+                currentParams = { ...CONFIG[mode].defaults };
+            }
+
+            // Reset view for mode change (different response scales)
+            zoomLevel = 1.0;
+            panOffsetX = 0;
+            panOffsetY = 0;
+            panOffsetZ = 0;
+
+            document.getElementById('btn-contractility').classList.toggle('active', mode === 'contractility');
+            document.getElementById('btn-o2').classList.toggle('active', mode === 'o2');
+
+            createParamControls();
+            regeneratePlot();
+        }
+
+        function resetDefaults() {
+            // Clear drug selection
+            selectedDrug = null;
+            document.getElementById('drug-select').value = '';
+            document.getElementById('drug-info-box').classList.remove('visible');
+            document.getElementById('reset-drug-btn').classList.remove('visible');
+
+            // Reset to mode defaults
+            currentParams = { ...CONFIG[currentMode].defaults };
+            maxDoseRatio = 2.0;
+            document.getElementById('slider-cmax').value = 2.0;
+            document.getElementById('input-cmax').value = '2.0';
+
+            // Reset view
+            zoomLevel = 1.0;
+            panOffsetX = 0;
+            panOffsetY = 0;
+            panOffsetZ = 0;
+
+            updateGridRanges();
+            createParamControls();
+            regeneratePlot();
+        }
+
+        function toggleBoundaries() {
+            boundariesRemoved = !boundariesRemoved;
+            const btn = document.getElementById('boundary-btn');
+
+            // Reset pan offsets when switching modes (coordinate systems are different)
+            panOffsetX = 0;
+            panOffsetY = 0;
+            panOffsetZ = 0;
+            zoomLevel = 1.0;
+
+            if (boundariesRemoved) {
+                btn.textContent = 'Restore Boundaries';
+                btn.classList.add('active');
+            } else {
+                btn.textContent = 'Remove Boundaries';
+                btn.classList.remove('active');
+            }
+
+            // Regenerate surface with extended/normal grid ranges
+            updateGridRanges();
+            regeneratePlot();
+        }
+
+        // ============================================================================
+        // INITIALIZATION
+        // ============================================================================
+
+        function setupCmaxSlider() {
+            const slider = document.getElementById('slider-cmax');
+            const input = document.getElementById('input-cmax');
+
+            slider.addEventListener('input', () => {
+                const val = parseFloat(slider.value);
+                maxDoseRatio = val;
+                input.value = val.toFixed(1);
+                updateGridRanges();
+                regeneratePlot();
+            });
+
+            input.addEventListener('change', () => {
+                let val = parseFloat(input.value);
+                if (isNaN(val)) val = 2.0;
+                val = Math.max(0.5, Math.min(5, val));
+                maxDoseRatio = val;
+                slider.value = val;
+                input.value = val.toFixed(1);
+                updateGridRanges();
+                regeneratePlot();
+            });
+        }
+
+        function regeneratePlot() {
+            const z = generateSurface(true);  // Update base Z range on mode/boundary change
+            const zPadding = (zMax - zMin) * 0.1 || 0.01;
+
+            // Get current axis ranges (considers zoom/pan state)
+            const ranges = getAxisRanges();
+
+            // Calculate visible range sizes for dynamic ticks
+            const xRangeSize = Math.abs(ranges.x[0] - ranges.x[1]);
+            const yRangeSize = Math.abs(ranges.y[0] - ranges.y[1]);
+            const xDtick = calculateDtick(xRangeSize);
+            const yDtick = calculateDtick(yRangeSize, 4);
+
+            Plotly.react('plot', [{
+                type: 'surface',
+                x: timeRange,
+                y: doseRange,
+                z: z,
+                colorscale: 'Viridis',
+                showscale: false,
+                opacity: 0.95,
+                lighting: {
+                    ambient: 0.6,
+                    diffuse: 0.5,
+                    specular: 0.2,
+                    roughness: 0.5
+                },
+                contours: {
+                    z: {
+                        show: true,
+                        usecolormap: true,
+                        highlightcolor: "#fff",
+                        project: { z: false }
+                    }
+                }
+            }], {
+                width: 930,
+                height: 730,
+                autosize: false,
+                title: {
+                    text: `PKPD Elimination: ${currentMode === 'contractility' ? 'Contractility' : 'O2'}`,
+                    font: { size: 16 }
+                },
+                scene: {
+                    xaxis: {
+                        title: { text: 'Time (h)', font: { size: 12 } },
+                        range: ranges.x,  // Reversed so 0 at front
+                        dtick: xDtick,
+                        showgrid: true,
+                        gridcolor: '#ccc',
+                        zeroline: false
+                    },
+                    yaxis: {
+                        title: { text: 'Dose/Cmax', font: { size: 12 } },
+                        range: ranges.y,  // Reversed so 0 meets Time 0
+                        dtick: yDtick,
+                        showgrid: true,
+                        gridcolor: '#ccc',
+                        zeroline: false
+                    },
+                    zaxis: {
+                        title: { text: 'Response', font: { size: 12 } },
+                        range: [Math.max(0, zMin - zPadding), zMax + zPadding],
+                        showgrid: true,
+                        gridcolor: '#ccc',
+                        zeroline: false
+                    },
+                    camera: document.getElementById('plot')._fullLayout?.scene?.camera || DEFAULT_CAMERA,
+                    aspectmode: 'manual',
+                    aspectratio: { x: 1.2, y: 1, z: 0.8 },
+                    dragmode: 'turntable',  // Left-click rotates camera
+                    domain: { x: [0, 1], y: [0.05, 1] }  // Shift scene up slightly
+                },
+                margin: { l: 0, r: 0, t: 40, b: 60 },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)'
+            });
+
+            drawColorbar();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateDrugDropdown();
+            createParamControls();
+            initPlot();
+            setupCmaxSlider();
+
+            // Redraw colorbar on window resize
+            window.addEventListener('resize', drawColorbar);
+        });
+    </script>
+</body>
+</html>
