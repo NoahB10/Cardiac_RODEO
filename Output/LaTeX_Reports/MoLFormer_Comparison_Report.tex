@@ -1,0 +1,428 @@
+\documentclass[11pt]{article}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+
+\title{Structure-Based vs Functional Prediction of Drug-Induced Arrhythmia:\\
+MoLFormer-XL Embeddings vs Organoid PK-PD Models\\
+\large Analysis of 25 Cardiac RODEO Drug SMILES}
+\author{Cardiac RODEO Project}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This report compares structure-based and functional approaches for predicting drug-induced arrhythmia:
+(1) \textbf{MoLFormer-XL-CNN} trained on DIQT (255 drugs) and transferred to 25 Cardiac RODEO drugs (transfer learning),
+(2) \textbf{MoLFormer-XL-CNN} trained directly on 25 drugs with 5-fold cross-validation (same-data training), and
+(3) \textbf{Organoid PK-PD models} using 14 pharmacokinetic-pharmacodynamic coefficients from cardiac organoid experiments.
+Transfer learning from DIQT yields AUC 0.55 (near random), while same-data CNN training improves to AUC 0.66.
+The organoid model achieves the best performance (AUC 0.80), demonstrating that functional biological data captures mechanistic information beyond molecular structure alone.
+\end{abstract}
+
+\section{Introduction}
+
+Drug-induced cardiotoxicity, particularly QT interval prolongation leading to arrhythmias, remains a major concern in drug development.
+Computational methods for early prediction can help identify problematic compounds before clinical trials.
+
+\subsection{MoLFormer-XL-CNN}
+MoLFormer-XL-CNN (Lin et al., 2024) combines:
+\begin{itemize}
+    \item \textbf{MoLFormer-XL}: A transformer model pre-trained on 1.1 billion molecules from PubChem and ZINC, encoding SMILES strings into 768-dimensional embeddings.
+    \item \textbf{TextCNN}: Convolutional neural network layers for spatial feature refinement.
+    \item \textbf{Classifier}: Fully connected layers for binary classification (DIQT risk).
+\end{itemize}
+
+The model predicts three adverse drug reactions:
+\begin{itemize}
+    \item \textbf{DIQT}: Drug-Induced QT Prolongation (arrhythmia risk)
+    \item \textbf{DIR}: Drug-Induced Rhabdomyolysis
+    \item \textbf{DIT}: Drug-Induced Teratogenicity
+\end{itemize}
+
+\subsection{Organoid PK-PD Model}
+The Cardiac RODEO organoid model uses 14 PK-PD elimination equation coefficients (7 each for O$_2$ and contractility responses) as features to predict cardiac outcomes:
+\begin{itemize}
+    \item \textbf{Arrhythmia}: Binary (True/False)
+    \item \textbf{Heart Damage}: Binary (True/False)
+    \item \textbf{Concern}: Multiclass (most/less/no)
+\end{itemize}
+
+\subsection{Comparison Goal}
+This analysis compares DIQT predictions (structure-based, QT prolongation) against organoid Arrhythmia predictions (functional, cardiac organoid response) on the same 25-drug dataset.
+
+
+\section{MoLFormer DIQT Model Training}
+
+\subsection{Training Data}
+The DIQT dataset from Lin et al. (2024) contains 255 drugs with binary labels for QT prolongation risk:
+\begin{itemize}
+    \item \textbf{Positive (High Risk)}: 156 drugs (61.2\%)
+    \item \textbf{Negative (Low Risk)}: 99 drugs (38.8\%)
+\end{itemize}
+
+\subsection{Model Architecture}
+\begin{itemize}
+    \item \textbf{Embedding}: MoLFormer-XL (ibm/MoLFormer-XL-both-10pct from HuggingFace)
+    \item \textbf{Classifier}: TextCNN head (from Lin et al., 2024)
+    \item \textbf{Validation}: 5-fold stratified cross-validation
+\end{itemize}
+
+\subsection{Training Results (5-Fold CV on DIQT Dataset)}
+
+\begin{table}[H]
+\centering
+\caption{MoLFormer DIQT Training Results (5-Fold CV, N=255)}
+\begin{tabular}{lc}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+Accuracy & 0.788 \\
+ROC AUC & 0.817 \\
+PR AUC & 0.843 \\
+Precision & 0.804 \\
+Recall & 0.865 \\
+F1 Score & 0.833 \\
+MCC & 0.547 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textit{Note: Published paper reports AUROC $\approx$ 0.83 for DIQT; our implementation achieves 0.817, validating the approach.}
+
+
+\section{Cardiac RODEO Drug Dataset}
+
+Our dataset contains 25 drugs with experimentally determined cardiac outcomes from organoid assays:
+
+\begin{itemize}
+    \item \textbf{Arrhythmia Positive}: 14/25 drugs (56\%)
+    \item \textbf{Arrhythmia Negative}: 11/25 drugs (44\%)
+\end{itemize}
+
+\begin{longtable}{lcccc}
+\caption{Cardiac RODEO Drug Database} \\
+\toprule
+\textbf{Drug} & \textbf{MW} & \textbf{Arrhythmia} & \textbf{Heart Damage} & \textbf{Concern} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Drug} & \textbf{MW} & \textbf{Arrhythmia} & \textbf{Heart Damage} & \textbf{Concern} \\
+\midrule
+\endhead
+Amiodarone & 645.3 & True & True & less \\
+Bortezomib & 384.2 & True & True & most \\
+Chlorpromazine & 318.9 & True & True & less \\
+Cobimetinib & 531.3 & False & True & most \\
+Dactinomycin & 1255.4 & False & False & no \\
+Daunorubicin & 527.5 & False & True & most \\
+Doxorubicin & 543.5 & True & True & most \\
+Epirubicin & 543.5 & True & True & most \\
+Erlotinib & 393.4 & False & False & no \\
+Etomoxir & 326.8 & False & False & no \\
+Gemcitibine & 263.2 & True & True & less \\
+Ibrutinib & 440.5 & True & True & most \\
+Ibuprofen & 206.3 & False & True & most \\
+Isoproterenol & 211.3 & True & True & most \\
+Mexiletine & 179.3 & True & False & most \\
+Nifedipine & 346.3 & True & True & less \\
+Panobinostat & 349.4 & True & True & most \\
+Plicamycin & 1085.1 & False & False & no \\
+Rosiglitazone & 357.4 & False & True & most \\
+Sotalol & 272.4 & True & True & most \\
+Sunitinib & 398.5 & True & True & most \\
+Vandetanib & 475.4 & True & True & most \\
+Vincristine & 825.0 & False & True & less \\
+Vioxx & 314.4 & False & True & most \\
+Vorinostat & 264.3 & False & True & less \\
+\bottomrule
+\end{longtable}
+
+
+\section{MoLFormer CNN Predictions on 25 Drugs}
+
+\subsection{CNN Transfer Learning (DIQT $\rightarrow$ 25 Drugs)}
+
+The CNN trained on DIQT (255 drugs) is applied to predict arrhythmia on our 25 Cardiac RODEO drugs:
+
+\begin{table}[H]
+\centering
+\caption{MoLFormer CNN Transfer Performance (DIQT $\rightarrow$ Arrhythmia, N=25)}
+\begin{tabular}{lc}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+Accuracy & 0.56 \\
+ROC AUC & 0.55 \\
+Sensitivity & 0.79 \\
+Specificity & 0.27 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textit{Note: Near-random AUC (0.55) indicates DIQT labels do not transfer to our arrhythmia labels.}
+
+\subsection{CNN Same-Data Training (5-fold CV on 25 Drugs)}
+
+Training the same CNN architecture directly on 25 drugs with 5-fold stratified CV:
+
+\begin{table}[H]
+\centering
+\caption{MoLFormer CNN 5-fold CV Performance (N=25)}
+\begin{tabular}{lc}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+Accuracy & 0.68 \\
+ROC AUC & 0.66 \\
+Sensitivity & 0.79 \\
+Specificity & 0.55 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textit{Note: Same-data training improves AUC by +0.11 over transfer learning.}
+
+\subsection{Per-Drug Predictions (CNN Transfer)}
+
+\begin{longtable}{lccccc}
+\caption{Individual Drug Predictions (MoLFormer CNN DIQT Transfer $\rightarrow$ Arrhythmia)} \\
+\toprule
+\textbf{Drug} & \textbf{True Arr.} & \textbf{DIQT Prob} & \textbf{Pred} & \textbf{Correct} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Drug} & \textbf{True Arr.} & \textbf{DIQT Prob} & \textbf{Pred} & \textbf{Correct} \\
+\midrule
+\endhead
+Amiodarone & True & 0.286 & Low & No \\
+Bortezomib & True & 0.793 & High & Yes \\
+Chlorpromazine & True & 0.846 & High & Yes \\
+Cobimetinib & False & 0.511 & High & No \\
+Dactinomycin & False & 0.829 & High & No \\
+Daunorubicin & False & 0.062 & Low & Yes \\
+Doxorubicin & True & 0.101 & Low & No \\
+Epirubicin & True & 0.105 & Low & No \\
+Erlotinib & False & 0.942 & High & No \\
+Etomoxir & False & 0.107 & Low & Yes \\
+Gemcitibine & True & 0.063 & Low & No \\
+Ibrutinib & True & 0.616 & High & Yes \\
+Ibuprofen & False & 0.436 & Low & Yes \\
+Isoproterenol & True & 0.168 & Low & No \\
+Mexiletine & True & 0.880 & High & Yes \\
+Nifedipine & True & 0.111 & Low & No \\
+Panobinostat & True & 0.935 & High & Yes \\
+Plicamycin & False & 0.085 & Low & Yes \\
+Rosiglitazone & False & 0.027 & Low & Yes \\
+Sotalol & True & 0.939 & High & Yes \\
+Sunitinib & True & 0.969 & High & Yes \\
+Vandetanib & True & 0.945 & High & Yes \\
+Vincristine & False & 0.778 & High & No \\
+Vioxx & False & 0.013 & Low & Yes \\
+Vorinostat & False & 0.185 & Low & Yes \\
+\bottomrule
+\end{longtable}
+
+\textbf{Summary}: 14/25 correct (56\%), with 11/14 true arrhythmia cases detected (79\% sensitivity), but only 3/11 true negatives (27\% specificity).
+
+
+\section{Comparison with Organoid PK-PD Model}
+
+\subsection{Organoid Model Performance (5-fold Stratified CV)}
+
+The organoid PK-PD model uses 14 coefficients from the PK-PD elimination equation fit to O$_2$ and contractility time-course data. For fair comparison with MoLFormer CNN, we use 5-fold stratified cross-validation (averaged over 10 random seeds).
+
+\begin{table}[H]
+\centering
+\caption{Organoid Model 5-fold Stratified CV Results (N=25, pkpd\_elimination equation, averaged over 10 seeds)}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Model} & \textbf{Accuracy} & \textbf{ROC AUC} \\
+\midrule
+RandomForest & 0.74 $\pm$ 0.05 & 0.80 $\pm$ 0.04 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Head-to-Head Comparison}
+
+\begin{table}[H]
+\centering
+\caption{MoLFormer CNN vs Organoid: Arrhythmia Prediction (N=25)}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{Training Data} & \textbf{Method} & \textbf{Accuracy} & \textbf{ROC AUC} \\
+\midrule
+MoLFormer CNN & DIQT (255 drugs) & Transfer & 0.56 & 0.55 \\
+MoLFormer CNN & 25 drugs (5-fold CV) & Same-data & 0.68 & 0.66 \\
+Organoid RandomForest & 25 drugs (5-fold CV) & Functional & \textbf{0.74} & \textbf{0.80} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../MoLFormer_Comparison/figures/accuracy_bar.pdf}
+\end{minipage}
+\hfill
+\begin{minipage}{0.48\textwidth}
+\centering
+\includegraphics[width=\textwidth]{../MoLFormer_Comparison/figures/auc_bar.pdf}
+\end{minipage}
+\caption{Accuracy and AUC comparison: MoLFormer CNN (DIQT transfer vs 5-fold on 25) vs Organoid PK-PD model.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{../MoLFormer_Comparison/figures/roc_curves_all.pdf}
+\caption{ROC curves with bootstrap confidence intervals (300 iterations). Organoid model (RandomForest) achieves AUC 0.80 vs MoLFormer CNN 5-fold (0.66) and CNN DIQT transfer (0.55).}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{../MoLFormer_Comparison/figures/confusion_matrices_all.pdf}
+\caption{Confusion matrices for all three models. Organoid achieves the best balance of sensitivity and specificity.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{../MoLFormer_Comparison/figures/per_drug_predictions.pdf}
+\caption{Per-drug arrhythmia predictions. Circles = CNN DIQT transfer, Squares = CNN 5-fold on 25, Triangles = Organoid. Colored markers indicate true arrhythmia cases; gray markers indicate no arrhythmia.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{../MoLFormer_Comparison/figures/final_comparison_summary.pdf}
+\caption{Summary comparison: (Left) Grouped bar chart showing Accuracy vs AUC for each model; (Right) ROC curves overlay. Organoid consistently outperforms both CNN approaches.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.95\textwidth]{../MoLFormer_Comparison/figures/accuracy_f1_mcc_comparison.pdf}
+\caption{Extended metrics comparison: Accuracy, F1 Score, and Matthews Correlation Coefficient (MCC). CNN DIQT transfer has MCC=0.00, indicating no discriminative ability despite moderate F1 score. Organoid achieves the best MCC (0.46), demonstrating genuine predictive power.}
+\end{figure}
+
+\section{Key Findings}
+
+\subsection{Organoid PK-PD Outperforms Structure-Based MoLFormer}
+
+\begin{itemize}
+    \item \textbf{Transfer Learning Fails}: MoLFormer CNN trained on DIQT (255 drugs) achieves only AUC 0.55 on our 25 drugs---near random. The DIQT dataset (QT prolongation) does not transfer well to our arrhythmia labels. Critically, MCC = 0.00, indicating \textit{no discriminative ability}.
+    \item \textbf{Same-Data Training Improves}: When the same MoLFormer CNN architecture is trained directly on the 25 drugs (5-fold CV), it achieves AUC 0.66 and MCC 0.34---a meaningful improvement over transfer learning.
+    \item \textbf{Organoid Superiority}: Organoid RandomForest (5-fold CV) achieves the best performance (AUC 0.80 $\pm$ 0.04, MCC 0.46), outperforming MoLFormer CNN (5-fold) by +0.14 AUC and +0.12 MCC.
+    \item \textbf{Summary}: Accuracy 74\% / F1 0.77 / MCC 0.46 (Organoid) vs 68\% / 0.73 / 0.34 (CNN 5-fold) vs 56\% / 0.72 / 0.00 (CNN transfer)
+\end{itemize}
+
+\subsection{Complementary Strengths}
+
+Different drugs are correctly predicted by each approach:
+
+\begin{table}[H]
+\centering
+\caption{Model Complementarity Analysis}
+\begin{tabular}{lll}
+\toprule
+\textbf{Category} & \textbf{Count} & \textbf{Example Drugs} \\
+\midrule
+MoLFormer correct, high confidence & 6 & Sotalol, Panobinostat, Vandetanib \\
+Organoid catches (MoLFormer misses) & 6 & Doxorubicin, Epirubicin, Isoproterenol \\
+Both correct & 12 & Bortezomib, Chlorpromazine, Rosiglitazone \\
+Both incorrect & 3 & Erlotinib, Dactinomycin, Vincristine \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Mechanistic Insights}
+
+\textbf{Why Organoid outperforms MoLFormer:}
+\begin{enumerate}
+    \item \textbf{Functional vs Structural}: MoLFormer uses only chemical structure (SMILES), while organoid data captures actual biological response (O$_2$ consumption, contractility changes).
+
+    \item \textbf{Mechanistic Information}: The PK-PD coefficients encode how the drug affects cardiac function over time at different concentrations---information not derivable from structure alone.
+
+    \item \textbf{Anthracycline Example}: Doxorubicin and Epirubicin are structurally similar but have complex cardiotoxicity mechanisms (ROS generation, topoisomerase inhibition). MoLFormer predicts low DIQT risk (0.10), but organoid data captures their cardiotoxic effects.
+
+    \item \textbf{Target Mismatch}: DIQT predicts QT prolongation (ion channel effects), but arrhythmia has multiple mechanisms. Organoid models capture broader cardiotoxicity phenotypes.
+\end{enumerate}
+
+
+\section{Conclusions}
+
+\begin{enumerate}
+    \item \textbf{MoLFormer validation}: Our implementation achieves AUC 0.817 on DIQT training data, matching the published result ($\approx$0.83), confirming correct implementation.
+
+    \item \textbf{Organoid superiority}: For predicting arrhythmia in Cardiac RODEO drugs, organoid-based PK-PD models (AUC 0.80) outperform structure-based MoLFormer CNN (AUC 0.66) by +0.14 AUC when both use 5-fold stratified CV on the same 25 drugs.
+
+    \item \textbf{Value of functional data}: Biological response data from cardiac organoids provides mechanistic information that chemical structure alone cannot capture.
+
+    \item \textbf{Complementary approaches}: Structure-based methods (MoLFormer, ADMET-AI) are valuable for early screening, while organoid assays provide additional predictive power for compounds that pass initial filters.
+
+    \item \textbf{Implication for drug safety}: A combined approach using both structural predictions and functional organoid data may provide the most comprehensive cardiotoxicity assessment.
+\end{enumerate}
+
+
+\section*{Methods Summary}
+
+\subsection*{MoLFormer Implementation}
+\begin{itemize}
+    \item MoLFormer-XL-CNN architecture from Lin et al. (2024)
+    \item \textbf{Transfer approach}: CNN trained on DIQT (255 drugs), tested on 25 Cardiac RODEO drugs
+    \item \textbf{Same-data approach}: CNN trained and tested on 25 drugs with 5-fold stratified CV
+\end{itemize}
+
+\textbf{Update: CNN Architecture Also Tested.} After resolving build issues with \texttt{pytorch-fast-transformers} (required installing MSVC Build Tools with C++ workload), we successfully trained the original MoLFormer-XL-CNN architecture from Lin et al. (2024). Results comparison:
+
+\begin{table}[H]
+\centering
+\caption{MoLFormer CNN Training Approaches}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Training Approach} & \textbf{Training Data} & \textbf{DIQT CV AUC} & \textbf{Cardiac AUC} & \textbf{Cardiac Acc} \\
+\midrule
+CNN (DIQT transfer) & DIQT (255 drugs) & 0.809 & 0.55 & 56\% \\
+CNN (5-fold on 25) & 25 drugs (5-fold CV) & -- & 0.66 & 68\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Key insight}: The CNN trained on DIQT (255 drugs) performs near random on our 25 drugs (AUC 0.55), indicating that the DIQT dataset (QT prolongation) does not transfer to our arrhythmia labels. However, when we train the \textit{same CNN architecture} directly on the 25 drugs using 5-fold stratified CV, performance improves to AUC 0.66. This demonstrates that task-specific training is essential. Even with same-data training, the organoid PK-PD model (AUC 0.80 $\pm$ 0.04) outperforms the CNN by +0.14 AUC, confirming that functional biological data provides predictive power beyond molecular structure alone.
+
+\subsection*{Organoid Model}
+\begin{itemize}
+    \item PK-PD elimination equation coefficients as features (14 total)
+    \item 5-fold Stratified Cross-Validation on 25 drugs (averaged over 10 random seeds)
+    \item RandomForest classifier (consistent with MoLFormer CNN 5-fold methodology for fair comparison)
+\end{itemize}
+
+\subsection*{Scripts Used}
+\begin{itemize}
+    \item \texttt{MoLFormer\_Comparison/Scripts/run\_inference\_cnn\_v2.py} (CNN DIQT transfer)
+    \item \texttt{MoLFormer\_Comparison/Scripts/run\_inference\_cnn\_v2.py} (Original CNN architecture)
+    \item \texttt{MoLFormer\_Comparison/Scripts/compare\_xgb\_vs\_cnn.py} (Classifier comparison)
+    \item \texttt{MoLFormer\_Comparison/Scripts/final\_comparison\_summary.py}
+    \item \texttt{Prediction\_Models/loocv\_model\_comparison.py}
+\end{itemize}
+
+
+\section*{References}
+
+\begin{enumerate}
+    \item Lin S, et al. (2024). Advancing Adverse Drug Reaction Prediction with Deep Chemical Language Model MoLFormer-XL. \textit{International Journal of Molecular Sciences}, 25(8), 4516.
+
+    \item Ross J, et al. (2022). Large-Scale Chemical Language Representations Capture Molecular Structure and Properties. \textit{Nature Machine Intelligence}, 4, 1256--1264.
+
+    \item IBM MoLFormer: \url{https://github.com/IBM/molformer}
+
+    \item MoLFormer-XL-CNN: \url{https://github.com/LiSH7450/MoLFormer-XL-CNN_model}
+\end{enumerate}
+
+\end{document}

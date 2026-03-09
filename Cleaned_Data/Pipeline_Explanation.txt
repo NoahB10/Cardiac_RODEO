@@ -1,0 +1,199 @@
+Complete Analysis Details - October 23-24, 2025 Run
+
+  Pipeline Type
+
+  RELAXED PIPELINE (not strict thresholds)
+
+  ---
+  STAGE 1: QUALITY FILTERING PARAMETERS
+
+  | Parameter            | Value Used       | Standard Value |
+  |----------------------|------------------|----------------|
+  | SNR Threshold        | ≥ 0.4            | ≥ 2.0          |
+  | Oxygen Range Min     | -20.0%           | 0% (or 2%)     |
+  | Oxygen Range Max     | 120.0%           | 80%            |
+  | Max Duration         | 96 hours         | 96 hours       |
+  | Process SNR Low      | False            | True           |
+  | Segment Completeness | ≥ 50% valid rows | Same           |
+
+  ---
+  INPUT FILES USED
+
+  | Plate        | Location               | File Count        | Format     |
+  |--------------|------------------------|-------------------|------------|
+  | P1OxygenLogs | LogFiles/P1OxygenLogs/ | 19,972 .log files | Standard   |
+  | P2OxygenLogs | LogFiles/P2OxygenLogs/ | 17,281 .log files | Standard   |
+  | P3OxygenLogs | LogFiles/P3OxygenLogs/ | (included)        | .txt files |
+
+  Drug Maps Used:
+  - LogFiles/P1DrugMap.csv
+  - LogFiles/P2DrugMap.csv
+  - LogFiles/P3DrugMap.csv
+
+  ---
+  DRUGS PROCESSED (27 total)
+
+  1. Amiodarone
+  2. Bortezomib (A09)
+  3. Chlorpromazine
+  4. Cobimetinib (E03)
+  5. DMSO
+  6. Dactinomycin
+  7. Daunorubicin (F03)
+  8. Doxorubicin (G03)
+  9. Epirubicin (B04)
+  10. Erlotinib (E09)
+  11. Etomoxir
+  12. Gemcitibine
+  13. Ibrutinib (C10)
+  14. Ibuprofen
+  15. Isoproterenol
+  16. Mexiletine
+  17. Nifedipine
+  18. Panobinostat (G07)
+  19. Plicamycin
+  20. Rosiglitazone
+  21. Sotalol
+  22. Sunitinib (H08)
+  23. Troglitazone
+  24. Vandetanib (G11)
+  25. Vincristine
+  26. Vioxx
+  27. Vorinostat (B06)
+
+  ---
+  STAGE 2: AGGREGATION PARAMETERS
+
+  | Parameter                     | Value                                |
+  |-------------------------------|--------------------------------------|
+  | Interpolation Method          | Linear                               |
+  | Interpolation Limit           | 4 segments max gap                   |
+  | Missing Data Threshold        | ≥ 50% missing → column dropped       |
+  | Diameter Normalization        | ENABLED for Amp_std and Amp_dom_freq |
+  | Excluded Plates (no diameter) | namedlogs, Plate3, Raw_WellsAH       |
+
+  ---
+  FFT/FREQUENCY ANALYSIS PARAMETERS
+
+  | Parameter            | Value                            |
+  |----------------------|----------------------------------|
+  | Drop Initial Samples | 5 (first 5 measurements dropped) |
+  | Min Frequency        | 0.2 Hz                           |
+  | Max Frequency        | 3.5 Hz                           |
+  | Window Function      | Hanning                          |
+  | Method               | rfft (real FFT)                  |
+
+  ---
+  STAGE 3: PRISM LOADING PARAMETERS
+
+  | Parameter              | Value                           |
+  |------------------------|---------------------------------|
+  | Minimum Fill Threshold | 60.0%                           |
+  | Backup Creation        | Yes (timestamped .backup files) |
+
+  Stage 3 Result (Oct 23, 11:03:36): No columns were below the 60% threshold - all columns retained.      
+
+  ---
+  OUTPUT LOCATIONS
+
+  Stage 1 Raw Data:
+  Stage1_Raw_Relaxed/[Drug]/[Concentration]/
+    └── {WellID}_{Hour}h_{timestamp}.csv
+
+  Timeline CSVs:
+  timeline_analysis_output/
+    └── {drug}_timeline.csv  (e.g., amiodarone_timeline.csv)
+
+  Stage 2 Tables:
+  Stage2_Tables/[Drug]/
+    ├── O2_mean.csv
+    ├── O2_std.csv
+    ├── O2_dom_freq.csv
+    ├── Amp_std.csv
+    ├── Amp_dom_freq.csv
+    └── {Drug}_stage2_notes.txt
+
+  Prism Files (Updated):
+  - Average_Oxygen.pzfx
+  - Standard_Deviation_Oxygen.pzfx
+  - Dominant_frequency_Oxygen.pzfx
+  - Standard_Deviation_Contractility.pzfx
+  - Dominant_frequency_Contractility.pzfx
+
+  ---
+  TIMELINE HOURS GENERATED
+
+  Rounded hours: 0, 3, 7, 18, 21, 24, 26, 29, 31, 34, 37, 39, 42, 44, 47, 50, 52, 55, 57, 60, 63, 65, 68, 71, 73, 76, 79, 81, 84, 87, 89, 92, 94, 97
+
+  (Timeline was truncated at 34 windows, up to hour 97)
+
+  ---
+  PROCESSING TIMELINE
+
+  | Time          | Event                              |
+  |---------------|------------------------------------|
+  | Oct 23, 18:10 | Pipeline log started               |
+  | Oct 23, 18:12 | Amiodarone Stage 2 started         |
+  | Oct 23, 18:47 | Vandetanib Stage 2 completed       |
+  | Oct 24, 15:19 | Vincristine Stage 2 completed      |
+  | Oct 24, 15:21 | Vorinostat (B06) Stage 2 completed |
+
+  ---
+  WELLS DROPPED (per drug examples)
+
+  Amiodarone: L14 dropped at 0.313 mM (≥50% missing in Amp_std and Amp_dom_freq)
+
+  Vincristine: K06 (0.469 mM) and P06 (0.117 mM) dropped across all metrics
+
+  ---
+  KEY LOG FILE
+
+  Primary log file with all run details:
+  relaxed_pipeline_full.log  (214 KB, Oct 23 18:10)
+
+  ---
+  SUMMARY
+
+  This was a relaxed threshold run designed to retain more data by using:
+  - Very low SNR threshold (0.4 vs 2.0)
+  - Extended oxygen range (-20 to 120% vs 0-80%)
+  - Diameter normalization enabled for amplitude metrics
+  - All 27 drugs from 3 plates processed
+  - Output saved to Stage1_Raw_Relaxed/ and Stage2_Tables/
+
+
+● You're absolutely right! Looking at ALL 27 drugs across 35,360 files:
+
+  ---
+  ACTUAL THRESHOLDS USED (Oct 23-24 Pipeline Run)
+
+  SNR Range in Passed Data
+
+  | Stat                | Value         |
+  |---------------------|---------------|
+  | MIN                 | 0.420         |
+  | MAX                 | 26.460        |
+  | MEAN                | 9.041         |
+  | Rows with SNR < 2.0 | 2,662 (6.91%) |
+
+  Examples of low SNR that passed: 0.55, 0.54, 0.57, 0.56, 0.55...
+
+  O2 Range in Passed Data
+
+  | Stat               | Value       |
+  |--------------------|-------------|
+  | MIN                | -16.0%      |
+  | MAX                | 120.0%      |
+  | Rows outside 0-80% | 858 (2.23%) |
+
+  ---
+  Confirmed: The Log Was Correct
+
+  The relaxed pipeline run used:
+  - SNR >= 0.4 (data with SNR as low as 0.42 passed!)
+  - O2: -20% to 120% (data from -16% to 120% passed!)
+
+  My earlier analysis was wrong because I only looked at specific wells that happened to have high SNR. The full dataset across all 27 drugs confirms the relaxed thresholds were actually applied.
+
+  ---
+  Total passed data: 35,360 files across 27 drugs

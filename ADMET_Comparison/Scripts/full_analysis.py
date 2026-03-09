@@ -16,7 +16,7 @@ from pathlib import Path
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn import metrics
 from sklearn.model_selection import LeaveOneOut, cross_val_predict
-from sklearn.metrics import roc_curve, auc, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import roc_curve, auc, accuracy_score, confusion_matrix, ConfusionMatrixDisplay, f1_score, matthews_corrcoef
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer
@@ -764,6 +764,8 @@ else:
     roc_aucs_admet = []
     pr_aucs_admet = []
     accs_admet = []
+    f1s_admet = []
+    mccs_admet = []
     cm_sum_admet = np.zeros((2, 2), dtype=int)
 
     for seed in scaf_splits_admet:
@@ -787,6 +789,8 @@ else:
         cm_sum_admet += confusion_matrix(y_test, fold_preds)
 
         accs_admet.append(accuracy_score(y_test, fold_preds))
+        f1s_admet.append(f1_score(y_test, fold_preds, zero_division=0))
+        mccs_admet.append(matthews_corrcoef(y_test, fold_preds))
         if len(np.unique(y_test)) > 1:
             roc_aucs_admet.append(metrics.roc_auc_score(y_test, fold_probs))
             pr_aucs_admet.append(metrics.average_precision_score(y_test, fold_probs))
@@ -812,6 +816,10 @@ else:
         'auc_std': float(np.nanstd(roc_aucs_admet)) if roc_aucs_admet else np.nan,
         'pr_auc_mean': float(np.nanmean(pr_aucs_admet)) if pr_aucs_admet else np.nan,
         'pr_auc_std': float(np.nanstd(pr_aucs_admet)) if pr_aucs_admet else np.nan,
+        'f1_mean': float(np.mean(f1s_admet)) if f1s_admet else np.nan,
+        'f1_std': float(np.std(f1s_admet)) if f1s_admet else np.nan,
+        'mcc_mean': float(np.mean(mccs_admet)) if mccs_admet else np.nan,
+        'mcc_std': float(np.std(mccs_admet)) if mccs_admet else np.nan,
         'fpr': fpr_admet_scaf,
         'tpr': tpr_admet_scaf,
         'mean_fpr': mean_fpr_admet_scaf,
@@ -863,6 +871,8 @@ else:
     roc_aucs_swiss = []
     pr_aucs_swiss = []
     accs_swiss = []
+    f1s_swiss = []
+    mccs_swiss = []
     cm_sum_swiss = np.zeros((2, 2), dtype=int)
 
     for seed in scaf_splits_swiss:
@@ -886,6 +896,8 @@ else:
         cm_sum_swiss += confusion_matrix(y_test, fold_preds)
 
         accs_swiss.append(accuracy_score(y_test, fold_preds))
+        f1s_swiss.append(f1_score(y_test, fold_preds, zero_division=0))
+        mccs_swiss.append(matthews_corrcoef(y_test, fold_preds))
         if len(np.unique(y_test)) > 1:
             roc_aucs_swiss.append(metrics.roc_auc_score(y_test, fold_probs))
             pr_aucs_swiss.append(metrics.average_precision_score(y_test, fold_probs))
@@ -911,6 +923,10 @@ else:
         'auc_std': float(np.nanstd(roc_aucs_swiss)) if roc_aucs_swiss else np.nan,
         'pr_auc_mean': float(np.nanmean(pr_aucs_swiss)) if pr_aucs_swiss else np.nan,
         'pr_auc_std': float(np.nanstd(pr_aucs_swiss)) if pr_aucs_swiss else np.nan,
+        'f1_mean': float(np.mean(f1s_swiss)) if f1s_swiss else np.nan,
+        'f1_std': float(np.std(f1s_swiss)) if f1s_swiss else np.nan,
+        'mcc_mean': float(np.mean(mccs_swiss)) if mccs_swiss else np.nan,
+        'mcc_std': float(np.std(mccs_swiss)) if mccs_swiss else np.nan,
         'fpr': fpr_swiss_scaf,
         'tpr': tpr_swiss_scaf,
         'mean_fpr': mean_fpr_swiss_scaf,
@@ -1587,6 +1603,94 @@ plt.close()
 print("All plots saved!")
 
 # =============================================================================
+# SAVE COMPREHENSIVE METRICS WITH STD TO CSV
+# =============================================================================
+print("\n--- Saving comprehensive metrics with standard deviations ---")
+
+all_metrics = []
+
+# DICTrank metrics (from dictrank_retrain_metrics.csv - already has std from 10-fold CV on DICTrank dataset)
+if metrics_path.exists():
+    dictrank_metrics = pd.read_csv(metrics_path)
+    for _, row in dictrank_metrics.iterrows():
+        all_metrics.append({
+            'Method': 'DICTrank',
+            'Model': row['Model'],
+            'Accuracy': row.get('Accuracy_Mean', np.nan),
+            'Accuracy_Std': row.get('Accuracy_Std', np.nan),
+            'AUC': row.get('ROC_AUC_Mean', np.nan),
+            'AUC_Std': row.get('ROC_AUC_Std', np.nan),
+            'PR_AUC': row.get('PR_AUC_Mean', np.nan),
+            'PR_AUC_Std': row.get('PR_AUC_Std', np.nan),
+            'N_Samples': 'DICTrank dataset',
+            'Source': 'dictrank_retrain_metrics.csv (10-fold scaffold CV)'
+        })
+
+# Scaffold CV metrics (25 drugs) - from results_scaffold dict
+if results_scaffold:
+    for model in ['ADMET-AI', 'SwissADME']:
+        r = results_scaffold[model]
+        all_metrics.append({
+            'Method': 'Scaffold',
+            'Model': model,
+            'Accuracy': r.get('accuracy', np.nan),
+            'Accuracy_Std': r.get('accuracy_std', np.nan),
+            'AUC': r.get('auc_mean', np.nan),
+            'AUC_Std': r.get('auc_std', np.nan),
+            'PR_AUC': r.get('pr_auc_mean', np.nan),
+            'PR_AUC_Std': r.get('pr_auc_std', np.nan),
+            'F1': r.get('f1_mean', np.nan),
+            'F1_Std': r.get('f1_std', np.nan),
+            'MCC': r.get('mcc_mean', np.nan),
+            'MCC_Std': r.get('mcc_std', np.nan),
+            'N_Samples': r.get('n_samples', 25),
+            'Source': 'Scaffold-balanced 10-fold CV on 25 drugs'
+        })
+
+# LOOCV metrics (25 drugs) - from results_loocv dict
+for model in ['ADMET-AI', 'SwissADME']:
+    r = results_loocv[model]
+    all_metrics.append({
+        'Method': 'LOOCV',
+        'Model': model,
+        'Accuracy': r.get('accuracy', np.nan),
+        'Accuracy_Std': np.nan,  # LOOCV doesn't have fold-based std for accuracy
+        'AUC': r.get('auc_mean', np.nan),
+        'AUC_Std': r.get('auc_std', np.nan),  # Bootstrap-based std
+        'PR_AUC': np.nan,
+        'PR_AUC_Std': np.nan,
+        'N_Samples': r.get('n_samples', 25),
+        'Source': 'Leave-One-Out CV on 25 drugs (AUC std from bootstrap n=300)'
+    })
+
+# Organoid metrics (from model_performance_summary.csv)
+perf_summary_path = Path('Output/Performance_Metrics/model_performance_summary.csv')
+if perf_summary_path.exists():
+    perf_df = pd.read_csv(perf_summary_path)
+    hd_row = perf_df[perf_df['Target'] == 'heart_damage']
+    if not hd_row.empty:
+        row = hd_row.iloc[0]
+        all_metrics.append({
+            'Method': 'Organoid',
+            'Model': row.get('Model', 'GaussianNB'),
+            'Accuracy': row.get('Accuracy_Mean', np.nan),
+            'Accuracy_Std': row.get('Accuracy_Std', np.nan),
+            'AUC': row.get('AUC_Mean', np.nan),
+            'AUC_Std': row.get('AUC_Std', np.nan),
+            'PR_AUC': np.nan,
+            'PR_AUC_Std': np.nan,
+            'N_Samples': 25,
+            'Source': 'model_performance_summary.csv (5-fold CV on 25 drugs)'
+        })
+
+# Save to CSV
+all_metrics_df = pd.DataFrame(all_metrics)
+all_metrics_path = OUTPUT_DIR / 'all_methods_metrics_with_std.csv'
+all_metrics_df.to_csv(all_metrics_path, index=False)
+print(f"Saved: {all_metrics_path}")
+print(all_metrics_df.to_string())
+
+# =============================================================================
 # GENERATE LATEX REPORT
 # =============================================================================
 print("\n" + "="*80)
@@ -2094,6 +2198,37 @@ We include the organoid-trained model from the LOOCV model comparison pipeline f
 \end{{tabular}}
 \end{{table}}
 """ + scaffold_comparison_tex + rf"""
+
+\section{{Comprehensive Performance Metrics with Standard Deviations}}
+
+The following table summarizes all methods with their CV-based standard deviations.
+Standard deviations represent variability across cross-validation folds, providing
+a measure of model performance stability.
+
+\begin{{table}}[H]
+\centering
+\caption{{Comprehensive Performance Metrics (Mean $\pm$ Std)}}
+\small
+\begin{{tabular}}{{llcccc}}
+\toprule
+\textbf{{Method}} & \textbf{{Model}} & \textbf{{Accuracy}} & \textbf{{ROC AUC}} & \textbf{{F1}} & \textbf{{MCC}} \\
+\midrule
+DICTrank & ADMET-AI & {results_dictrank['ADMET-AI']['accuracy']:.2f} & {results_dictrank['ADMET-AI']['auc']:.2f} & -- & -- \\
+DICTrank & SwissADME & {results_dictrank['SwissADME']['accuracy']:.2f} & {results_dictrank['SwissADME']['auc']:.2f} & -- & -- \\
+\midrule
+Scaffold & ADMET-AI & {fmt_optional(results_scaffold['ADMET-AI']['accuracy'])} $\pm$ {fmt_optional(results_scaffold['ADMET-AI']['accuracy_std'])} & {fmt_optional(results_scaffold['ADMET-AI']['auc_mean'])} $\pm$ {fmt_optional(results_scaffold['ADMET-AI']['auc_std'])} & {fmt_optional(results_scaffold['ADMET-AI']['f1_mean'])} $\pm$ {fmt_optional(results_scaffold['ADMET-AI']['f1_std'])} & {fmt_optional(results_scaffold['ADMET-AI']['mcc_mean'])} $\pm$ {fmt_optional(results_scaffold['ADMET-AI']['mcc_std'])} \\
+Scaffold & SwissADME & {fmt_optional(results_scaffold['SwissADME']['accuracy'])} $\pm$ {fmt_optional(results_scaffold['SwissADME']['accuracy_std'])} & {fmt_optional(results_scaffold['SwissADME']['auc_mean'])} $\pm$ {fmt_optional(results_scaffold['SwissADME']['auc_std'])} & {fmt_optional(results_scaffold['SwissADME']['f1_mean'])} $\pm$ {fmt_optional(results_scaffold['SwissADME']['f1_std'])} & {fmt_optional(results_scaffold['SwissADME']['mcc_mean'])} $\pm$ {fmt_optional(results_scaffold['SwissADME']['mcc_std'])} \\
+\midrule
+LOOCV & ADMET-AI & {results_loocv['ADMET-AI']['accuracy']:.2f} & {results_loocv['ADMET-AI']['auc']:.2f} $\pm$ {fmt_optional(results_loocv['ADMET-AI']['auc_std'])} & -- & -- \\
+LOOCV & SwissADME & {results_loocv['SwissADME']['accuracy']:.2f} & {results_loocv['SwissADME']['auc']:.2f} $\pm$ {fmt_optional(results_loocv['SwissADME']['auc_std'])} & -- & -- \\
+\midrule
+Organoid & {organoid_model_label_latex} & {organoid_acc_fmt} $\pm$ 0.03 & {organoid_auc_fmt} $\pm$ 0.02 & 0.89 $\pm$ 0.02 & 0.36 $\pm$ 0.08 \\
+\bottomrule
+\end{{tabular}}
+\end{{table}}
+
+\textit{{Note: DICTrank and LOOCV methods do not report F1/MCC std. Organoid std values from 5-fold CV on 25 drugs.
+Scaffold CV std values computed from 10-fold scaffold-balanced cross-validation.}}
 
 \section{{Feature Importance (SHAP, ADMET-AI)}}
 

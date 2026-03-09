@@ -1,0 +1,121 @@
+# Figure-Generating Scripts Reference
+# ====================================
+# This file lists all scripts in the project that generate figures or plots.
+# Use this to identify which script to modify when updating a specific figure.
+#
+# Last Updated: 2026-02-02
+
+## Main Figure Generation Scripts
+## ------------------------------
+
+### Prediction Models / ML Figures
+- Prediction_Models/loocv_model_comparison.py
+  - ROC curves, confusion matrices, SHAP plots for LOOCV analysis
+  - Outputs: Output/ROC_Data/, Output/SHAP_Data/, Output/Confusion_Matrices/
+
+- Prediction_Models/pipeline/visualize.py
+  - Core visualization utilities for prediction model outputs
+
+- Prediction_Models/pipeline/report.py
+  - Generates LaTeX reports with embedded figures
+
+- Prediction_Models/Prediction_Models_AR_HD_Concern.ipynb
+  - Main training notebook with inline visualizations
+
+### 3D Surface Plots
+- 3D_Surface_Plots.ipynb
+  - 3D PK-PD elimination surface plots for all drugs
+  - Outputs: Output/3D_Plots/
+
+- Paper_Plots_PKPD_Elimination_Surfaces.ipynb
+  - Publication-quality 3D surface plots
+  - Outputs: Output/3D_Plots/
+
+- plot_3d_surface_with_raw.py
+  - 3D surfaces with raw data overlays
+
+### 2D Plots
+- generate_2d_pkpd_plots.py
+  - 2D time-series PK-PD plots
+  - Outputs: Output/2D_Plots/
+
+### ADMET Comparison
+- ADMET_Comparison/Scripts/full_analysis.py
+  - Complete ADMET vs organoid comparison pipeline
+  - Outputs: Output/ADMET_Comparison/
+
+- ADMET_Comparison/Scripts/plot_admet_predictions.py
+  - Drug prediction scatter plots and comparison charts
+
+- ADMET_Comparison/Scripts/full_comparison_3methods.py
+  - Three-way comparison visualization
+
+- ADMET_Comparison/Scripts/compare_admet_swissadme.py
+  - ADMET-AI vs SwissADME comparison plots
+
+### MoLFormer Comparison
+- MoLFormer_Comparison/Scripts/generate_comparison_figures.py
+  - MoLFormer vs organoid comparison charts
+
+- MoLFormer_Comparison/Scripts/final_comparison_summary.py
+  - Summary comparison figures
+
+- MoLFormer_Comparison/Scripts/compare_molformer_organoid.py
+  - Head-to-head comparison plots
+
+### Equation Fitting
+- Picking Equations/equation_fitting/generate_report.py
+  - Equation fitting quality plots, R2 distributions
+
+- Picking Equations/equation_fitting/equation_comparison_analysis.ipynb
+  - Interactive equation comparison visualizations
+
+### Metric and Feature Plots
+- create_metric_bar_plots.py
+  - Bar charts for accuracy, AUC metrics
+  - Outputs: Output/Performance_Metrics/
+
+- create_prediction_scatter_plots.py
+  - Prediction probability scatter plots
+  - Outputs: Output/Prediction_Scatter_Data/
+
+- create_cumulative_feature_plots.py
+  - Cumulative feature importance plots
+  - Outputs: Output/Cumulative_Plot_Data/
+
+- create_cumulative_feature_plots_v2.py
+  - Updated version with improved styling
+
+### SHAP Analysis
+- Output/SHAP_Data/shap_aligned_pairs.py
+  - Aligned SHAP importance plots
+  - Outputs: Output/SHAP_Data/
+
+- Output/SHAP_Data/shap_aligned_pairs_all.py
+  - All models SHAP comparison
+
+### Excel Chart Integration
+- update_excel_charts.py
+  - Adds Excel charts to data files
+
+- update_admet_excel_charts.py
+  - ADMET-specific Excel chart generation
+
+- add_charts_to_excel.py
+  - Generic Excel chart utilities
+
+### Analysis Notebooks
+- heart_rate_analysis.ipynb
+  - Heart rate analysis figures
+
+- raw_qc_analysis.ipynb
+  - Quality control analysis plots
+
+- analyze_raw_qc.py
+  - Automated QC figure generation
+
+## Notes
+## -----
+# - All Python scripts should use `import figure_config` for consistent Helvetica fonts
+# - Standard DPI for publication: 600 (PNG), 300 (screen preview)
+# - Single panel base size: 2.42" x 1.36"

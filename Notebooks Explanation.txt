@@ -1,0 +1,3 @@
+5 essential notebooks for the data analysis
+1. 3D_surface_plots, concised version of paper plots pkpd elimination surfaces. where it only contains the 5x5 grid plots and the paper plots contains some individual plots as well as 2d plots
+2. Prediction models ar hd concern concised, its the plots in the paper for te prediction modles wher the non concised one has all of the rest. 

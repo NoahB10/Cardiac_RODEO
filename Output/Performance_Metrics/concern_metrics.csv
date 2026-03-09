@@ -1,2 +1,0 @@
-accuracy,f1_macro,f1_weighted,precision_macro,recall_macro,per_class_accuracy,per_class_f1,per_class_auc,mean_auc
-0.44,0.20370370370370372,0.3666666666666667,0.17460317460317462,0.24444444444444444,"{'no': 0.84, 'less': 0.6, 'most': 0.44}","{'no': 0.0, 'less': 0.0, 'most': 0.6111111111111112}","{'no': 0.34523809523809523, 'less': 0.6403508771929824, 'most': 0.2866666666666666}",0.42408521303258145

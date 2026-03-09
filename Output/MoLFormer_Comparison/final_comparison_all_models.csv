@@ -1,0 +1,4 @@
+Model,Method,Training_Data,Target,LOOCV_AUC_Training,Test_AUC_25drugs,Test_Accuracy_25drugs,N_test
+MoLFormer DIQT,Structure-based (SMILES),DIQT (255 drugs),QT Prolongation → Arrhythmia,0.817,0.688,0.6,25
+Organoid PK-PD (XGBoost),Functional (Organoid coefficients),Cardiac RODEO (25 drugs),Arrhythmia,0.779,0.779,0.72,25
+Organoid PK-PD (RandomForest),Functional (Organoid coefficients),Cardiac RODEO (25 drugs),Arrhythmia,0.795,0.795,0.76,25

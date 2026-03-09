@@ -1,0 +1,2 @@
+Model,Training_Data,CV_Method,ROC_AUC,Accuracy,TP,FN,TN,FP
+MoLFormer XGBoost (5-Fold CV on 25 drugs),25 Cardiac RODEO drugs,5-Fold Stratified,0.7337662337662337,0.72,11,3,7,4

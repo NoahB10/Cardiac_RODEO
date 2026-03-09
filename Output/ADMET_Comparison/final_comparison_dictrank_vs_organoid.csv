@@ -1,0 +1,6 @@
+Model,Accuracy,ROC_AUC,TP,FN,TN,FP
+ADMET-AI (DICTrank),0.56,0.45,12,8,2,3
+SwissADME (DICTrank),0.5652173913043478,0.6000000000000001,11,9,2,1
+GradientBoosting (Organoid),0.68,0.48,15,5,2,3
+XGBoost (Organoid),0.64,0.32999999999999996,16,4,0,5
+CatBoost (Organoid),0.6,0.31,15,5,0,5

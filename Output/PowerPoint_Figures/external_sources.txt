@@ -1,0 +1,9 @@
+# External Sources for Cardiac RODEO Figures
+# ===========================================
+# This file tracks figures that come from external tools (not Python scripts)
+# Format: Figure_ID | Source | Original_File | Notes
+#
+# Examples:
+# Fig_1a | BioRender | Fig1a_schematic.png | Organoid platform diagram
+# Fig_2b | Manual | External_Photo.jpg | Microscopy image from lab
+

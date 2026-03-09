@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "image-size": "^2.0.2"
+  },
+  "dependencies": {
+    "pptxgenjs": "^4.0.1"
+  }
+}

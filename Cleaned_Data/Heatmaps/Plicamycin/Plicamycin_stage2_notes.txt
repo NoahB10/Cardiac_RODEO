@@ -1,0 +1,195 @@
+Drug: Plicamycin
+Interpolation: linear, limit=4 segments
+Columns dropped when >= 50% missing data
+Wells within each concentration sorted by average values (highest to lowest)
+
+Diameter normalization: ENABLED for amp_std and amp_dom_freq metrics
+Total wells analyzed: 31
+  - Wells WITH diameter data: 16 (51.6%)
+  - Wells WITHOUT diameter data: 15 (48.4%)
+  - Excluded plates (no diameter): namedlogs, Plate3, Raw_WellsAH
+
+[O2_mean] column mapping:
+  B: 20 -> A09 (avg: 68.10)
+  C: 20 -> B10 (avg: 59.38)
+  D: 10 -> C09 (avg: 43.66)
+  E: 10 -> C10 (avg: 44.76)
+  F: 10 -> D09 (avg: 42.27)
+  G: 10 -> D10 (avg: 39.31)
+  H: 5 -> E09 (avg: 31.83)
+  I: 5 -> E10 (avg: 34.04)
+  J: 5 -> F09 (avg: 33.95)
+  K: 5 -> F10 (avg: 39.27)
+  L: 2.5 -> G09 (avg: 27.92)
+  M: 2.5 -> G10 (avg: 34.94)
+  N: 2.5 -> H09 (avg: 34.69)
+  O: 2.5 -> H10 (avg: 36.65)
+  P: 1.25 -> I09 (avg: 25.45)
+  Q: 1.25 -> I10 (avg: 23.28)
+  R: 1.25 -> J09 (avg: 39.78)
+  S: 1.25 -> J10 (avg: 21.72)
+  T: 0.625 -> K09 (avg: 32.25)
+  U: 0.625 -> K10 (avg: 33.47)
+  V: 0.625 -> L10 (avg: 10.00)
+  W: 0.313 -> M09 (avg: 33.31)
+  X: 0.313 -> M10 (avg: 26.10)
+  Y: 0.313 -> N09 (avg: 24.34)
+  Z: 0.313 -> N10 (avg: 17.60)
+  AA: 0.156 -> O09 (avg: 13.42)
+  AB: 0.156 -> P09 (avg: 27.36)
+  AC: 0.156 -> P10 (avg: 40.10)
+  Dropped: 20 -> A10, 20 -> B09, 0.625 -> L09
+
+[O2_dom_freq] column mapping:
+  B: 20 -> A09 (avg: 1.25)
+  C: 20 -> B10 (avg: 1.30)
+  D: 10 -> C09 (avg: 1.57)
+  E: 10 -> C10 (avg: 1.40)
+  F: 10 -> D09 (avg: 1.48)
+  G: 10 -> D10 (avg: 1.63)
+  H: 5 -> E09 (avg: 1.51)
+  I: 5 -> E10 (avg: 1.49)
+  J: 5 -> F09 (avg: 1.11)
+  K: 5 -> F10 (avg: 1.33)
+  L: 2.5 -> G09 (avg: 1.38)
+  M: 2.5 -> G10 (avg: 1.34)
+  N: 2.5 -> H09 (avg: 1.43)
+  O: 2.5 -> H10 (avg: 1.20)
+  P: 1.25 -> I09 (avg: 1.56)
+  Q: 1.25 -> I10 (avg: 1.52)
+  R: 1.25 -> J09 (avg: 1.37)
+  S: 1.25 -> J10 (avg: 1.32)
+  T: 0.625 -> K09 (avg: 1.38)
+  U: 0.625 -> K10 (avg: 1.47)
+  V: 0.625 -> L10 (avg: 1.30)
+  W: 0.313 -> M09 (avg: 1.04)
+  X: 0.313 -> M10 (avg: 1.38)
+  Y: 0.313 -> N09 (avg: 1.47)
+  Z: 0.313 -> N10 (avg: 1.16)
+  AA: 0.156 -> O09 (avg: 1.40)
+  AB: 0.156 -> P09 (avg: 1.44)
+  AC: 0.156 -> P10 (avg: 1.51)
+  Dropped: 20 -> A10, 20 -> B09, 0.625 -> L09
+
+[O2_std] column mapping:
+  B: 20 -> A09 (avg: 4.60)
+  C: 20 -> B10 (avg: 3.23)
+  D: 10 -> C09 (avg: 1.52)
+  E: 10 -> C10 (avg: 2.77)
+  F: 10 -> D09 (avg: 2.21)
+  G: 10 -> D10 (avg: 3.11)
+  H: 5 -> E09 (avg: 1.73)
+  I: 5 -> E10 (avg: 4.01)
+  J: 5 -> F09 (avg: 4.01)
+  K: 5 -> F10 (avg: 2.57)
+  L: 2.5 -> G09 (avg: 1.27)
+  M: 2.5 -> G10 (avg: 2.09)
+  N: 2.5 -> H09 (avg: 1.08)
+  O: 2.5 -> H10 (avg: 4.38)
+  P: 1.25 -> I09 (avg: 2.97)
+  Q: 1.25 -> I10 (avg: 1.15)
+  R: 1.25 -> J09 (avg: 3.02)
+  S: 1.25 -> J10 (avg: 6.94)
+  T: 0.625 -> K09 (avg: 3.39)
+  U: 0.625 -> K10 (avg: 6.75)
+  V: 0.625 -> L10 (avg: 5.88)
+  W: 0.313 -> M09 (avg: 1.46)
+  X: 0.313 -> M10 (avg: 2.06)
+  Y: 0.313 -> N09 (avg: 2.00)
+  Z: 0.313 -> N10 (avg: 2.53)
+  AA: 0.156 -> O09 (avg: 2.92)
+  AB: 0.156 -> P09 (avg: 5.38)
+  AC: 0.156 -> P10 (avg: 2.94)
+  Dropped: 20 -> A10, 20 -> B09, 0.625 -> L09
+
+[Amp_std] column mapping:
+  B: 20 -> A09 (avg: 0.02)
+  C: 20 -> B10 (avg: 0.05)
+  D: 10 -> C09 (avg: 0.19)
+  E: 10 -> C10 (avg: 0.07)
+  F: 10 -> D09 (avg: 0.08)
+  G: 10 -> D10 (avg: 0.04)
+  H: 5 -> E09 (avg: 0.11)
+  I: 5 -> E10 (avg: 0.03)
+  J: 5 -> F09 (avg: 0.02)
+  K: 5 -> F10 (avg: 0.07)
+  L: 2.5 -> G09 (avg: 0.20)
+  M: 2.5 -> G10 (avg: 0.10)
+  N: 2.5 -> H09 (avg: 0.18)
+  O: 2.5 -> H10 (avg: 0.01)
+  P: 1.25 -> I09 (avg: 0.08)
+  Q: 1.25 -> I10 (avg: 0.19)
+  R: 1.25 -> J09 (avg: 0.05)
+  S: 1.25 -> J10 (avg: 0.00)
+  T: 0.625 -> K09 (avg: 0.03)
+  U: 0.625 -> K10 (avg: 0.02)
+  V: 0.625 -> L10 (avg: 0.00)
+  W: 0.313 -> M09 (avg: 0.17)
+  X: 0.313 -> M10 (avg: 0.07)
+  Y: 0.313 -> N09 (avg: 0.11)
+  Z: 0.313 -> N10 (avg: 0.05)
+  AA: 0.156 -> O09 (avg: 0.02)
+  AB: 0.156 -> P09 (avg: 0.00)
+  AC: 0.156 -> P10 (avg: 0.05)
+  Dropped: 20 -> A10, 20 -> B09, 0.625 -> L09
+
+[Amp_dom_freq] column mapping:
+  B: 20 -> A09 (avg: 1.57)
+  C: 20 -> B10 (avg: 1.35)
+  D: 10 -> C09 (avg: 1.32)
+  E: 10 -> C10 (avg: 1.35)
+  F: 10 -> D09 (avg: 1.22)
+  G: 10 -> D10 (avg: 1.27)
+  H: 5 -> E09 (avg: 1.57)
+  I: 5 -> E10 (avg: 1.36)
+  J: 5 -> F09 (avg: 1.37)
+  K: 5 -> F10 (avg: 1.47)
+  L: 2.5 -> G09 (avg: 1.27)
+  M: 2.5 -> G10 (avg: 1.27)
+  N: 2.5 -> H09 (avg: 1.60)
+  O: 2.5 -> H10 (avg: 1.28)
+  P: 1.25 -> I09 (avg: 1.45)
+  Q: 1.25 -> I10 (avg: 1.38)
+  R: 1.25 -> J09 (avg: 1.20)
+  S: 1.25 -> J10 (avg: 1.42)
+  T: 0.625 -> K09 (avg: 1.51)
+  U: 0.625 -> K10 (avg: 1.35)
+  V: 0.625 -> L10 (avg: 1.19)
+  W: 0.313 -> M09 (avg: 1.38)
+  X: 0.313 -> M10 (avg: 1.23)
+  Y: 0.313 -> N09 (avg: 1.65)
+  Z: 0.313 -> N10 (avg: 1.37)
+  AA: 0.156 -> O09 (avg: 1.20)
+  AB: 0.156 -> P09 (avg: 1.40)
+  AC: 0.156 -> P10 (avg: 1.46)
+  Dropped: 20 -> A10, 20 -> B09, 0.625 -> L09
+
+Wells without diameter data (not normalized):
+  M10 - no_diameter_data
+  J10 - no_diameter_data
+  K10 - no_diameter_data
+  L10 - no_diameter_data
+  I10 - no_diameter_data
+  M09 - no_diameter_data
+  O09 - no_diameter_data
+  J09 - no_diameter_data
+  P10 - no_diameter_data
+  K09 - no_diameter_data
+  P09 - no_diameter_data
+  N09 - no_diameter_data
+  N10 - no_diameter_data
+  I09 - no_diameter_data
+  M10 - no_diameter_data
+  J10 - no_diameter_data
+  K10 - no_diameter_data
+  L10 - no_diameter_data
+  I10 - no_diameter_data
+  M09 - no_diameter_data
+  O09 - no_diameter_data
+  J09 - no_diameter_data
+  P10 - no_diameter_data
+  K09 - no_diameter_data
+  P09 - no_diameter_data
+  N09 - no_diameter_data
+  N10 - no_diameter_data
+  I09 - no_diameter_data

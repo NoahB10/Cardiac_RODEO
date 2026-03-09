@@ -15,7 +15,7 @@
 
 \title{Equation Selection Analysis\\for Cardiac Drug Response Modeling}
 \author{Cardiac RODEO Project}
-\date{December 31, 2025}
+\date{January 19, 2026}
 
 \begin{document}
 
@@ -53,10 +53,24 @@ on their coefficient of determination ($R^2$), and parameter interpretability.
 \end{tabular}
 \end{table}
 
+\begin{table}[H]
+\centering
+\caption{Top 3 Equations by O$_2$ Mean $R^2$}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Rank} & \textbf{Equation} & \textbf{O$_2$ Mean} & \textbf{O$_2$ Std} \\
+\midrule
+1 & Dual Exponential (Eq1) & 0.5656 & 0.2297 \\
+2 & Modified Hill (Hormesis) (Eq4) & 0.5440 & 0.2273 \\
+3 & PKPD Elimination (Eq11) & 0.5026 & 0.2538 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.7\textwidth]{figures/r2_comparison_scatter.pdf}
-\caption{Scatter plot comparing mean $R^2$ values. Points above the diagonal indicate better O$_2$ fit.}
+\caption{Mean $R^2$ values for O$_2$ by equation.}
 \label{fig:scatter}
 \end{figure}
 

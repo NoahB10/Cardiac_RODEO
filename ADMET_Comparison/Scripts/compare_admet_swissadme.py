@@ -4,6 +4,9 @@ Computes SwissADME-like features using RDKit and trains XGBoost model.
 """
 import pandas as pd
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
 from sklearn.ensemble import GradientBoostingClassifier
@@ -11,6 +14,15 @@ from sklearn.model_selection import cross_val_predict
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from pathlib import Path
+
+# Register Helvetica fonts from local fonts folder
+_font_dir = Path(__file__).resolve().parent.parent.parent / 'fonts'
+if _font_dir.exists():
+    for _font_file in _font_dir.glob('*.ttf'):
+        fm.fontManager.addfont(str(_font_file))
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
 import pickle
 import warnings
 warnings.filterwarnings('ignore')

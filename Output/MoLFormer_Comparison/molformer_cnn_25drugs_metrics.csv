@@ -1,0 +1,2 @@
+Model,N_drugs,CV_folds,AUC,Accuracy,Sensitivity,Specificity
+MoLFormer-XL-CNN (25 drugs),25,5,0.6558441558441559,0.68,0.7857142857142857,0.5454545454545454

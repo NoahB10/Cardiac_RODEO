@@ -1,0 +1,50 @@
+Picking equation process summary
+
+Goal
+- Recreate how the PK-PD elimination equation was selected starting from the 6-equation screen.
+- Use mean-averaged Contractility and O2 datasets.
+- Include hormesis and PK-PD steps plus coefficient consolidation.
+
+Data sources
+- Heart_Contractility_Averaged.xlsx
+- O2_Mean_Averaged.xlsx
+- drug_Cmax.csv
+
+Step 1: 6-equation screen (R2 comparison)
+- Script source: picking equation/fit_equation_comparison.py
+- Equations: Dual Exponential, Bivariate Gaussian, Gaussian-Hill Hybrid, Polynomial, Modified Hill (Hormesis), Gaussian Ridge
+- Output files (existing):
+  - picking equation/equation_comparison_summary_contractility_Averaged.txt
+  - picking equation/equation_comparison_summary_MeanAveraged.txt
+- Contractility mean data favors Modified Hill/Hormesis on average.
+- O2 mean data favors Polynomial on average, with Modified Hill/Hormesis as a strong contender.
+
+Step 2: Hormesis focus
+- Rationale: Modified Hill/Hormesis performs well on Contractility and captures biphasic behavior.
+- Formal hormesis model: Hormesis V0
+- Files:
+  - fit_hormesis_v0.m
+  - equation_coefficients/coefficient_files/hormesis_v0_coefficients.csv
+
+Step 3: PK-PD with elimination
+- Equation:
+  R(C0,t) = R0 + Emax * (1 - exp(-kappa * (C0/Cmax * exp(-k_elim * t))^n * (t/tau)^m))
+- MATLAB fit:
+  - equation_coefficients/fitting_scripts/fit_pkpd_elimination.m
+- Coefficients:
+  - equation_coefficients/coefficient_files/pkpd_elimination_coefficients.csv
+
+Step 4: Consolidate all coefficients into a single Excel workbook
+- Script:
+  - consolidate_equation_coefficients.py
+- Output:
+  - equation_coefficients/all_equations_coefficients.xlsx
+  - One sheet per equation
+
+Step 5: R2 summary for all equations on mean data
+- Use consolidated coefficient files in equation_coefficients/coefficient_files/*.csv
+- Each file contains Contractility and O2 R2 values per drug.
+- Summarize mean R2 for each equation for Contractility and O2.
+
+Notebook
+- See PIcking equation process/picking_equation_process.ipynb for a runnable, end-to-end workflow.

@@ -2,9 +2,21 @@
 Plot ADMET-AI DICT concern predictions for all 25 drugs
 """
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
+
+# Register Helvetica fonts from local fonts folder
+_font_dir = Path(__file__).resolve().parent.parent.parent / 'fonts'
+if _font_dir.exists():
+    for _font_file in _font_dir.glob('*.ttf'):
+        fm.fontManager.addfont(str(_font_file))
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
 
 # Load predictions
 SCRIPT_DIR = Path(__file__).resolve().parent

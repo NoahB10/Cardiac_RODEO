@@ -45,20 +45,8 @@ ipython_config.py
 *~
 .DS_Store
 
-# Data files (uncomment if you want to exclude large data files)
-# *.xlsx
-# *.xls
-# *.csv
-# *.pdf
-
-# Model files (uncomment if models are too large)
-# *.pkl
-# *.joblib
-# *.h5
-# *.model
-
-# Output files (uncomment if you want to exclude generated outputs)
-# Output/
+# Data files
+Cleaned_Data/Raw_QC_Analysis_96h.csv
 
 # Environment variables
 .env
@@ -71,3 +59,67 @@ ipython_config.py
 Thumbs.db
 .DS_Store
 
+# Claude Code temp files
+tmpclaude-*-cwd
+**/tmpclaude-*-cwd
+nul
+
+# Node
+node_modules/
+package-lock.json
+
+# CatBoost
+catboost_info/
+**/catboost_info/
+
+# Cursor
+.cursor/
+
+# Workspace scratch
+workspace/
+
+# ADMEThyst external repo
+ADMEThyst-main/
+
+# MoLFormer external repo
+MoLFormer_XL_CNN_repo/
+
+# jupyter-ai
+jupyter-ai/
+
+# LaTeX aux files
+*.aux
+*.out
+*.toc
+*.synctex.gz
+
+# Temporary analysis docs
+WORKTREE_ANALYSIS.md
+BRANCH_SETUP_SUMMARY.md
+NOTEBOOK_CHANGES_SUMMARY.md
+EXP4_MISSING_WELLS_ANALYSIS.txt
+
+# Test/debug scripts
+test_shap_*.py
+tmpclaude_*.py
+Output/debug_*.png
+Output/test_*.png
+
+# Screenshots
+Screenshot *.png
+
+# Temp output files
+Output/Hyperparameter_Optimization_Temp/
+
+# LaTeX archives (large zips)
+Output/LaTeX_Reports/*.zip
+
+# PowerPoint zip export
+Output/PowerPoint_Figures.zip
+
+.claude/skills/skill-codex/
+
+# Large files (exceed GitHub 100MB limit)
+Cleaned_Data/Raw_Tables.zip
+MoLFormer_Comparison/Models/*.pt
+Output/PowerPoint_Figures/Cardiac_RODEO_Tracked.pptx

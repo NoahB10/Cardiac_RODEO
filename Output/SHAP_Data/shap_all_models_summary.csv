@@ -1,111 +1,43 @@
 Model,Feature,Mean_Abs_SHAP
-Arrhythmia,R0_Contractility,1.595808982849121
-Arrhythmia,n_b_Contractility,0.7635825276374817
-Arrhythmia,n_b_O2,0.4387075901031494
-Arrhythmia,kappa_b_Contractility,0.41610264778137207
-Arrhythmia,E_benefit_Contractility,0.2671140730381012
-Arrhythmia,kappa_t_O2,0.2241402566432953
-Arrhythmia,kappa_t_Contractility,0.22094720602035522
-Arrhythmia,m_t_Contractility,0.17465627193450928
-Arrhythmia,E_tox_Contractility,0.08593712747097015
-Arrhythmia,kappa_b_O2,0.04564012214541435
-Arrhythmia,tau_b_Contractility,0.033932071179151535
-Arrhythmia,R0_O2,0.026736555621027946
-Arrhythmia,m_t_O2,0.025807276368141174
-Arrhythmia,m_b_Contractility,0.025430018082261086
-Arrhythmia,n_t_Contractility,0.01957201026380062
-Arrhythmia,m_b_O2,0.018696008250117302
-Arrhythmia,E_benefit_O2,0.01555461622774601
-Arrhythmia,tau_b_O2,0.015075496397912502
-Arrhythmia,n_t_O2,0.008673083037137985
-Arrhythmia,tau_t_Contractility,0.0
-Arrhythmia,E_tox_O2,0.0
-Arrhythmia,tau_t_O2,0.0
-Heart Damage,n_b_O2,0.020545400073852686
-Heart Damage,kappa_b_O2,0.017610380264474562
-Heart Damage,m_t_Contractility,0.012582239148204772
-Heart Damage,m_b_Contractility,0.009862249866460828
-Heart Damage,n_b_Contractility,0.009746339260391186
-Heart Damage,kappa_t_Contractility,0.009091913836664885
-Heart Damage,E_tox_Contractility,0.008233995817227639
-Heart Damage,E_benefit_Contractility,0.007895088804933406
-Heart Damage,tau_t_O2,0.006292018585660331
-Heart Damage,tau_t_Contractility,0.005501837666662199
-Heart Damage,E_benefit_O2,0.005246259924717478
-Heart Damage,kappa_b_Contractility,0.005105569678268465
-Heart Damage,n_t_O2,0.004778529644869026
-Heart Damage,n_t_Contractility,0.004519208338893021
-Heart Damage,R0_O2,0.003992196320057493
-Heart Damage,m_b_O2,0.003943267218060538
-Heart Damage,m_t_O2,0.0032857748757102144
-Heart Damage,kappa_t_O2,0.0030602172101652347
-Heart Damage,tau_b_Contractility,0.0030208249167845225
-Heart Damage,tau_b_O2,0.002624490870481403
-Heart Damage,R0_Contractility,0.0018462825937112556
-Heart Damage,E_tox_O2,0.0017579051038310975
-No Concern,R0_Contractility,0.010026799875390345
-No Concern,E_benefit_Contractility,0.013704359434810853
-No Concern,E_tox_Contractility,0.008021131199791113
-No Concern,kappa_b_Contractility,0.003988530175048926
-No Concern,kappa_t_Contractility,0.014868223820073053
-No Concern,tau_b_Contractility,0.008272595355104502
-No Concern,tau_t_Contractility,0.003708872489489845
-No Concern,n_b_Contractility,0.0056600612696039365
-No Concern,n_t_Contractility,0.012614754134322715
-No Concern,m_b_Contractility,0.010928153855147917
-No Concern,m_t_Contractility,0.002550575483013359
-No Concern,R0_O2,0.00411767576333999
-No Concern,E_benefit_O2,0.025305901054948423
-No Concern,E_tox_O2,0.03478536738641901
-No Concern,kappa_b_O2,0.019031868611312085
-No Concern,kappa_t_O2,0.01391172883121825
-No Concern,tau_b_O2,0.01454524162482901
-No Concern,tau_t_O2,0.013996558042304328
-No Concern,n_b_O2,0.016162031813518267
-No Concern,n_t_O2,0.011714811386762464
-No Concern,m_b_O2,0.0035697317071924743
-No Concern,m_t_O2,0.012416669655558456
-Less Concern,R0_Contractility,0.012777100749600812
-Less Concern,E_benefit_Contractility,0.01076592144415907
-Less Concern,E_tox_Contractility,0.01604501978479778
-Less Concern,kappa_b_Contractility,0.012211130380212447
-Less Concern,kappa_t_Contractility,0.007314003038848029
-Less Concern,tau_b_Contractility,0.014855079842670725
-Less Concern,tau_t_Contractility,0.0041430822230682455
-Less Concern,n_b_Contractility,0.006360431826434039
-Less Concern,n_t_Contractility,0.011331776118985677
-Less Concern,m_b_Contractility,0.004526376786803214
-Less Concern,m_t_Contractility,0.008197516859238365
-Less Concern,R0_O2,0.005152439000340581
-Less Concern,E_benefit_O2,0.008326116730580603
-Less Concern,E_tox_O2,0.03453705935419656
-Less Concern,kappa_b_O2,0.011391261159310813
-Less Concern,kappa_t_O2,0.018542455286858037
-Less Concern,tau_b_O2,0.021506263080557114
-Less Concern,tau_t_O2,0.05138900904732032
-Less Concern,n_b_O2,0.01637179247212582
-Less Concern,n_t_O2,0.010201301512935175
-Less Concern,m_b_O2,0.009181394399757436
-Less Concern,m_t_O2,0.026160875072880604
-Most Concern,R0_Contractility,0.020180618660633
-Most Concern,E_benefit_Contractility,0.023379227971292108
-Most Concern,E_tox_Contractility,0.01534070274480994
-Most Concern,kappa_b_Contractility,0.013272862658843008
-Most Concern,kappa_t_Contractility,0.015080036461163033
-Most Concern,tau_b_Contractility,0.014128522877416899
-Most Concern,tau_t_Contractility,0.004861222968715439
-Most Concern,n_b_Contractility,0.008008146709773874
-Most Concern,n_t_Contractility,0.018218853342750408
-Most Concern,m_b_Contractility,0.010898697638630255
-Most Concern,m_t_Contractility,0.0075099855713267275
-Most Concern,R0_O2,0.006254095186045356
-Most Concern,E_benefit_O2,0.02123004679007552
-Most Concern,E_tox_O2,0.06852699445563122
-Most Concern,kappa_b_O2,0.023275290551033178
-Most Concern,kappa_t_O2,0.022500636000641547
-Most Concern,tau_b_O2,0.034000205065829445
-Most Concern,tau_t_O2,0.04009590292892753
-Most Concern,n_b_O2,0.01636731881429613
-Most Concern,n_t_O2,0.00366624220426783
-Most Concern,m_b_O2,0.010919405312027291
-Most Concern,m_t_O2,0.01750549236216787
+arrhythmia,R0_Contractility,0.13473195448505887
+arrhythmia,kappa_Contractility,0.04772256893445407
+arrhythmia,n_Contractility,0.028231861044988947
+arrhythmia,tau_O2,0.028179783935639274
+arrhythmia,m_O2,0.02777121025107457
+arrhythmia,k_elim_Contractility,0.027618443181553633
+arrhythmia,m_Contractility,0.02619722326989539
+arrhythmia,R0_O2,0.01972233064133677
+arrhythmia,Emax_Contractility,0.0196544837161276
+arrhythmia,tau_Contractility,0.019529228589253145
+arrhythmia,n_O2,0.01734821846282201
+arrhythmia,k_elim_O2,0.013346141011982724
+arrhythmia,Emax_O2,0.011600360801517898
+arrhythmia,kappa_O2,0.010996627782198579
+heart_damage,k_elim_Contractility,0.1248947910421189
+heart_damage,R0_Contractility,0.09549326417733824
+heart_damage,n_O2,0.08966010471394831
+heart_damage,kappa_O2,0.06273524283332903
+heart_damage,n_Contractility,0.05236387338720907
+heart_damage,k_elim_O2,0.0478694814339094
+heart_damage,Emax_Contractility,0.037307637501394264
+heart_damage,R0_O2,0.012675902747524677
+heart_damage,m_Contractility,0.011532522721525709
+heart_damage,kappa_Contractility,0.011422167205898559
+heart_damage,tau_Contractility,0.011178037243817598
+heart_damage,tau_O2,0.010625630682041113
+heart_damage,m_O2,0.010335927931513689
+heart_damage,Emax_O2,0.006002724207899967
+concern_binary,n_O2,0.15276381751201326
+concern_binary,R0_Contractility,0.10808736088155607
+concern_binary,Emax_Contractility,0.08837878041898552
+concern_binary,k_elim_O2,0.05574107778481837
+concern_binary,tau_O2,0.054927456547267786
+concern_binary,kappa_O2,0.02926137033073484
+concern_binary,tau_Contractility,0.021952730416370424
+concern_binary,R0_O2,0.015289083628650174
+concern_binary,m_Contractility,0.014592829922192591
+concern_binary,Emax_O2,0.010497080857190444
+concern_binary,m_O2,0.010091581498292718
+concern_binary,n_Contractility,0.007571168200210261
+concern_binary,kappa_Contractility,0.007209678388053048
+concern_binary,k_elim_Contractility,0.0034786275786048084
