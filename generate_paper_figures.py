@@ -488,7 +488,7 @@ def generate_fig_2():
 # ============================================================================
 
 def generate_fig_3():
-    """Figure 3: Vandetanib heatmaps, R2 comparison, AUC scatter, Daunorubicin 2D+3D."""
+    """Figure 3: Doxorubicin heatmaps, R2 comparison, AUC scatter, Daunorubicin 2D+3D."""
     print("\n=== Figure 3: Fitting Kinetics ===")
     import shutil
     from matplotlib.colors import LinearSegmentedColormap
@@ -499,15 +499,34 @@ def generate_fig_3():
     fig3_dir = FIGURES_DIR / 'Fig_3'
     fig3_dir.mkdir(parents=True, exist_ok=True)
 
-    # ---- 3a: Vandetanib heatmaps (O2 Mean + Contractility, separate images) ----
+    # ---- 3a: Doxorubicin heatmaps (O2 Mean + Contractility, separate images) ----
     # Two images for the same panel: Fig_3a_1.png (O2) and Fig_3a_2.png (Contractility)
-    heatmap_dir = PROJECT_ROOT / 'Cleaned_Data' / 'Heatmaps' / 'Vandetanib (G11)'
-    heatmap_files = [('O2_mean.csv', 'O2 Mean', 'Fig_3a_1.png'),
-                     ('Amp_std.csv', 'Contractility', 'Fig_3a_2.png')]
+    heatmap_dir = PROJECT_ROOT / 'Cleaned_Data' / 'Heatmaps' / 'Doxorubicin (G03)'
+    heatmap_files = [('O2_mean_final.csv', 'O2 Mean', 'Fig_3a_1.png'),
+                     ('Amp_std_final.csv', 'Contractility', 'Fig_3a_2.png')]
 
     heatmap_w = HEATMAP_WIDTH * 1.6
     cmap = LinearSegmentedColormap.from_list('cardiac_rodeo', [HEATMAP_BLUE, 'white', HEATMAP_RED])
     cmap.set_bad('white')
+
+    # Known concentrations for Doxorubicin — used to strip pandas .1/.2 suffixes
+    KNOWN_CONC = {10, 5, 2.5, 1.25, 0.63, 0.31, 0.16}
+
+    def strip_pandas_suffix(col_name):
+        """Strip pandas duplicate suffixes: '5.1' -> '5', '2.5.2' -> '2.5', '0.16.1' -> '0.16'."""
+        import re
+        s = str(col_name)
+        # Try progressively shorter prefixes to match a known concentration
+        parts = s.split('.')
+        for n in range(len(parts), 0, -1):
+            candidate = '.'.join(parts[:n])
+            try:
+                val = float(candidate)
+                if val in KNOWN_CONC:
+                    return str(int(val)) if val == int(val) else str(val)
+            except ValueError:
+                continue
+        return s
 
     tracking_sheets = {}
     for fname, title_label, out_name in heatmap_files:
@@ -516,37 +535,81 @@ def generate_fig_3():
             data_raw = pd.read_csv(fpath, index_col=0)
             data = data_raw.T
 
-            y_labels = clean_concentration_labels(data.index.tolist())
+            # Scale contractility by 1e2; clip O2 outliers above 100
+            is_contractility = 'Amp' in fname
+            if is_contractility:
+                data = data * 100
+                cbar_label = r'Contractility ($\cdot 10^{-2}$)'
+                title_suffix = 'Contractility'
+            else:
+                data = data.clip(upper=100)
+                cbar_label = r'$O_2$ Mean'
+                title_suffix = r'$O_2$ Mean'
+
+            y_labels = [strip_pandas_suffix(c) for c in data.index.tolist()]
             x_labels = [str(t) for t in data.columns.tolist()]
 
             fig_hm, ax = plt.subplots(figsize=(heatmap_w, HEATMAP_WIDTH * 0.6))
 
             sns.heatmap(
                 data, annot=False, cmap=cmap,
-                cbar_kws={'label': title_label, 'shrink': 0.8},
+                cbar_kws={'shrink': 0.8},
                 xticklabels=x_labels, yticklabels=y_labels,
                 square=True, linewidths=0, ax=ax
             )
 
             ax.set_xlabel('Time (h)', fontsize=6)
-            ax.set_ylabel('Conc (mM)', fontsize=6)
-            ax.set_title(f'Vandetanib {title_label}', fontsize=7, fontweight='bold')
+            ax.set_ylabel('Concentration (mM)', fontsize=6)
+            ax.set_title(f'Doxorubicin {title_suffix}', fontsize=7, fontweight='bold')
 
             n_x = len(x_labels)
             x_step = max(1, n_x // 8)
             ax.set_xticks(range(0, n_x, x_step))
             ax.set_xticklabels([x_labels[i] for i in range(0, n_x, x_step)], rotation=45, ha='right', fontsize=5)
 
-            n_y = len(y_labels)
-            y_step = max(1, n_y // 6)
-            ax.set_yticks(range(0, n_y, y_step))
-            ax.set_yticklabels([y_labels[i] for i in range(0, n_y, y_step)], fontsize=5, rotation=0)
+            # Place one tick per unique concentration, centered on its group
+            from collections import OrderedDict
+            conc_groups = OrderedDict()
+            for i, lbl in enumerate(y_labels):
+                conc_groups.setdefault(lbl, []).append(i)
+            tick_positions = []
+            tick_labels_conc = []
+            for lbl, indices in conc_groups.items():
+                center = (indices[0] + indices[-1]) / 2 + 0.5
+                tick_positions.append(center)
+                tick_labels_conc.append(lbl)
+            ax.set_yticks(tick_positions)
+            ax.set_yticklabels(tick_labels_conc, fontsize=5, rotation=0)
 
             cbar = ax.collections[0].colorbar
             cbar.ax.tick_params(labelsize=5)
-            cbar.set_label(title_label, fontsize=5)
+            cbar.set_label('')  # no label on the far side
+
+            # Set explicit colorbar ticks spanning full range including endpoints
+            import numpy as np
+            vmin_cb, vmax_cb = cbar.vmin, cbar.vmax
+            if is_contractility:
+                # More ticks for contractility: 0, 5, 10, 15, 20, 25 + actual max
+                ticks = [t for t in [0, 5, 10, 15, 20, 25] if t <= vmax_cb]
+                if vmax_cb not in ticks:
+                    ticks.append(round(vmax_cb, 1))
+                cbar.set_ticks(ticks)
+            else:
+                # O2: 0, 20, 40, 60, 80, 100 + actual max
+                ticks = [t for t in [0, 20, 40, 60, 80, 100] if t <= vmax_cb]
+                if vmax_cb > 100:
+                    ticks.append(round(vmax_cb, 0))
+                cbar.set_ticks(ticks)
 
             fig_hm.tight_layout()
+
+            # Place colorbar label between heatmap and colorbar
+            hm_bbox = ax.get_position()
+            cb_bbox = cbar.ax.get_position()
+            label_x = (hm_bbox.x1 + cb_bbox.x0) / 2
+            label_y = (cb_bbox.y0 + cb_bbox.y1) / 2
+            fig_hm.text(label_x, label_y, cbar_label, fontsize=5,
+                        ha='center', va='center', rotation=90)
 
             dst = fig3_dir / out_name
             fig_hm.savefig(str(dst), dpi=600, bbox_inches='tight')
@@ -564,28 +627,191 @@ def generate_fig_3():
             for sheet, df in tracking_sheets.items():
                 df.to_excel(writer, sheet_name=sheet[:31], index=True)
         print(f"  Saved: {excel_path}")
-    register_figure('3', 'a', 'Vandetanib Heatmaps (O2 Mean + Contractility)',
+    register_figure('3', 'a', 'Doxorubicin Heatmaps (O2 Mean + Contractility)',
                     (fig3_dir / 'Fig_3a_1.png').relative_to(PROJECT_ROOT),
                     (fig3_dir / 'Fig_3a_data.xlsx').relative_to(PROJECT_ROOT),
                     width=heatmap_w, height=HEATMAP_WIDTH * 0.6,
                     source_script='generate_paper_figures.py',
                     notes='Two images: Fig_3a_1.png (O2) + Fig_3a_2.png (Contractility)')
 
-    # ---- 3b: External placeholder (user adds separately) ----
-    _def_3b = (HEATMAP_WIDTH, HEATMAP_WIDTH)
-    size_3b = get_layout_size('3', 'b', default=_def_3b) or _def_3b
-    fig_3b, ax_3b = plt.subplots(figsize=size_3b)
-    ax_3b.text(0.5, 0.5, 'Panel to be added', ha='center', va='center',
-               fontsize=12, color='gray', transform=ax_3b.transAxes)
-    ax_3b.set_xlim(0, 1)
-    ax_3b.set_ylim(0, 1)
-    ax_3b.axis('off')
-    fig_3b.tight_layout()
+    # ---- 3b: 2x2 grid of surface equation examples (4 individual images) ----
+    import sys
+    import inspect
+    import warnings as _warnings
+    _warnings.filterwarnings('ignore', category=RuntimeWarning)
+    sys.path.insert(0, str(PROJECT_ROOT / 'Picking Equations' / 'equation_fitting'))
+    from equations import EQUATION_FUNCTIONS
 
-    save_figure(fig_3b, '3', 'b', 'External Panel (Placeholder)',
-                {}, width=HEATMAP_WIDTH, height=HEATMAP_WIDTH,
-                source_script='generate_paper_figures.py',
-                notes='Placeholder - user will add external content')
+    SURFACE_PLOTS = [
+        (1,  'dual_exponential',  'Mexiletine',   'Fig_3b_1.png'),
+        (5,  'gaussian_ridge',    'Amiodarone',   'Fig_3b_2.png'),
+        (11, 'pkpd_elimination',  'Daunorubicin', 'Fig_3b_3.png'),
+        (12, 'hormesis_v0',       'Vioxx',        'Fig_3b_4.png'),
+    ]
+
+    N_GRID = 100
+    t_grid = np.linspace(0, 96, N_GRID)
+    dr_grid = np.linspace(0, 2, N_GRID)
+    T_mesh, Dr_mesh = np.meshgrid(t_grid, dr_grid)
+
+    def _get_o2_params(func, row):
+        sig = inspect.signature(func)
+        param_names = list(sig.parameters.keys())[1:]  # skip X
+        values = []
+        for p in param_names:
+            col = f'{p}.1'
+            if col in row.index:
+                values.append(float(row[col]))
+            elif p in row.index:
+                values.append(float(row[p]))
+            else:
+                raise KeyError(f"Column '{col}' not found")
+        return values
+
+    # First pass: compute all 4 surfaces to find global vmin/vmax
+    surface_data = []
+    for surf_num, eq_name, drug_name, out_name in SURFACE_PLOTS:
+        func = EQUATION_FUNCTIONS[eq_name]
+        df_eq = pd.read_excel(
+            PROJECT_ROOT / 'EQN_Coefficients' / 'all_equations_coefficients.xlsx',
+            sheet_name=eq_name, header=1)
+        df_eq.columns = df_eq.columns.str.strip()
+        row = df_eq[df_eq['Drug'] == drug_name].iloc[0]
+        params = _get_o2_params(func, row)
+        Z = func([Dr_mesh, T_mesh], *params)
+        Z = np.where(np.isfinite(Z), Z, 0.0)
+        Z = np.clip(Z, -500, 500)
+        surface_data.append((surf_num, eq_name, drug_name, out_name, Z))
+
+    global_vmin = min(np.min(Z) for *_, Z in surface_data)
+    global_vmax = max(np.max(Z) for *_, Z in surface_data)
+
+    # Second pass: plot each with shared color scale, Fig_4 style (tight titles, no colorbar)
+    from matplotlib.ticker import FuncFormatter, NullFormatter
+
+    def _fmt_tick(x, pos):
+        if x == int(x):
+            return f'{int(x)}'
+        elif abs(x) < 0.1:
+            return f'{x:.2f}'.rstrip('0').rstrip('.')
+        else:
+            return f'{x:.1f}'.rstrip('0').rstrip('.')
+
+    TITLE_SIZE = 28
+    LABEL_SIZE = 24
+    TICK_SIZE = 20
+
+    for surf_num, eq_name, drug_name, out_name, Z in surface_data:
+        fig_s = plt.figure(figsize=(7, 7.5))
+        ax_s = fig_s.add_subplot(111, projection='3d', computed_zorder=False)
+
+        ax_s.plot_surface(T_mesh, Dr_mesh, Z, cmap='turbo',
+                          edgecolor='none', antialiased=True, alpha=0.9,
+                          linewidth=0, rcount=100, ccount=100,
+                          vmin=global_vmin, vmax=global_vmax)
+
+        ax_s.view_init(elev=25, azim=-158)
+        ax_s.set_xlim(0, 96)
+        ax_s.set_ylim(0, 2)
+        ax_s.set_zlim(global_vmin, global_vmax)
+
+        # Transparent panes
+        ax_s.xaxis.pane.fill = False
+        ax_s.yaxis.pane.fill = False
+        ax_s.zaxis.pane.fill = False
+        ax_s.grid(True, alpha=0.2)
+
+        # Axis labels and ticks — tight like Fig_4
+        ax_s.set_xlabel('Time (h)', fontsize=LABEL_SIZE, labelpad=6)
+        ax_s.set_ylabel('Dose Ratio', fontsize=LABEL_SIZE, labelpad=6)
+        ax_s.tick_params(axis='x', labelsize=TICK_SIZE, pad=0)
+        ax_s.tick_params(axis='y', labelsize=TICK_SIZE, pad=0)
+        ax_s.tick_params(axis='z', labelsize=TICK_SIZE, pad=0)
+        ax_s.xaxis.set_major_formatter(FuncFormatter(_fmt_tick))
+        ax_s.yaxis.set_major_formatter(FuncFormatter(_fmt_tick))
+        ax_s.zaxis.set_major_formatter(FuncFormatter(_fmt_tick))
+
+        # Z-axis label via text2D (tight against ticks)
+        ax_s.text2D(-0.02, 0.5, r'$O_2$ (%)', transform=ax_s.transAxes,
+                    fontsize=LABEL_SIZE, rotation=90, va='center', ha='right')
+
+        # Title via text2D (tight on the wireframe) — drug name + surface number
+        ax_s.text2D(0.5, 0.97, f'{drug_name} (Surface {surf_num})', transform=ax_s.transAxes,
+                    fontsize=TITLE_SIZE, fontweight='bold', ha='center', va='top')
+
+        plt.subplots_adjust(left=0.25, right=0.98, top=0.96, bottom=0.02)
+
+        dst = fig3_dir / out_name
+        fig_s.savefig(str(dst), dpi=600, bbox_inches='tight',
+                      facecolor='none', edgecolor='none', transparent=True, pad_inches=0.02)
+        plt.close(fig_s)
+        print(f"  Saved: {dst.name}")
+
+    # Generate shared colorbar image
+    fig_cb, ax_cb = plt.subplots(figsize=(0.4, 3))
+    norm = plt.Normalize(vmin=global_vmin, vmax=global_vmax)
+    sm = plt.cm.ScalarMappable(cmap='turbo', norm=norm)
+    sm.set_array([])
+    cbar = fig_cb.colorbar(sm, cax=ax_cb)
+    cbar.ax.tick_params(labelsize=6)
+    cbar.ax.yaxis.set_ticks_position('right')
+    cbar.ax.yaxis.set_label_position('left')
+    cbar.set_label(r'$O_2$ Mean', fontsize=8, rotation=90, va='bottom')
+    cb_dst = fig3_dir / 'Fig_3b_colorbar.png'
+    fig_cb.savefig(str(cb_dst), dpi=600, bbox_inches='tight', facecolor='white')
+    plt.close(fig_cb)
+    print(f"  Saved: {cb_dst.name}")
+
+    # Save data Excel for Fig 3b
+    fig3b_excel = fig3_dir / 'Fig_3b_data.xlsx'
+    with pd.ExcelWriter(fig3b_excel, engine='openpyxl') as writer:
+        # Coefficients sheet: one row per surface with equation, drug, and all params
+        coeff_rows = []
+        for surf_num, eq_name, drug_name, out_name, Z in surface_data:
+            func = EQUATION_FUNCTIONS[eq_name]
+            df_eq = pd.read_excel(
+                PROJECT_ROOT / 'EQN_Coefficients' / 'all_equations_coefficients.xlsx',
+                sheet_name=eq_name, header=1)
+            df_eq.columns = df_eq.columns.str.strip()
+            row = df_eq[df_eq['Drug'] == drug_name].iloc[0]
+            sig = inspect.signature(func)
+            param_names = list(sig.parameters.keys())[1:]  # skip X
+            coeff_entry = {
+                'Panel': out_name.replace('.png', ''),
+                'Surface_Number': surf_num,
+                'Equation': eq_name,
+                'Drug': drug_name,
+                'Source': str(PROJECT_ROOT / 'EQN_Coefficients' / 'all_equations_coefficients.xlsx'),
+            }
+            for p in param_names:
+                col = f'{p}.1'
+                if col in row.index:
+                    coeff_entry[f'{p}_O2'] = float(row[col])
+                elif p in row.index:
+                    coeff_entry[f'{p}_O2'] = float(row[p])
+            coeff_rows.append(coeff_entry)
+        pd.DataFrame(coeff_rows).to_excel(writer, sheet_name='Coefficients', index=False)
+
+        # Grid axes
+        pd.DataFrame({'Time_h': t_grid}).to_excel(writer, sheet_name='Grid_Time', index=False)
+        pd.DataFrame({'Dose_Ratio': dr_grid}).to_excel(writer, sheet_name='Grid_DoseRatio', index=False)
+
+        # One sheet per surface: Z values (rows=dose_ratio, cols=time)
+        for surf_num, eq_name, drug_name, out_name, Z in surface_data:
+            sheet_name = f'{drug_name}_Eq{surf_num}'[:31]
+            df_z = pd.DataFrame(Z, index=np.round(dr_grid, 4), columns=np.round(t_grid, 2))
+            df_z.index.name = 'Dose_Ratio'
+            df_z.columns.name = 'Time_h'
+            df_z.to_excel(writer, sheet_name=sheet_name)
+
+    print(f"  Saved: {fig3b_excel.name}")
+
+    register_figure('3', 'b', '2x2 Surface Equation Examples',
+                    (fig3_dir / 'Fig_3b_1.png').relative_to(PROJECT_ROOT),
+                    fig3b_excel.relative_to(PROJECT_ROOT), width=6, height=5,
+                    source_script='generate_paper_figures.py',
+                    notes='Four images: Fig_3b_1 (Mexiletine/Eq1), Fig_3b_2 (Amiodarone/Eq5), '
+                          'Fig_3b_3 (Daunorubicin/Eq11), Fig_3b_4 (Vioxx/Eq12) + Fig_3b_colorbar.png')
 
     # ---- 3c: R2 comparison chart (O2 only, sorted best→worst, top 3 highlighted) ----
     # Render large and square at high DPI, then scale down in PPTX
@@ -676,7 +902,7 @@ def generate_fig_3():
             fig_width, fig_height = size_3d
 
         fig, axes = plt.subplots(1, 3, figsize=(fig_width, fig_height), sharey=True)
-        fig.subplots_adjust(left=0.10, right=0.78, wspace=0.08, top=0.85, bottom=0.25)
+        fig.subplots_adjust(left=0.10, right=0.78, wspace=0.15, top=0.85, bottom=0.25)
 
         for idx, (target, ax) in enumerate(zip(targets, axes)):
             target_df = loocv_df[(loocv_df['Target'] == target) & (loocv_df['Model'] == main_model)].copy()
@@ -692,13 +918,18 @@ def generate_fig_3():
 
             ax.plot([0, 1], [0, 1], color='gray', linestyle='--', alpha=0.5, linewidth=1, zorder=1)
 
-            ax.set_xlabel('Coefficient of\nDetermination (R²)', fontsize=9, fontweight='bold')
+            ax.set_xlabel('Prediction\nAccuracy', fontsize=9, fontweight='bold')
             if idx == 0:
                 ax.set_ylabel('AUC ROC', fontsize=9, fontweight='bold')
             ax.set_title(target_titles[target], fontsize=10, fontweight='bold')
 
             ax.set_xlim(0, 1)
             ax.set_ylim(0, 1)
+            ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
+            ax.set_xticklabels(['0', '0.25', '0.5', '0.75', '1.0'])
+            if idx == 0:
+                ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
+                ax.set_yticklabels(['0', '0.25', '0.5', '0.75', '1.0'])
             ax.set_box_aspect(1)
             ax.grid(True, alpha=0.3)
             ax.tick_params(labelsize=7)
@@ -714,7 +945,7 @@ def generate_fig_3():
 
         fig.legend(handles=eq_legend, title='Surface', loc='center right',
                    bbox_to_anchor=(0.98, 0.5), fontsize=7, title_fontsize=8)
-        fig.suptitle('Random Forest Model', fontsize=8, y=0.98, style='italic')
+
 
         loocv_df_full = loocv_df.copy()
         loocv_df_full['Source'] = str(loocv_path)
@@ -740,7 +971,7 @@ def generate_fig_3():
                                label=_eq_labels.get(eq, eq.replace('_', ' ').title()))
 
         ax_arr.plot([0, 1], [0, 1], color='gray', linestyle='--', alpha=0.5, linewidth=1, zorder=1)
-        ax_arr.set_xlabel('Coefficient of\nDetermination (R²)', fontsize=10, fontweight='bold')
+        ax_arr.set_xlabel('Prediction\nAccuracy', fontsize=10, fontweight='bold')
         ax_arr.set_ylabel('AUC ROC', fontsize=10, fontweight='bold')
         ax_arr.set_xlim(0, 1)
         ax_arr.set_ylim(0, 1)
@@ -810,6 +1041,11 @@ def generate_fig_3():
         Resp = Resp - R0
         raw_r = raw_r - R0
 
+        # Scale contractility by 100 for display
+        if resp_type == 'Contractility':
+            Resp = Resp * 100
+            raw_r = raw_r * 100
+
         vmax = float(np.nanmax(Resp))
         norm = plt.Normalize(vmin=0, vmax=vmax)
         ax.plot_surface(T, Dr, Resp, cmap='turbo', norm=norm,
@@ -824,8 +1060,11 @@ def generate_fig_3():
 
         ax.set_xlabel('Time (h)', fontsize=7, labelpad=-3)
         ax.set_ylabel('Dose Ratio', fontsize=7, labelpad=-3)
-        z_lab = 'O$_2$ (% air)' if resp_type == 'O2' else 'Contractility'
+        z_lab = r'O$_2$ (% air)' if resp_type == 'O2' else r'Contractility ($\times 10^{-2}$)'
         ax.set_zlabel(z_lab, fontsize=7, labelpad=-3)
+        if resp_type == 'Contractility':
+            from matplotlib.ticker import MaxNLocator
+            ax.zaxis.set_major_locator(MaxNLocator(integer=True))
         ax.view_init(elev=25, azim=-158)
         ax.tick_params(labelsize=5, pad=-2)
         ax.xaxis.pane.fill = False
@@ -845,9 +1084,94 @@ def generate_fig_3():
         individual_paths.append(individual_dst)
         print(f"  Saved individual: {individual_name}")
 
+    # Save data Excel for Fig 3e
+    fig3e_excel = fig3_dir / 'Fig_3e_data.xlsx'
+    with pd.ExcelWriter(fig3e_excel, engine='openpyxl') as writer:
+        # Coefficients sheet: one row per response type
+        coeff_rows_3e = []
+        for resp_type in ['O2', 'Contractility']:
+            sfx = '.1' if resp_type == 'O2' else ''
+            entry = {
+                'Response_Type': resp_type,
+                'Drug': 'Daunorubicin',
+                'Equation': 'pkpd_elimination',
+                'R0': float(row[f'R0{sfx}']),
+                'Emax': float(row[f'Emax{sfx}']),
+                'kappa': float(row[f'kappa{sfx}']),
+                'n': float(row[f'n{sfx}']),
+                'm': float(row[f'm{sfx}']),
+                'tau': float(row[f'tau{sfx}']),
+                'k_elim': float(row[f'k_elim{sfx}']),
+                'Cmax_used': float(row[f'Cmax_used{sfx}']),
+                'Source': str(coeff_path),
+            }
+            coeff_rows_3e.append(entry)
+        pd.DataFrame(coeff_rows_3e).to_excel(writer, sheet_name='Coefficients', index=False)
+
+        # Surface grid axes
+        dr_vec_save = np.linspace(0, max_dr, 60)
+        t_vec_save = np.linspace(0, 96, 60)
+        pd.DataFrame({'Time_h': t_vec_save}).to_excel(writer, sheet_name='Grid_Time', index=False)
+        pd.DataFrame({'Dose_Ratio': dr_vec_save}).to_excel(writer, sheet_name='Grid_DoseRatio', index=False)
+
+        # Surface Z-values and raw data for each response type
+        for resp_type in ['O2', 'Contractility']:
+            sfx = '.1' if resp_type == 'O2' else ''
+            R0_v = float(row[f'R0{sfx}'])
+            Emax_v = float(row[f'Emax{sfx}'])
+            kappa_v = float(row[f'kappa{sfx}'])
+            n_v = float(row[f'n{sfx}'])
+            m_v = float(row[f'm{sfx}'])
+            tau_v = float(row[f'tau{sfx}'])
+            k_el_v = float(row[f'k_elim{sfx}'])
+            cmax_v = float(row[f'Cmax_used{sfx}'])
+
+            T_g, Dr_g = np.meshgrid(t_vec_save, dr_vec_save)
+            Resp_g = _pkpd_elimination_response(Dr_g, T_g, R0_v, Emax_v, kappa_v, n_v, m_v, tau_v, k_el_v)
+            Resp_g = Resp_g - R0_v  # Baseline correction (matches plot)
+            if resp_type == 'Contractility':
+                Resp_g = Resp_g * 100  # Scale ×100 to match plot
+
+            sheet_z = f'{resp_type}_Surface_Z'[:31]
+            df_z = pd.DataFrame(Resp_g, index=np.round(dr_vec_save, 4), columns=np.round(t_vec_save, 2))
+            df_z.index.name = 'Dose_Ratio'
+            df_z.to_excel(writer, sheet_name=sheet_z)
+
+            # Raw experimental data points
+            data_path = (PROJECT_ROOT / 'Cleaned_Data' / 'O2_Mean_Averaged.xlsx' if resp_type == 'O2'
+                         else PROJECT_ROOT / 'Cleaned_Data' / 'Heart_Contractility_Averaged.xlsx')
+            df_raw_e = pd.read_excel(data_path, sheet_name='Daunorubicin')
+            time_vals_e = df_raw_e.iloc[:, 0].values
+            pts_t, pts_dr, pts_r = [], [], []
+            for cc in df_raw_e.columns[1:]:
+                try:
+                    conc = float(str(cc).replace('_', '.'))
+                    dr = conc / cmax_v
+                    for t, r in zip(time_vals_e, df_raw_e[cc].values):
+                        if not np.isnan(r):
+                            pts_t.append(float(t))
+                            pts_dr.append(dr)
+                            val = float(r) - R0_v  # Baseline corrected
+                            if resp_type == 'Contractility':
+                                val *= 100
+                            pts_r.append(val)
+                except (ValueError, TypeError):
+                    continue
+            raw_df = pd.DataFrame({
+                'Time_h': pts_t,
+                'Dose_Ratio': pts_dr,
+                'Response_Baseline_Corrected': pts_r,
+                'Source': str(data_path),
+            })
+            sheet_raw = f'{resp_type}_Raw_Data'[:31]
+            raw_df.to_excel(writer, sheet_name=sheet_raw, index=False)
+
+    print(f"  Saved: Fig_3e_data.xlsx")
+
     # Individual images placed side-by-side in PPTX via COMPOUND_PANELS
     register_figure('3', 'e', 'Daunorubicin 3D Surfaces + Raw Data (O2 & Contractility)',
-                    individual_paths[0].relative_to(PROJECT_ROOT), None,
+                    individual_paths[0].relative_to(PROJECT_ROOT),
+                    fig3e_excel.relative_to(PROJECT_ROOT),
                     width=SQUARE_SIZE * 1.8, height=SQUARE_SIZE * 1.8,
                     source_script='generate_paper_figures.py',
                     notes='Two images: Fig_3e_O2.png + Fig_3e_Contractility.png')
@@ -856,6 +1180,124 @@ def generate_fig_3():
 # ============================================================================
 # FIGURE 4 & 5: 3D Surface Grids
 # ============================================================================
+
+def _save_fig4_fig5_data():
+    """Save raw data Excel files for Figures 4 (O2) and 5 (Contractility).
+
+    Each file contains:
+      - Coefficients sheet: 25 drugs x 7 PK-PD parameters
+      - Equation sheet: formula definition and axis info
+      - Grid_Axes sheet: time (100 pts) and dose_ratio (100 pts) vectors
+      - 25 drug sheets: each a 100x100 computed Z surface matrix
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill
+
+    EXCEL_PATH = PROJECT_ROOT / 'EQN_Coefficients' / 'all_equations_coefficients.xlsx'
+    df = pd.read_excel(EXCEL_PATH, sheet_name='pkpd_elimination', header=1)
+    df.columns = df.columns.str.strip()
+    EXCLUDED = {'DMSO', 'Troglitazone', 'Troglitarazine'}
+    df = df[~df['Drug'].isin(EXCLUDED)].copy()
+    df = df.sort_values('Drug').reset_index(drop=True)
+
+    PARAM_NAMES = ['R0', 'Emax', 'kappa', 'n', 'm', 'tau', 'k_elim']
+    time = np.linspace(0, 96, 100)
+    dose_ratio = np.linspace(0, 2, 100)
+    T, Dr = np.meshgrid(time, dose_ratio)
+
+    def _pkpd_response(T, Dr, R0, Emax, kappa, n, m, tau, k_elim):
+        k_elim = max(k_elim, 1e-9)
+        kappa = max(kappa, 1e-9)
+        tau = max(tau, 1e-9)
+        t_safe = np.maximum(T, 0)
+        conc = Dr * np.exp(-k_elim * t_safe)
+        Z = R0 + Emax * (1 - np.exp(-kappa * (conc ** n) * ((t_safe / tau) ** m)))
+        return np.nan_to_num(Z, nan=0.0, posinf=0.0, neginf=0.0)
+
+    for fig_num, response_type, suffix in [('4', 'O2', '.1'), ('5', 'Contractility', '')]:
+        wb = Workbook()
+        header_font = Font(bold=True)
+        header_fill = PatternFill('solid', fgColor='D9E1F2')
+
+        # Sheet 1: Coefficients
+        ws_coeff = wb.active
+        ws_coeff.title = 'Coefficients'
+        headers = ['Drug'] + [f'{p}_{response_type}' for p in PARAM_NAMES]
+        for col_idx, h in enumerate(headers, 1):
+            cell = ws_coeff.cell(row=1, column=col_idx, value=h)
+            cell.font = header_font
+            cell.fill = header_fill
+        for row_idx, (_, row) in enumerate(df.iterrows(), 2):
+            ws_coeff.cell(row=row_idx, column=1, value=row['Drug'])
+            for p_idx, p in enumerate(PARAM_NAMES):
+                col = p + suffix if suffix else p
+                val = row.get(col, np.nan)
+                ws_coeff.cell(row=row_idx, column=p_idx + 2,
+                              value=float(val) if pd.notna(val) else None)
+        for col_idx in range(1, len(headers) + 1):
+            ws_coeff.column_dimensions[chr(64 + col_idx)].width = 18
+
+        # Sheet 2: Equation info
+        ws_eq = wb.create_sheet('Equation')
+        ws_eq['A1'] = 'PK-PD Elimination Equation'
+        ws_eq['A1'].font = Font(bold=True, size=14)
+        ws_eq['A3'] = 'Formula'
+        ws_eq['B3'] = ('R(C0, t) = R0 + Emax * (1 - exp(-kappa * '
+                        '(C0/Cmax * exp(-k_elim * t))^n * (t/tau)^m))')
+        ws_eq['A5'] = 'X-axis'
+        ws_eq['B5'] = 'Time (hours), range [0, 96], 100 points'
+        ws_eq['A6'] = 'Y-axis'
+        ws_eq['B6'] = 'Dose Ratio (C0/Cmax), range [0, 2], 100 points'
+        ws_eq['A7'] = 'Z-axis'
+        ws_eq['B7'] = f'{response_type} Response'
+        ws_eq['A9'] = 'Source File'
+        ws_eq['B9'] = str(EXCEL_PATH.resolve())
+        ws_eq['A10'] = 'Sheet'
+        ws_eq['B10'] = 'pkpd_elimination'
+        ws_eq.column_dimensions['A'].width = 15
+        ws_eq.column_dimensions['B'].width = 80
+
+        # Sheet 3: Grid axes
+        ws_axes = wb.create_sheet('Grid_Axes')
+        ws_axes.cell(row=1, column=1, value='Time (hours)').font = header_font
+        ws_axes.cell(row=1, column=2, value='Dose_Ratio (C0/Cmax)').font = header_font
+        for i, t in enumerate(time):
+            ws_axes.cell(row=i + 2, column=1, value=round(float(t), 6))
+        for i, d in enumerate(dose_ratio):
+            ws_axes.cell(row=i + 2, column=2, value=round(float(d), 6))
+
+        # One sheet per drug: 100x100 Z surface
+        drug_count = 0
+        for _, row in df.iterrows():
+            drug = row['Drug']
+            params = []
+            skip = False
+            for p in PARAM_NAMES:
+                col = p + suffix if suffix else p
+                val = row.get(col, np.nan)
+                if pd.isna(val) or not np.isfinite(val):
+                    skip = True
+                    break
+                params.append(float(val))
+            if skip:
+                continue
+
+            Z = _pkpd_response(T, Dr, *params)
+            ws_drug = wb.create_sheet(drug)
+            ws_drug.cell(row=1, column=1, value='Dose_Ratio \\ Time').font = header_font
+            for j in range(100):
+                ws_drug.cell(row=1, column=j + 2, value=round(float(time[j]), 2))
+            for i in range(100):
+                ws_drug.cell(row=i + 2, column=1, value=round(float(dose_ratio[i]), 4))
+                for j in range(100):
+                    ws_drug.cell(row=i + 2, column=j + 2, value=round(float(Z[i, j]), 6))
+            drug_count += 1
+
+        fig_dir = PROJECT_ROOT / 'Output' / 'PowerPoint_Figures' / f'Fig_{fig_num}'
+        data_path = fig_dir / f'Fig_{fig_num}_data.xlsx'
+        wb.save(data_path)
+        print(f"  Saved data: {data_path} ({drug_count} drug surfaces + coefficients)")
+
 
 def generate_fig_4_5():
     """Figures 4 & 5: 3D surface grids for O2 and Contractility.
@@ -910,29 +1352,8 @@ def generate_fig_4_5():
     else:
         print(f"  Warning: {build_script} not found")
 
-    # Save data tracking info
-    for fig_num, response_type in [('4', 'O2'), ('5', 'Contractility')]:
-        fig_dir = PROJECT_ROOT / 'Output' / 'PowerPoint_Figures' / f'Fig_{fig_num}'
-        plots_dir = fig_dir / f'{response_type}_5x5_Individual'
-
-        if plots_dir.exists():
-            drug_files = sorted(plots_dir.glob('*.png'))
-            drug_list = pd.DataFrame({
-                'Drug': [f.stem.split('_', 1)[1] if '_' in f.stem else f.stem for f in drug_files],
-                'Filename': [f.name for f in drug_files],
-                'Source_Path': [str(f) for f in drug_files],
-                'Response_Type': response_type,
-                'Grid_Row': [i // 5 for i in range(len(drug_files))],
-                'Grid_Col': [i % 5 for i in range(len(drug_files))],
-                'Has_Z_Label': [i % 5 == 0 for i in range(len(drug_files))],
-                'Has_X_Label': [i % 5 == 4 for i in range(len(drug_files))],
-                'Has_Y_Label': [i // 5 == 4 for i in range(len(drug_files))]
-            })
-
-            # Save data file
-            data_path = fig_dir / f'Fig_{fig_num}_data.xlsx'
-            drug_list.to_excel(data_path, index=False)
-            print(f"  Saved data: {data_path}")
+    # Save raw data (coefficients + computed surface meshes) for each figure
+    _save_fig4_fig5_data()
 
     print("  Figures 4 & 5 complete - check PowerPoint for assembled grids")
 
@@ -965,11 +1386,12 @@ def generate_prediction_figures(target, fig_num, comparison_type=None):
     roc_path = PROJECT_ROOT / 'Output' / 'ROC_Data' / 'roc_curves_all_models.xlsx'
     roc_df = pd.read_excel(roc_path, sheet_name=info['sheet'])
 
-    # Use SQUARE_SIZE from skill (1.7") - manual margins for exact size
+    # Generate at 2x size then save at target size for crisp legend
     _def_a = (SQUARE_SIZE, SQUARE_SIZE)
     size_a = get_layout_size(fig_num, 'a', default=_def_a) or _def_a
-    fig, ax = plt.subplots(figsize=size_a)
-    fig.subplots_adjust(left=0.18, right=0.95, top=0.88, bottom=0.15)  # Compact margins
+    render_scale = 2.0
+    fig, ax = plt.subplots(figsize=(size_a[0] * render_scale, size_a[1] * render_scale))
+    fig.subplots_adjust(left=0.18, right=0.95, top=0.88, bottom=0.18)
 
     # Collect all fold TPRs for mean/std
     mean_fpr = np.linspace(0, 1, 100)
@@ -994,20 +1416,21 @@ def generate_prediction_figures(target, fig_num, comparison_type=None):
         std_auc = np.std(aucs)
 
         ax.plot(mean_fpr, mean_tpr, color=COLORS['blue'], lw=2,
-                label=f'Mean ROC (AUC={mean_auc:.2f}±{std_auc:.2f})')
+                label=f'Organoid AUC = {mean_auc:.2f} (±{std_auc:.2f})')
         ax.fill_between(mean_fpr,
                         np.maximum(mean_tpr - std_tpr, 0),
                         np.minimum(mean_tpr + std_tpr, 1),
                         color=COLORS['blue'], alpha=0.2)
 
-    ax.plot([0, 1], [0, 1], 'k--', lw=1, label='Random')
-    ax.set_xlabel('FPR', fontsize=8)
-    ax.set_ylabel('TPR', fontsize=8)
-    ax.set_title('AUC ROC', fontsize=9, fontweight='bold')
-    ax.legend(fontsize=6, loc='lower right')
+    ax.plot([0, 1], [0, 1], 'k--', lw=1, label='Chance (AUC = 0.50)')
+    ax.set_xlabel('False Positive Rate', fontsize=8 * render_scale)
+    ax.set_ylabel('True Positive Rate', fontsize=8 * render_scale)
+    ax.set_title('AUC ROC', fontsize=9 * render_scale, fontweight='bold')
+    ax.legend(fontsize=4.5 * render_scale, loc='lower right',
+              handlelength=1.5, handletextpad=0.4, borderpad=0.3, labelspacing=0.3)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    ax.tick_params(labelsize=7)
+    ax.tick_params(labelsize=7 * render_scale)
 
     save_figure(fig, fig_num, 'a', f'{target} ROC Curve',
                 {'ROC_Data': roc_df}, width=SQUARE_SIZE, height=SQUARE_SIZE, exact_size=True)
@@ -1046,7 +1469,29 @@ def generate_prediction_figures(target, fig_num, comparison_type=None):
 
     im = ax.imshow(cm, cmap='Blues', aspect='equal')
 
-    # Add text annotations with percentages (row percentages as per skill)
+    # Add text annotations — counts only (no percentages)
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            val = int(cm[i, j])
+            color = 'white' if cm[i, j] > cm.max() / 2 else 'black'
+            ax.text(j, i, f'{val}', ha='center', va='center', color=color, fontsize=9)
+
+    ax.set_xticks([0, 1])
+    ax.set_yticks([0, 1])
+    ax.set_xticklabels(['Neg', 'Pos'], fontsize=7)
+    ax.set_yticklabels(['Neg', 'Pos'], fontsize=7)
+    ax.set_xlabel('Predicted', fontsize=7)
+    ax.set_ylabel('Actual', fontsize=7)
+    ax.set_title('Confusion Matrix', fontsize=7, fontweight='bold')
+    cm_df_save = pd.DataFrame(cm, index=['Actual Neg', 'Actual Pos'], columns=['Pred Neg', 'Pred Pos'])
+    save_figure(fig, fig_num, 'b', f'{target} Confusion Matrix',
+                {'CM': cm_df_save}, width=SQUARE_SIZE, height=SQUARE_SIZE, exact_size=True)
+
+    # --- Alternative CM with percentages (smaller text, no parentheses) ---
+    fig_alt, ax_alt = plt.subplots(figsize=size_b)
+    fig_alt.subplots_adjust(left=0.18, right=0.98, top=0.85, bottom=0.18)
+    ax_alt.imshow(cm, cmap='Blues', aspect='equal')
+
     row_sums = cm.sum(axis=1, keepdims=True)
     row_sums[row_sums == 0] = 1
     row_pct = cm / row_sums
@@ -1056,18 +1501,23 @@ def generate_prediction_figures(target, fig_num, comparison_type=None):
             val = int(cm[i, j])
             pct = row_pct[i, j] * 100
             color = 'white' if cm[i, j] > cm.max() / 2 else 'black'
-            ax.text(j, i, f'{val}\n({pct:.1f}%)', ha='center', va='center', color=color, fontsize=9)
+            ax_alt.text(j, i, f'{val}', ha='center', va='center', color=color, fontsize=9)
+            ax_alt.text(j, i + 0.25, f'{pct:.0f}%', ha='center', va='center', color=color, fontsize=5)
 
-    ax.set_xticks([0, 1])
-    ax.set_yticks([0, 1])
-    ax.set_xticklabels(['Neg', 'Pos'], fontsize=7)
-    ax.set_yticklabels(['Neg', 'Pos'], fontsize=7)
-    ax.set_xlabel('Predicted', fontsize=7)
-    ax.set_ylabel('Actual', fontsize=7)
-    ax.set_title(f'{info["model"]} CM (thr={threshold_pct}%)', fontsize=7, fontweight='bold')
-    cm_df_save = pd.DataFrame(cm, index=['Actual Neg', 'Actual Pos'], columns=['Pred Neg', 'Pred Pos'])
-    save_figure(fig, fig_num, 'b', f'{target} Confusion Matrix',
-                {'CM': cm_df_save}, width=SQUARE_SIZE, height=SQUARE_SIZE, exact_size=True)
+    ax_alt.set_xticks([0, 1])
+    ax_alt.set_yticks([0, 1])
+    ax_alt.set_xticklabels(['Neg', 'Pos'], fontsize=7)
+    ax_alt.set_yticklabels(['Neg', 'Pos'], fontsize=7)
+    ax_alt.set_xlabel('Predicted', fontsize=7)
+    ax_alt.set_ylabel('Actual', fontsize=7)
+    ax_alt.set_title('Confusion Matrix', fontsize=7, fontweight='bold')
+
+    # Save alternative with percentages as swap graph
+    swap_dir = PROJECT_ROOT / 'Output' / 'PowerPoint_Figures' / f'Fig_{fig_num}'
+    swap_path = swap_dir / f'Fig_{fig_num}b_with_pct.png'
+    fig_alt.savefig(swap_path, dpi=SAVE_DPI, bbox_inches='tight', pad_inches=0.05)
+    plt.close(fig_alt)
+    print(f"  Saved swap graph: {swap_path.name}")
 
     # -------------------------------------------------------------------------
     # Panel c: Metrics Bar (Accuracy, F1, MCC, AUC) - SQUARE with error bars
@@ -1194,6 +1644,52 @@ def generate_prediction_figures(target, fig_num, comparison_type=None):
 
         save_figure(fig, fig_num, 'd', f'{target} Threshold Analysis',
                     {'Predictions': pred_df_full}, width=size_d[0], height=size_d[1], exact_size=True)
+
+        # --- Alternative version with mean ± std lines per class ---
+        fig_alt, ax_alt = plt.subplots(figsize=size_d)
+        fig_alt.subplots_adjust(left=0.35, right=0.98, top=0.95, bottom=0.08)
+
+        ax_alt.scatter(pred_df[pred_col], y_pos, c=colors_p, s=12, edgecolor='black', linewidth=0.2)
+        ax_alt.axvline(threshold, color=COLORS['threshold'], linestyle='--', linewidth=1.5)
+        ax_alt.text(threshold + 2, 1, f'{threshold}%', color=COLORS['threshold'], fontsize=6, fontweight='bold')
+
+        # Mean and std lines for positive class
+        pos_vals = pred_df.loc[pred_df['is_positive'], pred_col]
+        neg_vals = pred_df.loc[~pred_df['is_positive'], pred_col]
+
+        pos_mean, pos_std = pos_vals.mean(), pos_vals.std()
+        neg_mean, neg_std = neg_vals.mean(), neg_vals.std()
+
+        # Positive: green mean + std band
+        ax_alt.axvline(pos_mean, color=COLORS['pass'], linestyle='-', linewidth=0.8, alpha=0.8)
+        ax_alt.axvspan(pos_mean - pos_std, pos_mean + pos_std, color=COLORS['pass'], alpha=0.10)
+
+        # Negative: grey mean + std band
+        ax_alt.axvline(neg_mean, color=COLORS['fail'], linestyle='-', linewidth=0.8, alpha=0.8)
+        ax_alt.axvspan(neg_mean - neg_std, neg_mean + neg_std, color=COLORS['fail'], alpha=0.10)
+
+        ax_alt.set_yticks(y_pos)
+        ax_alt.set_yticklabels(pred_df['Drug'], fontsize=4)
+        ax_alt.set_xlabel('Prob (%)', fontsize=6)
+        ax_alt.set_title('Prediction Threshold', fontsize=7, fontweight='bold')
+        ax_alt.set_xlim(-5, 105)
+        ax_alt.invert_yaxis()
+        ax_alt.grid(axis='x', alpha=0.3)
+        ax_alt.tick_params(axis='x', labelsize=6)
+
+        legend_elements_alt = [
+            Line2D([0], [0], marker='o', color='w', markerfacecolor=COLORS['pass'], markersize=5,
+                   label=f'Pos ({pos_mean:.0f}±{pos_std:.0f}%)'),
+            Line2D([0], [0], marker='o', color='w', markerfacecolor=COLORS['fail'], markersize=5,
+                   label=f'Neg ({neg_mean:.0f}±{neg_std:.0f}%)'),
+        ]
+        ax_alt.legend(handles=legend_elements_alt, fontsize=4, loc='lower right')
+
+        swap_dir = PROJECT_ROOT / 'Output' / 'PowerPoint_Figures' / f'Fig_{fig_num}'
+        swap_path = swap_dir / f'Fig_{fig_num}d_with_stats.png'
+        fig_alt.savefig(swap_path, dpi=SAVE_DPI, bbox_inches='tight', pad_inches=0.05)
+        plt.close(fig_alt)
+        print(f"  Saved swap graph: {swap_path.name}")
 
     # -------------------------------------------------------------------------
     # Panel e: Cumulative Features - with threshold line
@@ -1503,12 +1999,13 @@ def generate_prediction_figures(target, fig_num, comparison_type=None):
                 })
             metrics_df = pd.DataFrame(metrics_data)
 
-            # Create bar chart with theme colors and ERROR BARS
+            # Create bar chart with theme colors and ERROR BARS — compact spacing
             _def_h = (SQUARE_SIZE * 1.8, SQUARE_SIZE)
             size_h = get_layout_size(fig_num, 'h', default=_def_h) or _def_h
             fig, ax = plt.subplots(figsize=size_h)
-            x = np.arange(len(metrics_df))
-            width = 0.25
+            n_models = len(metrics_df)
+            x = np.arange(n_models) * 0.7  # tighter model spacing
+            width = 0.18
 
             # Theme colors for metrics with error bars
             bars_acc = ax.bar(x - width, metrics_df['Accuracy'], width, yerr=metrics_df['Accuracy_Std'], capsize=2,
@@ -1533,13 +2030,15 @@ def generate_prediction_figures(target, fig_num, comparison_type=None):
             # Shorten model names for readability
             short_names = [m.replace('Organoid', 'Organoid').replace('CNN (DIQT Transfer)', 'CNN\n(DIQT)').replace('CNN (5-fold on 25)', 'CNN\n(5-fold)') for m in metrics_df['Model']]
             ax.set_xticklabels(short_names, fontsize=6, rotation=0, ha='center')
-            ax.legend(fontsize=6, loc='upper right')
-            ax.set_ylim([0, 1.2])  # Increased to fit labels
+            ax.set_xlim(x[0] - 0.45, x[-1] + 0.45)
+            ax.legend(fontsize=5, loc='upper left', bbox_to_anchor=(1.0, 1.0),
+                      borderpad=0.3, labelspacing=0.3, handlelength=1.2)
+            ax.set_ylim([0, 1.2])
             ax.axhline(y=0.5, color='gray', linestyle='--', linewidth=0.5, alpha=0.5)
             ax.tick_params(labelsize=7)
             ax.spines['top'].set_visible(False)
             ax.spines['right'].set_visible(False)
-            fig.tight_layout()
+            fig.subplots_adjust(right=0.82)
 
             dst_path = fig_dir / f'Fig_{fig_num}h.png'
             fig.savefig(dst_path, dpi=SAVE_DPI, bbox_inches='tight', facecolor='white')
@@ -1811,12 +2310,13 @@ def generate_prediction_figures(target, fig_num, comparison_type=None):
             metrics_df['F1_Std'] = f1_stds
             metrics_df['MCC_Std'] = mcc_stds
 
-            # Create bar chart with theme colors and ERROR BARS - wider figure to fit model names
-            _def_h = (SQUARE_SIZE * 2.2, SQUARE_SIZE)
+            # Create bar chart with theme colors and ERROR BARS — compact spacing
+            _def_h = (SQUARE_SIZE * 2.8, SQUARE_SIZE * 1.1)
             size_h = get_layout_size(fig_num, 'h', default=_def_h) or _def_h
             fig, ax = plt.subplots(figsize=size_h)
-            x = np.arange(len(metrics_df))
-            width = 0.25
+            n_models = len(metrics_df)
+            x = np.arange(n_models) * 0.9  # moderate spacing for 5 models
+            width = 0.22
 
             # Theme colors with edge borders and error bars
             bars_acc = ax.bar(x - width, metrics_df['Accuracy'], width, yerr=metrics_df['Accuracy_Std'], capsize=2,
@@ -1833,20 +2333,22 @@ def generate_prediction_figures(target, fig_num, comparison_type=None):
                 for bar, val, std in zip(bars, vals, stds):
                     height = val + std if val >= 0 else val - std
                     ax.annotate(f'{val:.2f}', xy=(bar.get_x() + bar.get_width()/2, height),
-                               xytext=(0, 2), textcoords='offset points', ha='center', va='bottom', fontsize=5)
+                               xytext=(0, 2), textcoords='offset points', ha='center', va='bottom', fontsize=4)
 
             ax.set_ylabel('Score', fontsize=8)
             ax.set_title('Model Comparison Metrics', fontsize=9, fontweight='bold')
             ax.set_xticks(x)
-            ax.set_xticklabels(metrics_df['Model'], fontsize=5, rotation=0, ha='center')
-            ax.legend(fontsize=6, loc='upper right')
-            ax.set_ylim([-0.3, 1.2])  # Increased to fit labels
+            ax.set_xticklabels(metrics_df['Model'], fontsize=4, rotation=0, ha='center')
+            ax.set_xlim(x[0] - 0.5, x[-1] + 0.5)
+            ax.legend(fontsize=5, loc='upper left', bbox_to_anchor=(1.0, 1.0),
+                      borderpad=0.3, labelspacing=0.3, handlelength=1.2)
+            ax.set_ylim([-0.3, 1.2])
             ax.axhline(y=0, color='black', linewidth=0.5)
             ax.axhline(y=0.5, color='gray', linestyle='--', linewidth=0.5, alpha=0.5)
             ax.tick_params(labelsize=7)
             ax.spines['top'].set_visible(False)
             ax.spines['right'].set_visible(False)
-            fig.tight_layout()
+            fig.subplots_adjust(right=0.82)
 
             dst_path = fig_dir / f'Fig_{fig_num}h.png'
             fig.savefig(dst_path, dpi=300, bbox_inches='tight')
@@ -2052,7 +2554,7 @@ def generate_supplements():
             # Diagonal line y=x (points above = AUC > Accuracy)
             ax.plot([0, 1], [0, 1], color='gray', linestyle='--', alpha=0.5, linewidth=1, zorder=1)
 
-            ax.set_xlabel('Accuracy', fontsize=9, fontweight='bold')
+            ax.set_xlabel('Prediction\nAccuracy', fontsize=9, fontweight='bold')
             if idx == 0:
                 ax.set_ylabel('AUC ROC', fontsize=9, fontweight='bold')
             ax.set_title(target_titles[target], fontsize=10, fontweight='bold')
@@ -2074,7 +2576,6 @@ def generate_supplements():
         fig.legend(handles=model_legend, title='Model', loc='lower right',
                    bbox_to_anchor=(0.99, 0.15), fontsize=7, title_fontsize=8)
         fig.add_artist(leg1)
-        fig.suptitle('Other Models (3 surfaces each)', fontsize=8, y=0.98, style='italic')
 
         # Save FULL LOOCV data with source path
         loocv_df_full = loocv_df.copy()
@@ -2368,7 +2869,10 @@ def _get_slide_images_by_position(unpack_dir, slide_num, png_only=True):
 
     # Group into visual rows: images within ROW_TOLERANCE EMU of the same y
     # are considered on the same row, then sorted left-to-right within the row.
+    # Within each row, split at large x-gaps (COL_GAP_TOLERANCE) to avoid
+    # interleaving images from different panel regions at similar y positions.
     ROW_TOLERANCE = 300000  # ~0.33 inches
+    COL_GAP_TOLERANCE = 914400  # 1.0 inch — split row if x-gap exceeds this
     positioned.sort(key=lambda p: (p[0], p[1]))
 
     rows = []
@@ -2382,6 +2886,9 @@ def _get_slide_images_by_position(unpack_dir, slide_num, png_only=True):
     rows.append(sorted(current_row, key=lambda p: p[1]))
 
     result = [(rid, fname) for row in rows for _, _, rid, fname in row]
+    # Also store positions keyed by rId for compound panel reordering
+    _position_cache = {rid: (x, y) for row in rows for y, x, rid, fname in row}
+    _get_slide_images_by_position._position_cache = _position_cache
 
     # Append any images not matched in the slide XML (shouldn't happen, but safe)
     for rid, fname in image_files:
@@ -2819,12 +3326,18 @@ def _update_slide_titles(unpack_dir):
             print(f"  Slide {slide_num}: Updated title{notes_msg}")
 
 
+# Slides where the user manually manages grouping and labels in PowerPoint.
+# _add_panel_labels will skip these to avoid destroying manual layout.
+MANUAL_GROUP_SLIDES = {3, 4, 5}
+
+
 def _add_panel_labels(unpack_dir):
     """Add panel letter labels grouped with images on multi-panel slides.
 
     For each slide with lettered panels, wraps each (image, label) pair
     in a <p:grpSp> so they move together when repositioned in PowerPoint.
     Idempotent: removes existing groups/labels and recreates them fresh.
+    Skips slides in MANUAL_GROUP_SLIDES where the user manages groups.
     """
     import xml.etree.ElementTree as ET
 
@@ -2851,6 +3364,9 @@ def _add_panel_labels(unpack_dir):
 
         if not letters:
             continue  # Skip single-figure slides
+
+        if slide_num in MANUAL_GROUP_SLIDES:
+            continue  # User manages grouping manually on this slide
 
         fig_id = fig_prefix.replace('Fig_', '')
 
@@ -3111,8 +3627,28 @@ _layout_cache = None
 COMPOUND_PANELS = {
     # Panel 3a: two heatmaps (Fig_3a_1.png + Fig_3a_2.png)
     ('3', 'a'): ['1', '2'],
+    # Panel 3b: four 3D surfaces in 2x2 grid + shared colorbar
+    # Order matches position sort: top-left, top-right, colorbar (right of row1), bottom-left, bottom-right
+    ('3', 'b'): ['1', '2', 'colorbar', '3', '4'],
     # Panel 3e: two 3D surfaces (Fig_3e_O2.png + Fig_3e_Contractility.png)
     ('3', 'e'): ['O2', 'Contractility'],
+}
+
+# Explicit rId-to-source mapping for slide 3.
+# This bypasses position-based sorting entirely, preventing swap bugs.
+# Keys are rIds from the slide3 XML, values are source filenames (relative to Fig_3 dir).
+SLIDE3_RID_MAP = {
+    'rId6':  'Fig_3a_1.png',           # Picture 2  in Group 28 > Group 19  (heatmap O2)
+    'rId7':  'Fig_3a_2.png',           # Picture 4  in Group 28 > Group 19  (heatmap Contractility)
+    'rId10': 'Fig_3b_1.png',           # Picture 24 in Group 27             (Mexiletine surface)
+    'rId11': 'Fig_3b_2.png',           # Picture 8  in Group 27             (Amiodarone surface)
+    'rId14': 'Fig_3b_colorbar.png',    # Picture 12 in Group 27             (colorbar)
+    'rId12': 'Fig_3b_3.png',           # Picture 457 in Group 27            (Daunorubicin surface)
+    'rId13': 'Fig_3b_4.png',           # Picture 13 in Group 27             (Vioxx surface)
+    'rId4':  'Fig_3c.png',             # Picture 4  in Group 26             (scatter)
+    'rId5':  'Fig_3d.png',             # Picture 10 in Group 15 > Panel_3d  (accuracy vs AUC)
+    'rId8':  'Fig_3e_O2.png',          # Picture 422 in Group 25            (O2 validation)
+    'rId9':  'Fig_3e_Contractility.png', # Picture 424 in Group 25          (Contractility validation)
 }
 
 
@@ -3166,19 +3702,19 @@ def _get_effective_mappings(unpack_dir):
         offset = mapping[3] if len(mapping) > 3 else 0
 
         if letters and offset == 0:
-            # Only auto-extend for slides without offset (no external images)
-            image_files = _get_slide_images_by_position(unpack_dir, slide_num)
-            actual_count = len(image_files)
-            # Compound panels consume extra slots (e.g., 'f' with 2 images = 1 extra)
+            # Only auto-extend for slides without offset and without compound panels.
+            # Slides with compound panels may have extra image slots (colorbars,
+            # manually-added images) that shouldn't create new panel letters.
             fig_id = fig_prefix.replace('Fig_', '')
-            compound_extra = sum(len(v) - 1 for k, v in COMPOUND_PANELS.items()
-                                 if k[0] == fig_id and k[1] in letters)
-            effective_panels = actual_count - compound_extra
-            if effective_panels > len(letters):
-                extended = ALL_LETTERS[:effective_panels]
-                print(f"  Auto-extended slide {slide_num} ({fig_prefix}): "
-                      f"{len(letters)} -> {effective_panels} panels ({extended})")
-                letters = extended
+            has_compound = any(k[0] == fig_id for k in COMPOUND_PANELS)
+            if not has_compound:
+                image_files = _get_slide_images_by_position(unpack_dir, slide_num)
+                actual_count = len(image_files)
+                if actual_count > len(letters):
+                    extended = ALL_LETTERS[:actual_count]
+                    print(f"  Auto-extended slide {slide_num} ({fig_prefix}): "
+                          f"{len(letters)} -> {actual_count} panels ({extended})")
+                    letters = extended
         effective.append((fig_prefix, letters, slide_num, offset))
 
     # Discover slides not in base mappings
@@ -3572,73 +4108,119 @@ def update_powerpoint():
             image_files = _get_slide_images_by_position(unpack_dir, slide_num)
             print(f"  Added {needed} image slot(s) to slide {slide_num}")
 
+        # Reorder image slots to keep compound panels spatially clustered.
+        # When a 2x2 grid and a separate panel are at similar y-coordinates,
+        # position sorting can interleave them. Fix by detecting outliers in
+        # compound panel assignments and swapping them with nearby non-panel slots.
+        pos_cache = getattr(_get_slide_images_by_position, '_position_cache', {})
+        if pos_cache:
+            idx = start_idx
+            for letter in letters:
+                compound_key = (fig_id, letter)
+                n = len(COMPOUND_PANELS.get(compound_key, [letter]))
+                if n >= 3 and idx + n <= len(image_files):
+                    # Get x-positions for this compound panel's assigned slots
+                    panel_rids = [image_files[idx + i][0] for i in range(n)]
+                    panel_xs = [pos_cache.get(rid, (0, 0))[0] for rid in panel_rids]
+
+                    if panel_xs:
+                        median_x = sorted(panel_xs)[len(panel_xs) // 2]
+                        # Check for outliers: images more than 1.5" from median x
+                        OUTLIER_THRESHOLD = 1.0 * 914400  # 1.0 inch in EMU
+                        for i in range(n):
+                            if abs(panel_xs[i] - median_x) > OUTLIER_THRESHOLD:
+                                # Find best swap candidate after the compound panel
+                                best_swap = None
+                                best_dist = float('inf')
+                                for j in range(idx + n, len(image_files)):
+                                    swap_rid = image_files[j][0]
+                                    swap_x = pos_cache.get(swap_rid, (0, 0))[0]
+                                    dist = abs(swap_x - median_x)
+                                    if dist < best_dist:
+                                        best_dist = dist
+                                        best_swap = j
+                                if best_swap is not None and best_dist < abs(panel_xs[i] - median_x):
+                                    image_files[idx + i], image_files[best_swap] = \
+                                        image_files[best_swap], image_files[idx + i]
+                                    # Update panel_xs for subsequent checks
+                                    panel_xs[i] = pos_cache.get(image_files[idx + i][0], (0, 0))[0]
+                idx += n
+
         print(f"  {fig_prefix} (slide {slide_num}): {len(image_files)} images found, "
               f"replacing {total_slots} slots starting at position {start_idx}")
 
-        rels_updates = {}
+        assigned_filenames = set()  # Track newly-assigned media files
 
-        # Replace panel images with figure-label filenames
-        # Compound panels consume multiple image slots for one letter.
-        img_idx = start_idx
-        for letter in letters:
-            compound_key = (fig_id, letter)
-            if compound_key in COMPOUND_PANELS:
-                # Compound panel: multiple images for one letter
-                for suffix in COMPOUND_PANELS[compound_key]:
+        # --- Slide 3: use explicit rId mapping (bypasses position sort) ---
+        if slide_num == 3 and SLIDE3_RID_MAP:
+            # Read rels to get current rId → media filename mapping
+            rels_path = unpack_dir / 'ppt' / 'slides' / '_rels' / f'slide{slide_num}.xml.rels'
+            import xml.etree.ElementTree as _ET
+            _rels_ns = 'http://schemas.openxmlformats.org/package/2006/relationships'
+            _rels_tree = _ET.parse(rels_path)
+            _rid_to_media = {}
+            for _rel in _rels_tree.getroot().findall(f'{{{_rels_ns}}}Relationship'):
+                _rid = _rel.get('Id', '')
+                _target = _rel.get('Target', '')
+                if 'media/' in _target:
+                    _rid_to_media[_rid] = _target.split('/')[-1]
+
+            for rid, src_name in SLIDE3_RID_MAP.items():
+                media_filename = _rid_to_media.get(rid)
+                if not media_filename:
+                    print(f"    Warning: {rid} not found in rels")
+                    continue
+                src = figs_dir / fig_prefix / src_name
+                if src.exists():
+                    shutil.copy2(src, media_dir / media_filename)
+                    assigned_filenames.add(media_filename)
+                    updated += 1
+                    print(f"    {src_name} -> {media_filename} ({rid})")
+                else:
+                    print(f"    Skip: {src_name} not found")
+        else:
+            # --- All other slides: position-based assignment ---
+            img_idx = start_idx
+            for letter in letters:
+                compound_key = (fig_id, letter)
+                if compound_key in COMPOUND_PANELS:
+                    for suffix in COMPOUND_PANELS[compound_key]:
+                        if img_idx >= len(image_files):
+                            break
+                        rid, old_filename = image_files[img_idx]
+                        src = figs_dir / fig_prefix / f'{fig_prefix}{letter}_{suffix}.png'
+                        if src.exists():
+                            shutil.copy2(src, media_dir / old_filename)
+                            assigned_filenames.add(old_filename)
+                            updated += 1
+                            print(f"    {fig_prefix}{letter}_{suffix}.png -> {old_filename} (pos {img_idx})")
+                        else:
+                            print(f"    Skip: {src.name} not found")
+                        img_idx += 1
+                else:
                     if img_idx >= len(image_files):
                         break
                     rid, old_filename = image_files[img_idx]
-                    new_filename = f'Fig_{fig_id}{letter}_{suffix}.png'
-                    src = figs_dir / fig_prefix / f'{fig_prefix}{letter}_{suffix}.png'
-
+                    src = figs_dir / fig_prefix / f'{fig_prefix}{letter}.png'
                     if src.exists():
-                        shutil.copy2(src, media_dir / new_filename)
-                        old_path = media_dir / old_filename
-                        if old_filename != new_filename and old_path.exists() and not _is_shared_image(slide_num, old_filename):
-                            old_path.unlink()
-                        rels_updates[rid] = f'../media/{new_filename}'
+                        shutil.copy2(src, media_dir / old_filename)
+                        assigned_filenames.add(old_filename)
                         updated += 1
-                        print(f"    {fig_prefix}{letter}_{suffix}.png -> {new_filename} (pos {img_idx})")
+                        print(f"    {fig_prefix}{letter}.png -> {old_filename} (pos {img_idx})")
                     else:
                         print(f"    Skip: {src.name} not found")
                     img_idx += 1
-            else:
-                # Normal single-image panel
-                if img_idx >= len(image_files):
-                    break
-                rid, old_filename = image_files[img_idx]
-                new_filename = f'Fig_{fig_id}{letter}.png'
-                src = figs_dir / fig_prefix / f'{fig_prefix}{letter}.png'
-
-                if src.exists():
-                    shutil.copy2(src, media_dir / new_filename)
-                    old_path = media_dir / old_filename
-                    if old_filename != new_filename and old_path.exists() and not _is_shared_image(slide_num, old_filename):
-                        old_path.unlink()
-                    rels_updates[rid] = f'../media/{new_filename}'
-                    updated += 1
-                    print(f"    {fig_prefix}{letter}.png -> {new_filename} (pos {img_idx})")
-                else:
-                    print(f"    Skip: {src.name} not found")
-                img_idx += 1
 
         # Handle excess images beyond panel count — only for slides without offset
         # (offset != 0 means external images are present that we must not touch)
-        end_idx = img_idx
-        if offset == 0 and len(image_files) > end_idx:
-            for i in range(end_idx, len(image_files)):
-                rid, old_filename = image_files[i]
-                blank_name = f'blank_s{slide_num}_{i}.png'
-                _create_blank_png(media_dir / blank_name)
-                old_path = media_dir / old_filename
-                if old_filename != blank_name and old_path.exists() and not _is_shared_image(slide_num, old_filename):
-                    old_path.unlink()
-                rels_updates[rid] = f'../media/{blank_name}'
-                print(f"    Blanked excess: {old_filename} -> {blank_name}")
-
-        # Batch-update the slide rels XML with new filenames
-        if rels_updates:
-            _update_slide_rels(unpack_dir, slide_num, rels_updates)
+        # Skip for slide 3 which uses explicit rId mapping (no position-based idx)
+        if slide_num != 3:
+            end_idx = img_idx
+            if offset == 0 and len(image_files) > end_idx:
+                for i in range(end_idx, len(image_files)):
+                    rid, old_filename = image_files[i]
+                    _create_blank_png(media_dir / old_filename)
+                    print(f"    Blanked excess: {old_filename}")
 
     print(f"\n  Updated {updated} images in PowerPoint")
 

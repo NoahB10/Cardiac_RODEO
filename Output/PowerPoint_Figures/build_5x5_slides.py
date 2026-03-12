@@ -30,32 +30,21 @@ def build_slides():
     SLIDE_WIDTH = 6483350  # EMU
     SLIDE_HEIGHT = 7745413  # EMU
 
-    # Margins
-    LEFT_MARGIN = 137160   # ~0.15"
-    TOP_MARGIN = 457200    # ~0.5" for title
-    RIGHT_MARGIN = 137160
-    BOTTOM_MARGIN = 137160
+    # Grid positions extracted from manually-corrected layout in Tracked2.pptx
+    # (averaged from first 2 rows of slide 4, which were positioned correctly)
+    GRID_LEFT = 416424     # ~0.4554" — first column left edge
+    GRID_TOP = 533120      # ~0.5833" — first row top edge
+    H_STEP = 981300        # ~1.0730" — horizontal step between column left edges
+    V_STEP = 979431        # ~1.0710" — vertical step between row top edges
+    CELL_SIZE = int(1.22 * 914400)  # 1.22" square cells (transparent PNGs overlap slightly)
 
-    # Colorbar space on right
-    CBAR_SPACE = 570000    # ~0.62"
-
-    # Available space for grid
-    GRID_LEFT = LEFT_MARGIN
-    GRID_TOP = TOP_MARGIN
-    GRID_WIDTH = SLIDE_WIDTH - LEFT_MARGIN - RIGHT_MARGIN - CBAR_SPACE
-    GRID_HEIGHT = SLIDE_HEIGHT - TOP_MARGIN - BOTTOM_MARGIN
-
-    # 1.22" square cells, evenly spaced in available area
-    CELL_SIZE = int(1.22 * 914400)
-    GAP_H = (GRID_WIDTH - 5 * CELL_SIZE) // 4
-    GAP_V = (GRID_HEIGHT - 5 * CELL_SIZE) // 4
-
-    H_STEP = CELL_SIZE + GAP_H
-    V_STEP = CELL_SIZE + GAP_V
+    # Colorbar placement
+    RIGHT_MARGIN = 137160  # ~0.15" right margin for colorbar positioning
 
     print(f"Slide: {SLIDE_WIDTH/914400:.2f}\" x {SLIDE_HEIGHT/914400:.2f}\"")
     print(f"Cell size: {CELL_SIZE/914400:.2f}\" x {CELL_SIZE/914400:.2f}\" (square)")
-    print(f"H gap: {GAP_H/914400:.3f}\" | V gap: {GAP_V/914400:.3f}\"")
+    print(f"Grid origin: ({GRID_LEFT/914400:.4f}\", {GRID_TOP/914400:.4f}\")")
+    print(f"H step: {H_STEP/914400:.4f}\" | V step: {V_STEP/914400:.4f}\"")
 
     def get_sorted_images(directory):
         """Get images sorted by their index prefix."""
@@ -65,17 +54,26 @@ def build_slides():
     def build_grid_slide(slide, image_dir, colorbar_path, title_text):
         """Build a slide with 5x5 grid of images and colorbar."""
 
-        # Clear existing shapes except title
+        # Clear ALL existing shapes except the title text box
+        # This removes pictures, groups (which may contain pictures from prior runs),
+        # and any other non-title shapes to prevent duplicates
         shapes_to_remove = []
         for shape in slide.shapes:
+            # Keep the title shape
             if hasattr(shape, "text") and title_text in shape.text:
                 continue
-            if shape.shape_type == 13:  # Picture
+            # Remove pictures, groups, and any other non-title shapes
+            if shape.shape_type in (13, 6):  # 13=Picture, 6=Group
+                shapes_to_remove.append(shape)
+            elif shape.shape_type == 13:  # Picture outside group
                 shapes_to_remove.append(shape)
 
         for shape in shapes_to_remove:
             sp = shape._element
             sp.getparent().remove(sp)
+
+        if shapes_to_remove:
+            print(f"  Removed {len(shapes_to_remove)} existing shapes")
 
         # Get sorted images
         images = get_sorted_images(image_dir)
@@ -106,9 +104,11 @@ def build_slides():
         cbar_width_emu = int(img_width / 600 * 914400)
         cbar_height_emu = int(img_height / 600 * 914400)
 
-        # Place colorbar at right edge
+        # Place colorbar at right edge, centered vertically on grid
+        grid_bottom = GRID_TOP + 4 * V_STEP + CELL_SIZE
+        grid_height = grid_bottom - GRID_TOP
         cbar_x = SLIDE_WIDTH - RIGHT_MARGIN - cbar_width_emu
-        cbar_y = GRID_TOP + (GRID_HEIGHT - cbar_height_emu) // 2
+        cbar_y = GRID_TOP + (grid_height - cbar_height_emu) // 2
 
         slide.shapes.add_picture(
             str(colorbar_path),
