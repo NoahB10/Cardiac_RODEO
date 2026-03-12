@@ -1,12 +1,12 @@
 Figure_ID,Letter,Description,PNG_Path,Excel_Path,Source_Script,External,Width_In,Height_In,Notes,Left_In,Top_In,Display_Width_In,Display_Height_In
 1,,Pipeline Schematic (Placeholder),Output\PowerPoint_Figures\Fig_1\Fig_1.png,,generate_paper_figures.py,False,3.4,1.7,External schematic to be added,0.278,0.858,6.55,2.422
-2,i,SNR Quality Analysis,Output\PowerPoint_Figures\Fig_2\Fig_2i.png,Output\PowerPoint_Figures\Fig_2\Fig_2i_data.xlsx,generate_paper_figures.py,False,3.4,2.04,"Stacked bars: QC range (blue) on bottom, out-of-range (red) on top. SNR 0.4 threshold line.",0.358,6.685,2.302,1.348
-3,a,Doxorubicin Heatmaps (O2 Mean + Contractility),Output\PowerPoint_Figures\Fig_3\Fig_3a_1.png,Output\PowerPoint_Figures\Fig_3\Fig_3a_data.xlsx,generate_paper_figures.py,False,4.960000000000001,1.86,Two images: Fig_3a_1.png (O2) + Fig_3a_2.png (Contractility),0.464,0.931,5.263,1.324
+2,i,SNR Quality Analysis,Output\PowerPoint_Figures\Fig_2\Fig_2i.png,Output\PowerPoint_Figures\Fig_2\Fig_2i_data.xlsx,generate_paper_figures.py,False,3.4,2.04,"Stacked bars: QC range (blue) on bottom, out-of-range (red) on top. SNR 0.4 threshold line.",0.398,5.386,2.302,1.348
+3,a,"Epirubicin Heatmaps (O2 Mean + Contractility, LOWESS w=16)",Output\PowerPoint_Figures\Fig_3\Fig_3a_1.png,Output\PowerPoint_Figures\Fig_3\Fig_3a_data.xlsx,generate_paper_figures.py,False,4.960000000000001,1.86,Two images: Fig_3a_1.png (O2) + Fig_3a_2.png (Contractility),0.464,0.931,5.263,1.324
 3,b,2x2 Surface Equation Examples,Output\PowerPoint_Figures\Fig_3\Fig_3b_1.png,Output\PowerPoint_Figures\Fig_3\Fig_3b_data.xlsx,generate_paper_figures.py,False,6.0,5.0,"Four images: Fig_3b_1 (Mexiletine/Eq1), Fig_3b_2 (Amiodarone/Eq5), Fig_3b_3 (Daunorubicin/Eq11), Fig_3b_4 (Vioxx/Eq12) + Fig_3b_colorbar.png",0.528,2.641,2.369,1.518
 3,c,R² Equation Comparison,Output\PowerPoint_Figures\Fig_3\Fig_3c.png,Output\PowerPoint_Figures\Fig_3\Fig_3c_data.xlsx,generate_paper_figures.py,False,5.0,3.5,,0.714,4.634,1.634,1.02
-3,d,Accuracy vs AUC Scatter (RandomForest),Output\PowerPoint_Figures\Fig_3\Fig_3d.png,Output\PowerPoint_Figures\Fig_3\Fig_3d_data.xlsx,generate_paper_figures.py,False,5.77389827892259,2.6,,2.729,4.489,2.593,1.335
+3,d,Accuracy vs AUC Scatter (RandomForest),Output\PowerPoint_Figures\Fig_3\Fig_3d.png,Output\PowerPoint_Figures\Fig_3\Fig_3d_data.xlsx,generate_paper_figures.py,False,5.050037453183521,2.6,,2.729,4.489,2.593,1.335
 3,e,Daunorubicin 3D Surfaces + Raw Data (O2 & Contractility),Output\PowerPoint_Figures\Fig_3\Fig_3e_O2.png,Output\PowerPoint_Figures\Fig_3\Fig_3e_data.xlsx,generate_paper_figures.py,False,3.06,3.06,Two images: Fig_3e_O2.png + Fig_3e_Contractility.png,0.54,5.967,2.213,1.016
-4,,O2 3D Surface Grid,Output\PowerPoint_Figures\Fig_4\Fig_4.png,Output\PowerPoint_Figures\Fig_4\Fig_4_data.xlsx,generate_paper_figures.py,False,7.09,7.0,,0.455,0.624,1.22,1.22
+4,,O2 3D Surface Grid,Output\PowerPoint_Figures\Fig_4\Fig_4.png,Output\PowerPoint_Figures\Fig_4\Fig_4_data.xlsx,generate_paper_figures.py,False,7.09,7.0,,0.455,0.583,1.22,1.22
 5,,Contractility 3D Surface Grid,Output\PowerPoint_Figures\Fig_5\Fig_5.png,Output\PowerPoint_Figures\Fig_5\Fig_5_data.xlsx,generate_paper_figures.py,False,7.09,7.0,,0.455,0.583,1.22,1.22
 6,a,Arrhythmia ROC Curve,Output\PowerPoint_Figures\Fig_6\Fig_6a.png,Output\PowerPoint_Figures\Fig_6\Fig_6a_data.xlsx,generate_paper_figures.py,False,1.7,1.7,,0.3,0.8,1.7,1.7
 6,b,Arrhythmia Confusion Matrix,Output\PowerPoint_Figures\Fig_6\Fig_6b.png,Output\PowerPoint_Figures\Fig_6\Fig_6b_data.xlsx,generate_paper_figures.py,False,1.7,1.7,,2.15,0.8,1.7,1.7
@@ -15,7 +15,7 @@ Figure_ID,Letter,Description,PNG_Path,Excel_Path,Source_Script,External,Width_In
 6,e,Arrhythmia Cumulative Features,Output\PowerPoint_Figures\Fig_6\Fig_6e.png,Output\PowerPoint_Figures\Fig_6\Fig_6e_data.xlsx,generate_paper_figures.py,False,2.47,1.78,,2.0,2.65,2.47,1.78
 6,f,Arrhythmia SHAP Aligned Pairs,Output\PowerPoint_Figures\Fig_6\Fig_6f.png,Output\PowerPoint_Figures\Fig_6\Fig_6f_data.xlsx,Output/SHAP_Data/shap_aligned_pairs_all.py,False,3.4,1.7,,0.32,4.66,3.4,1.7
 6,g,Arrhythmia MoLFormer ROC Comparison,Output\PowerPoint_Figures\Fig_6\Fig_6g.png,Output\PowerPoint_Figures\Fig_6\Fig_6g_data.xlsx,generate_paper_figures.py,False,1.7,1.7,,4.14,4.616,1.7,1.7
-6,h,Arrhythmia MoLFormer Metrics Comparison,Output\PowerPoint_Figures\Fig_6\Fig_6h.png,Output\PowerPoint_Figures\Fig_6\Fig_6h_data.xlsx,generate_paper_figures.py,False,3.06,1.3909090909090909,,0.42,6.61,3.74,1.7
+6,h,Arrhythmia MoLFormer Metrics Comparison,Output\PowerPoint_Figures\Fig_6\Fig_6h.png,Output\PowerPoint_Figures\Fig_6\Fig_6h_data.xlsx,generate_paper_figures.py,False,3.06,1.7,,0.42,6.61,3.0,1.7
 7,a,HeartDamage ROC Curve,Output\PowerPoint_Figures\Fig_7\Fig_7a.png,Output\PowerPoint_Figures\Fig_7\Fig_7a_data.xlsx,generate_paper_figures.py,False,1.7,1.7,,0.3,0.8,1.7,1.7
 7,b,HeartDamage Confusion Matrix,Output\PowerPoint_Figures\Fig_7\Fig_7b.png,Output\PowerPoint_Figures\Fig_7\Fig_7b_data.xlsx,generate_paper_figures.py,False,1.7,1.7,,2.15,0.8,1.7,1.7
 7,c,HeartDamage Performance Metrics,Output\PowerPoint_Figures\Fig_7\Fig_7c.png,Output\PowerPoint_Figures\Fig_7\Fig_7c_data.xlsx,generate_paper_figures.py,False,1.7,1.7,,4.0,0.8,1.7,1.7
@@ -27,9 +27,9 @@ Figure_ID,Letter,Description,PNG_Path,Excel_Path,Source_Script,External,Width_In
 8,a,ConcernBinary ROC Curve,Output\PowerPoint_Figures\Fig_8\Fig_8a.png,Output\PowerPoint_Figures\Fig_8\Fig_8a_data.xlsx,generate_paper_figures.py,False,1.7,1.7,,0.339,0.79,1.7,1.7
 8,b,ConcernBinary Confusion Matrix,Output\PowerPoint_Figures\Fig_8\Fig_8b.png,Output\PowerPoint_Figures\Fig_8\Fig_8b_data.xlsx,generate_paper_figures.py,False,1.7,1.7,,2.195,0.79,1.7,1.7
 8,c,ConcernBinary Performance Metrics,Output\PowerPoint_Figures\Fig_8\Fig_8c.png,Output\PowerPoint_Figures\Fig_8\Fig_8c_data.xlsx,generate_paper_figures.py,False,1.7,1.7,,4.173,0.79,1.7,1.7
-8,d,ConcernBinary Threshold Analysis,Output\PowerPoint_Figures\Fig_8\Fig_8d.png,Output\PowerPoint_Figures\Fig_8\Fig_8d_data.xlsx,generate_paper_figures.py,False,1.55,1.3393274170948155,,0.193,2.698,2.141,1.85
-8,e,ConcernBinary Cumulative Features,Output\PowerPoint_Figures\Fig_8\Fig_8e.png,Output\PowerPoint_Figures\Fig_8\Fig_8e_data.xlsx,generate_paper_figures.py,False,2.47,1.78,,2.195,2.735,2.47,1.78
-8,f,ConcernBinary SHAP Aligned Pairs,Output\PowerPoint_Figures\Fig_8\Fig_8f.png,Output\PowerPoint_Figures\Fig_8\Fig_8f_data.xlsx,Output/SHAP_Data/shap_aligned_pairs_all.py,False,2.47,1.7,,4.685,2.855,2.47,1.7
+8,d,ConcernBinary Threshold Analysis,Output\PowerPoint_Figures\Fig_8\Fig_8d.png,Output\PowerPoint_Figures\Fig_8\Fig_8d_data.xlsx,generate_paper_figures.py,False,1.55,1.87,,0.359,2.669,1.55,1.87
+8,e,ConcernBinary Cumulative Features,Output\PowerPoint_Figures\Fig_8\Fig_8e.png,Output\PowerPoint_Figures\Fig_8\Fig_8e_data.xlsx,generate_paper_figures.py,False,2.47,1.78,,2.039,2.718,2.47,1.78
+8,f,ConcernBinary SHAP Aligned Pairs,Output\PowerPoint_Figures\Fig_8\Fig_8f.png,Output\PowerPoint_Figures\Fig_8\Fig_8f_data.xlsx,Output/SHAP_Data/shap_aligned_pairs_all.py,False,3.4,1.7,,0.313,4.697,3.4,1.7
 S1,a,Vandetanib O2_std.csv,Output\PowerPoint_Figures\Fig_S1\Fig_S1a.png,Output\PowerPoint_Figures\Fig_S1\Fig_S1a_data.xlsx,generate_paper_figures.py,False,3.1,1.55,,0.52,0.844,2.519,1.335
 S1,b,Vandetanib O2_dom_freq.csv,Output\PowerPoint_Figures\Fig_S1\Fig_S1b.png,Output\PowerPoint_Figures\Fig_S1\Fig_S1b_data.xlsx,generate_paper_figures.py,False,3.1,1.55,,0.533,1.706,1.579,0.727
 S1,c,Vandetanib Amp_dom_freq.csv,Output\PowerPoint_Figures\Fig_S1\Fig_S1c.png,Output\PowerPoint_Figures\Fig_S1\Fig_S1c_data.xlsx,generate_paper_figures.py,False,3.1,1.55,,0.553,2.503,3.842,2.084
@@ -38,3 +38,6 @@ S2,b,Daunorubicin Contractility 2D Time Series,Output\PowerPoint_Figures\Fig_S2\
 S3,a,Accuracy vs AUC (Other Models),Output\PowerPoint_Figures\Fig_S3\Fig_S3a.png,Output\PowerPoint_Figures\Fig_S3\Fig_S3a_data.xlsx,generate_paper_figures.py,False,7.5,2.6,,,,,
 S4,a,ADMET LOOCV ROC,Output\PowerPoint_Figures\Fig_S4\Fig_S4a.png,Output\PowerPoint_Figures\Fig_S4\Fig_S4a_data.xlsx,generate_paper_figures.py,False,1.7,1.7,,,,,
 S4,b,MoLFormer LOOCV Comparison,Output\PowerPoint_Figures\Fig_S4\Fig_S4b.png,Output\PowerPoint_Figures\Fig_S4\Fig_S4b_data.xlsx,generate_paper_figures.py,False,2.55,1.7,,,,,
+2,Epirubicin_O2,Epirubicin O2 raw time series,Output\PowerPoint_Figures\Fig_2\Fig_2_Epirubicin_O2.png,Output\PowerPoint_Figures\Fig_2\Fig_2_Epirubicin_O2_data.xlsx,generate_paper_figures.py,False,4.0,2.8,"2D raw plot, original y-scale, spike-cleaned",,,,
+2,Epirubicin_Contractility,Epirubicin Contractility raw time series,Output\PowerPoint_Figures\Fig_2\Fig_2_Epirubicin_Contractility.png,Output\PowerPoint_Figures\Fig_2\Fig_2_Epirubicin_Contractility_data.xlsx,generate_paper_figures.py,False,4.0,2.8,"2D raw plot, original y-scale, spike-cleaned",,,,
+2,Epirubicin_TC50,Epirubicin TC50 dose-response at 32h,Output\PowerPoint_Figures\Fig_2\Fig_2_Epirubicin_TC50.png,Output\PowerPoint_Figures\Fig_2\Fig_2_Epirubicin_TC50_data.xlsx,generate_paper_figures.py,False,4.0,2.8,"TC50=0.726 mM at 32h, 4PL sigmoid fit on per-well data",,,,

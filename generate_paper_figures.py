@@ -478,9 +478,223 @@ def generate_fig_2():
     else:
         print(f"  Warning: {snr_path} not found for Fig_2i")
 
-    # Panels a-h and j-k are external (microscopy, plate images, EMF diagrams)
+    # --- Epirubicin 2D raw time-series plots ---
+    _generate_fig2_epirubicin_raw()
+
+    # --- Epirubicin TC50 dose-response plot ---
+    _generate_fig2_epirubicin_tc50()
+
+    # Panels a-h are external (microscopy, plate images, EMF diagrams)
     # These are placed manually in PowerPoint
-    print("  Panels a-h, j-k: externally managed")
+    print("  Panels a-h: externally managed")
+
+
+def _generate_fig2_epirubicin_raw():
+    """Generate Epirubicin O2 and Contractility raw time-series plots for Figure 2."""
+    from generate_2d_raw_plots import remove_spikes, MANUAL_SPIKE_INDICES
+
+    O2_PATH = PROJECT_ROOT / 'Cleaned_Data' / 'O2_Mean_Averaged.xlsx'
+    CON_PATH = PROJECT_ROOT / 'Cleaned_Data' / 'Heart_Contractility_Averaged.xlsx'
+
+    fig2_dir = FIGURES_DIR / 'Fig_2'
+    fig2_dir.mkdir(parents=True, exist_ok=True)
+
+    drug = 'Epirubicin'
+
+    for response_type, path in [('O2', O2_PATH), ('Contractility', CON_PATH)]:
+        if not path.exists():
+            print(f"  Warning: {path} not found")
+            continue
+
+        df = pd.read_excel(path, sheet_name=drug)
+        time = df.iloc[:, 0].values
+        conc_labels = [str(c) for c in df.columns[1:]]
+        n_conc = len(conc_labels)
+        cmap = plt.get_cmap('plasma', n_conc)
+
+        conc_floats = [float(c) for c in conc_labels]
+        order = np.argsort(conc_floats)[::-1]
+
+        # First pass: clean all traces and find global min for y-shift
+        all_cleaned = {}
+        for idx in range(n_conc):
+            label = conc_labels[idx]
+            raw_vals = df.iloc[:, idx + 1].values.copy()
+
+            # Manual spike removal
+            manual_key = (drug, response_type, label)
+            if manual_key in MANUAL_SPIKE_INDICES:
+                manual_idx = MANUAL_SPIKE_INDICES[manual_key]
+                raw_vals[manual_idx] = np.nan
+                valid = np.where(~np.isnan(raw_vals))[0]
+                if len(valid) >= 2:
+                    raw_vals = np.interp(np.arange(len(raw_vals)), valid, raw_vals[valid])
+
+            cleaned, _ = remove_spikes(raw_vals)
+
+            all_cleaned[idx] = cleaned
+
+        # Plot with original y-scale (no offset subtraction)
+        fig, ax = plt.subplots(figsize=(4, 2.8))
+
+        for rank, idx in enumerate(order):
+            label = conc_labels[idx]
+            cleaned = all_cleaned[idx]
+            color = cmap(rank / max(n_conc - 1, 1))
+            ax.plot(time, cleaned, linewidth=1.2, color=color, label=label)
+
+        ax.set_xlabel('Time (h)', fontsize=9)
+        if response_type == 'O2':
+            ax.set_ylabel(r'$O_2$ (%)', fontsize=9)
+            ax.set_title('2D Oxygen Kinetics', fontsize=10, fontweight='bold')
+        else:
+            ax.set_ylabel('Contractility', fontsize=9)
+            ax.set_title('2D Contractility Kinetics', fontsize=10, fontweight='bold')
+        ax.set_xlim(0, 96)
+        ax.tick_params(labelsize=7)
+        ax.legend(fontsize=5, title='Conc', title_fontsize=5,
+                  loc='upper left', bbox_to_anchor=(1.02, 1.0),
+                  borderpad=0.3, labelspacing=0.25, handlelength=1.2)
+        fig.tight_layout()
+
+        panel_label = f'{drug}_{response_type}'
+        png_path = fig2_dir / f'Fig_2_{panel_label}.png'
+        fig.savefig(png_path, dpi=SAVE_DPI, bbox_inches='tight', pad_inches=0.05,
+                    facecolor='white')
+        plt.close(fig)
+
+        # Save data
+        excel_path = fig2_dir / f'Fig_2_{panel_label}_data.xlsx'
+        save_df = df.copy()
+        save_df.insert(0, 'Source', str(path))
+        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+            save_df.to_excel(writer, sheet_name=drug[:31], index=False)
+
+        register_figure('2', panel_label,
+                        f'{drug} {response_type} raw time series',
+                        png_path.relative_to(PROJECT_ROOT),
+                        excel_path.relative_to(PROJECT_ROOT),
+                        width=4.0, height=2.8,
+                        notes=f'2D raw plot, original y-scale, spike-cleaned')
+        print(f"  Fig_2_{panel_label}.png")
+
+
+def _generate_fig2_epirubicin_tc50():
+    """Generate Epirubicin TC50 dose-response curve for Figure 2.
+
+    Uses per-well raw O2 data, converts to O2 consumption (80 - O2),
+    averages replicates per concentration, and fits a 4-parameter logistic.
+    """
+    from scipy.optimize import curve_fit
+
+    fig2_dir = FIGURES_DIR / 'Fig_2'
+    fig2_dir.mkdir(parents=True, exist_ok=True)
+
+    drug = 'Epirubicin'
+    time_hour = 32  # hours
+
+    RAW_O2_PATH = PROJECT_ROOT / 'Cleaned_Data' / 'DrugScreen19.11.25_compiled_O2_mean.xlsx'
+    if not RAW_O2_PATH.exists():
+        print(f"  Warning: {RAW_O2_PATH} not found")
+        return
+
+    # Load per-well raw data (rows=concentrations with duplicates, cols=time points)
+    df_raw = pd.read_excel(RAW_O2_PATH, sheet_name='Epirubicin O2_mean', header=None)
+    time_points = df_raw.iloc[0, 1:].astype(float).values
+    concentrations = df_raw.iloc[1:, 0].astype(float).values
+    o2_matrix = df_raw.iloc[1:, 1:].astype(float).values
+
+    # Find closest time point
+    idx_t = np.argmin(np.abs(time_points - time_hour))
+    o2_at_t = o2_matrix[:, idx_t]
+
+    # Average replicates per concentration first, then scale 0-100
+    df_tp = pd.DataFrame({'Concentration': concentrations, 'O2': o2_at_t})
+    df_avg = df_tp.groupby('Concentration', as_index=False).mean().sort_values('Concentration')
+    df_avg = df_avg[df_avg['Concentration'] > 0]
+
+    # Scale to 0-100%: lowest O2 = 0% consumption, highest O2 = 100% consumption
+    # (low concentration → organoids healthy → high O2 → 100% consumption)
+    # (high concentration → organoids dead → low O2 → 0% consumption)
+    o2_min = df_avg['O2'].min()
+    o2_max = df_avg['O2'].max()
+    df_avg['Consumption'] = (1 - (df_avg['O2'] - o2_min) / (o2_max - o2_min)) * 100
+
+    x_conc = df_avg['Concentration'].values
+    y_cons = df_avg['Consumption'].values
+    x_log = np.log10(x_conc)
+
+    # 4-parameter logistic fit in log space
+    def logistic(xlog, bottom, top, logEC50, slope):
+        return bottom + (top - bottom) / (1 + np.exp((logEC50 - xlog) * slope))
+
+    tc50 = None
+    popt = None
+    try:
+        p0 = [y_cons.min(), y_cons.max(), np.median(x_log), 1.0]
+        popt, _ = curve_fit(logistic, x_log, y_cons, p0=p0, maxfev=20000)
+        bottom, top, logEC50, slope = popt
+        # Solve for TC50: where consumption = 50
+        target = 50.0
+        denom = top - bottom
+        denom_target = target - bottom
+        if slope != 0 and denom != 0 and denom_target != 0:
+            ratio = denom / denom_target - 1.0
+            if ratio > 0:
+                tc50 = 10 ** (logEC50 - (1.0 / slope) * np.log(ratio))
+    except Exception as e:
+        print(f"  Warning: TC50 sigmoid fit failed: {e}")
+
+    # Plot
+    fig, ax = plt.subplots(figsize=(4, 2.8))
+    ax.plot(x_conc, y_cons, 'o', markersize=7, color='#1f77b4', zorder=5, label='Mean consumption')
+
+    if popt is not None:
+        x_smooth = np.linspace(x_log.min() - 0.2, x_log.max() + 0.2, 200)
+        ax.plot(10 ** x_smooth, logistic(x_smooth, *popt), '-', color='#1f77b4',
+                linewidth=2, label='Sigmoid fit')
+
+    if tc50 is not None and np.isfinite(tc50):
+        ax.axhline(50, color='grey', linestyle='--', linewidth=1, alpha=0.5)
+        ax.axvline(tc50, color='red', linestyle='--', linewidth=1.5)
+        ax.text(0.05, 0.08, f'TC50={tc50:.3f} mM', transform=ax.transAxes,
+                fontsize=9, fontweight='bold')
+
+    ax.set_xscale('log')
+    ax.set_xlabel('Concentration (mM)', fontsize=9)
+    ax.set_ylabel('O2 Consumption (%)', fontsize=9)
+    ax.set_title(f'{drug} TC50 ({time_hour}h)', fontsize=10, fontweight='bold')
+    ax.set_ylim(0, 100)
+    ax.set_xticks(x_conc)
+    ax.set_xticklabels([f'{c:.3g}' for c in x_conc], fontsize=7)
+    ax.tick_params(labelsize=7)
+    ax.legend(fontsize=7, loc='upper right')
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+
+    png_path = fig2_dir / 'Fig_2_Epirubicin_TC50.png'
+    fig.savefig(png_path, dpi=SAVE_DPI, bbox_inches='tight', pad_inches=0.05,
+                facecolor='white')
+    plt.close(fig)
+
+    # Save data
+    excel_path = fig2_dir / 'Fig_2_Epirubicin_TC50_data.xlsx'
+    save_df = df_avg.copy()
+    save_df['Source'] = str(RAW_O2_PATH)
+    save_df['Timepoint_h'] = time_hour
+    if tc50 is not None:
+        save_df['TC50_mM'] = tc50
+    with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+        save_df.to_excel(writer, sheet_name='TC50', index=False)
+
+    tc50_str = f'{tc50:.3f}' if tc50 is not None else 'N/A'
+    register_figure('2', 'Epirubicin_TC50',
+                    f'{drug} TC50 dose-response at {time_hour}h',
+                    png_path.relative_to(PROJECT_ROOT),
+                    excel_path.relative_to(PROJECT_ROOT),
+                    width=4.0, height=2.8,
+                    notes=f'TC50={tc50_str} mM at {time_hour}h, 4PL sigmoid fit on per-well data')
+    print(f"  Fig_2_Epirubicin_TC50.png (TC50={tc50_str} mM)")
 
 
 # ============================================================================
@@ -488,7 +702,7 @@ def generate_fig_2():
 # ============================================================================
 
 def generate_fig_3():
-    """Figure 3: Doxorubicin heatmaps, R2 comparison, AUC scatter, Daunorubicin 2D+3D."""
+    """Figure 3: Epirubicin heatmaps, R2 comparison, AUC scatter, Daunorubicin 2D+3D."""
     print("\n=== Figure 3: Fitting Kinetics ===")
     import shutil
     from matplotlib.colors import LinearSegmentedColormap
@@ -499,9 +713,10 @@ def generate_fig_3():
     fig3_dir = FIGURES_DIR / 'Fig_3'
     fig3_dir.mkdir(parents=True, exist_ok=True)
 
-    # ---- 3a: Doxorubicin heatmaps (O2 Mean + Contractility, separate images) ----
+    # ---- 3a: Epirubicin heatmaps (O2 Mean + Contractility, separate images) ----
     # Two images for the same panel: Fig_3a_1.png (O2) and Fig_3a_2.png (Contractility)
-    heatmap_dir = PROJECT_ROOT / 'Cleaned_Data' / 'Heatmaps' / 'Doxorubicin (G03)'
+    # Uses LOWESS w=16 smoothed data with wells 0.38.1 and 0.75.2 excluded
+    heatmap_dir = PROJECT_ROOT / 'Cleaned_Data' / 'Heatmaps' / 'Epirubicin (F03)'
     heatmap_files = [('O2_mean_final.csv', 'O2 Mean', 'Fig_3a_1.png'),
                      ('Amp_std_final.csv', 'Contractility', 'Fig_3a_2.png')]
 
@@ -509,8 +724,8 @@ def generate_fig_3():
     cmap = LinearSegmentedColormap.from_list('cardiac_rodeo', [HEATMAP_BLUE, 'white', HEATMAP_RED])
     cmap.set_bad('white')
 
-    # Known concentrations for Doxorubicin — used to strip pandas .1/.2 suffixes
-    KNOWN_CONC = {10, 5, 2.5, 1.25, 0.63, 0.31, 0.16}
+    # Known concentrations for Epirubicin — used to strip pandas .1/.2 suffixes
+    KNOWN_CONC = {12, 6, 3, 1.5, 0.75, 0.38, 0.19, 0.094}
 
     def strip_pandas_suffix(col_name):
         """Strip pandas duplicate suffixes: '5.1' -> '5', '2.5.2' -> '2.5', '0.16.1' -> '0.16'."""
@@ -560,7 +775,7 @@ def generate_fig_3():
 
             ax.set_xlabel('Time (h)', fontsize=6)
             ax.set_ylabel('Concentration (mM)', fontsize=6)
-            ax.set_title(f'Doxorubicin {title_suffix}', fontsize=7, fontweight='bold')
+            ax.set_title(f'Epirubicin {title_suffix}', fontsize=7, fontweight='bold')
 
             n_x = len(x_labels)
             x_step = max(1, n_x // 8)
@@ -627,7 +842,7 @@ def generate_fig_3():
             for sheet, df in tracking_sheets.items():
                 df.to_excel(writer, sheet_name=sheet[:31], index=True)
         print(f"  Saved: {excel_path}")
-    register_figure('3', 'a', 'Doxorubicin Heatmaps (O2 Mean + Contractility)',
+    register_figure('3', 'a', 'Epirubicin Heatmaps (O2 Mean + Contractility, LOWESS w=16)',
                     (fig3_dir / 'Fig_3a_1.png').relative_to(PROJECT_ROOT),
                     (fig3_dir / 'Fig_3a_data.xlsx').relative_to(PROJECT_ROOT),
                     width=heatmap_w, height=HEATMAP_WIDTH * 0.6,
@@ -3634,6 +3849,17 @@ COMPOUND_PANELS = {
     ('3', 'e'): ['O2', 'Contractility'],
 }
 
+# Explicit rId-to-source mapping for slide 2.
+# Bypasses position-based sorting for the 4 generated panels on slide 2.
+# External images (plate photos, EMFs, microscopy) are untouched.
+# Keys are rIds from slide2.xml, values are source filenames (relative to Fig_2 dir).
+SLIDE2_RID_MAP = {
+    'rId13': 'Fig_2i.png',                        # SNR Quality Analysis
+    'rId14': 'Fig_2_Epirubicin_O2.png',           # Epirubicin O2 raw time series
+    'rId15': 'Fig_2_Epirubicin_Contractility.png', # Epirubicin Contractility raw time series
+    'rId16': 'Fig_2_Epirubicin_TC50.png',          # Epirubicin TC50 dose-response
+}
+
 # Explicit rId-to-source mapping for slide 3.
 # This bypasses position-based sorting entirely, preventing swap bugs.
 # Keys are rIds from the slide3 XML, values are source filenames (relative to Fig_3 dir).
@@ -3665,7 +3891,7 @@ def _get_mappings():
     """
     return [
         ('Fig_1', '', 1),            # External schematic (not generated)
-        ('Fig_2', 'i', 2, -1),      # SNR chart = panel i; a-h external before, j-k external after
+        ('Fig_2', 'ijkl', 2, -1),   # SNR (i), Epirubicin O2 (j), Contractility (k), TC50 (l); a-h external before
         ('Fig_3', 'abcde', 3),
         ('Fig_4', '', 4),            # O2 5x5 grid (individual drug sub-images)
         ('Fig_5', '', 5),            # Contractility 5x5 grid
@@ -4151,8 +4377,9 @@ def update_powerpoint():
 
         assigned_filenames = set()  # Track newly-assigned media files
 
-        # --- Slide 3: use explicit rId mapping (bypasses position sort) ---
-        if slide_num == 3 and SLIDE3_RID_MAP:
+        # --- Slides with explicit rId mapping (bypasses position sort) ---
+        EXPLICIT_RID_MAPS = {2: SLIDE2_RID_MAP, 3: SLIDE3_RID_MAP}
+        if slide_num in EXPLICIT_RID_MAPS:
             # Read rels to get current rId → media filename mapping
             rels_path = unpack_dir / 'ppt' / 'slides' / '_rels' / f'slide{slide_num}.xml.rels'
             import xml.etree.ElementTree as _ET
@@ -4165,7 +4392,8 @@ def update_powerpoint():
                 if 'media/' in _target:
                     _rid_to_media[_rid] = _target.split('/')[-1]
 
-            for rid, src_name in SLIDE3_RID_MAP.items():
+            rid_map = EXPLICIT_RID_MAPS[slide_num]
+            for rid, src_name in rid_map.items():
                 media_filename = _rid_to_media.get(rid)
                 if not media_filename:
                     print(f"    Warning: {rid} not found in rels")
@@ -4213,8 +4441,8 @@ def update_powerpoint():
 
         # Handle excess images beyond panel count — only for slides without offset
         # (offset != 0 means external images are present that we must not touch)
-        # Skip for slide 3 which uses explicit rId mapping (no position-based idx)
-        if slide_num != 3:
+        # Skip for slides with explicit rId mapping (no position-based idx)
+        if slide_num not in EXPLICIT_RID_MAPS:
             end_idx = img_idx
             if offset == 0 and len(image_files) > end_idx:
                 for i in range(end_idx, len(image_files)):

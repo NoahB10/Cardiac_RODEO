@@ -33,6 +33,25 @@ The script automatically:
 | Fig_7 (a-h) | image19-26 | 7 |
 | Fig_8 (a-f) | image27-32 | 8 |
 
+**CRITICAL — Cross-Slide Panel Alignment (Figures 6, 7, 8):**
+Figures 6, 7, and 8 show the same panel layout (a–f) for different drug categories
+(Arrhythmia+HeartDamage, ADMET comparison, SwissADME comparison). Panels a–f MUST
+be at identical positions across all three slides so they align when flipping between pages.
+
+Reference positions (from Fig 7, the canonical source):
+| Panel | x | y | w | h |
+|-------|------|------|------|------|
+| a | 0.30 | 0.80 | 1.70 | 1.70 |
+| b | 2.15 | 0.80 | 1.70 | 1.70 |
+| c | 4.00 | 0.80 | 1.70 | 1.70 |
+| d | 0.30 | 2.65 | 1.55 | 1.87 |
+| e | 2.00 | 2.65 | 2.47 | 1.78 |
+| f | 0.30 | 4.67 | 3.40 | 1.70 |
+
+When regenerating or repositioning panels on slides 6–8, always use these exact
+positions. Extract and verify from the PPTX directly (not just slide_layout.json)
+since manual edits in PowerPoint can introduce sub-pixel drift.
+
 ## Quick Reference
 
 ### Standard Figure Types
