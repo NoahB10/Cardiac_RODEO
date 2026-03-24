@@ -1,0 +1,53 @@
+Equation Color Map — Rainbow by R² Rank
+========================================
+
+Used in Fig 3c (R² comparison bar chart) and any figure referencing
+equations by name. Colors are assigned in rainbow order from best
+R² (red, top) to worst R² (pink, bottom).
+
+Display Name            | Hex Code  | Color Name
+------------------------|-----------|-------------
+Dual Exponential        | #d62728   | Red
+Hormesis Hill           | #e6550d   | Red-Orange
+PKPD Elimination        | #ff7f0e   | Orange
+Biphasic Response       | #ffc107   | Amber
+Dual Hill Hormesis      | #8bc34a   | Yellow-Green
+Modified Hill           | #2ca02c   | Green
+Adaptive Response       | #00897b   | Teal
+Gaussian Ridge          | #17becf   | Cyan
+Bivariate Gaussian      | #1f77b4   | Blue
+Gaussian-Hill Hybrid    | #5c6bc0   | Indigo
+Recovery Model          | #9467bd   | Purple
+Cumulative Exposure     | #e377c2   | Pink
+
+Internal Code Name → Display Name
+----------------------------------
+dual_exponential       → Dual Exponential
+bivariate_gaussian     → Bivariate Gaussian
+gaussian_hill_hybrid   → Gaussian-Hill Hybrid
+modified_hill_hormesis → Hormesis Hill
+gaussian_ridge         → Gaussian Ridge
+adaptive_response      → Adaptive Response
+biphasic_response      → Biphasic Response
+cumulative_exposure    → Cumulative Exposure
+recovery_model         → Recovery Model
+modified_hill_simple   → Modified Hill
+pkpd_elimination       → PKPD Elimination
+hormesis_v0            → Dual Hill Hormesis
+
+Python snippet for reuse:
+-------------------------
+EQUATION_COLORS = {
+    'Dual Exponential':     '#d62728',
+    'Hormesis Hill':        '#e6550d',
+    'PKPD Elimination':     '#ff7f0e',
+    'Biphasic Response':    '#ffc107',
+    'Dual Hill Hormesis':   '#8bc34a',
+    'Modified Hill':        '#2ca02c',
+    'Adaptive Response':    '#00897b',
+    'Gaussian Ridge':       '#17becf',
+    'Bivariate Gaussian':   '#1f77b4',
+    'Gaussian-Hill Hybrid': '#5c6bc0',
+    'Recovery Model':       '#9467bd',
+    'Cumulative Exposure':  '#e377c2',
+}

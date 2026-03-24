@@ -450,14 +450,17 @@ def generate_fig_2():
         step = max(1, len(x_labels) // 10)
         ax.set_xticks(x[::step])
         ax.set_xticklabels([x_labels[i] for i in range(0, len(x_labels), step)],
-                           rotation=45, ha='right', fontsize=6)
+                           rotation=0, ha='center', fontsize=6, fontweight='bold')
 
-        ax.set_ylabel('% Measurements', fontsize=8)
-        ax.set_xlabel('SNR Threshold', fontsize=8)
+        ax.set_ylabel('% Measurements', fontsize=8, fontweight='bold')
+        ax.set_xlabel('SNR Threshold', fontsize=8, fontweight='bold')
         ax.set_title('SNR Quality Analysis', fontsize=9, fontweight='bold')
         ax.set_ylim(0, 105)
         ax.tick_params(labelsize=6)
         ax.legend(fontsize=5, loc='lower right')
+        for spine in ax.spines.values():
+            spine.set_edgecolor('black')
+            spine.set_linewidth(1.5)
 
         fig.tight_layout()
 
@@ -472,111 +475,147 @@ def generate_fig_2():
             qc_df['Source'] = str(qc_analysis_path)
             data_dict['QC_Analysis'] = qc_df
 
-        save_figure(fig, '2', 'i', 'SNR Quality Analysis',
+        save_figure(fig, '2', 'd', 'SNR Quality Analysis',
                     data_dict, width=fig_w, height=fig_h,
                     notes='Stacked bars: QC range (blue) on bottom, out-of-range (red) on top. SNR 0.4 threshold line.')
     else:
-        print(f"  Warning: {snr_path} not found for Fig_2i")
+        print(f"  Warning: {snr_path} not found for Fig_2d")
 
-    # --- Epirubicin 2D raw time-series plots ---
-    _generate_fig2_epirubicin_raw()
+    # --- Epirubicin O2 averaged dose-response (from raw per-well data) ---
+    _generate_fig2_epirubicin_o2()
+
+    # --- Mexiletine Contractility offset-averaged dose-response ---
+    _generate_fig2_dose_response_2d()
 
     # --- Epirubicin TC50 dose-response plot ---
     _generate_fig2_epirubicin_tc50()
 
-    # Panels a-h are external (microscopy, plate images, EMF diagrams)
-    # These are placed manually in PowerPoint
-    print("  Panels a-h: externally managed")
+    # --- Epirubicin O2 heatmap (smoothed per-well) ---
+    _generate_fig2_epirubicin_o2_heatmap()
+
+    # --- Mexiletine stacked waveforms ---
+    _generate_fig2_mexiletine_waveforms()
+
+    # --- Mexiletine Contractility heatmap ---
+    _generate_fig2_mexiletine_contractility_heatmap()
+
+    # Remaining panels are external (microscopy, plate images, EMF diagrams)
+    print("  Remaining panels: externally managed")
 
 
-def _generate_fig2_epirubicin_raw():
-    """Generate Epirubicin O2 and Contractility raw time-series plots for Figure 2."""
-    from generate_2d_raw_plots import remove_spikes, MANUAL_SPIKE_INDICES
+def _generate_fig2_dose_response_2d():
+    """Generate Mexiletine Contractility offset-averaged dose-response plot for Figure 2.
 
-    O2_PATH = PROJECT_ROOT / 'Cleaned_Data' / 'O2_Mean_Averaged.xlsx'
-    CON_PATH = PROJECT_ROOT / 'Cleaned_Data' / 'Heart_Contractility_Averaged.xlsx'
+    Delegates to the standalone script plot_contractility.py which saves directly
+    to Output/PowerPoint_Figures/Fig_2/Fig_2j_Mexiletine_Contractility.png.
+    This avoids reimplementing the pipeline and ensures identical output.
+
+    Reference script: Cleaned_Data/Raw_Example_Data/plot_contractility.py
+    """
+    import subprocess
 
     fig2_dir = FIGURES_DIR / 'Fig_2'
     fig2_dir.mkdir(parents=True, exist_ok=True)
 
-    drug = 'Epirubicin'
+    script = PROJECT_ROOT / 'Cleaned_Data' / 'Raw_Example_Data' / 'plot_contractility.py'
+    csv_path = PROJECT_ROOT / 'Cleaned_Data' / 'Raw_Example_Data' / 'Mexiletine' / 'Amp_std.csv'
 
-    for response_type, path in [('O2', O2_PATH), ('Contractility', CON_PATH)]:
-        if not path.exists():
-            print(f"  Warning: {path} not found")
-            continue
+    if not script.exists():
+        print(f"  Warning: {script} not found")
+        return
 
-        df = pd.read_excel(path, sheet_name=drug)
-        time = df.iloc[:, 0].values
-        conc_labels = [str(c) for c in df.columns[1:]]
-        n_conc = len(conc_labels)
-        cmap = plt.get_cmap('plasma', n_conc)
+    # Run the standalone script (it saves to both local and Fig_2 folders)
+    result = subprocess.run(
+        ['python', str(script)],
+        cwd=str(script.parent),
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        print(f"  Error running plot_contractility.py: {result.stderr}")
+        return
 
-        conc_floats = [float(c) for c in conc_labels]
-        order = np.argsort(conc_floats)[::-1]
+    png_path = fig2_dir / 'Fig_2j_Mexiletine_Contractility.png'
+    if not png_path.exists():
+        print(f"  Warning: {png_path} not generated")
+        return
 
-        # First pass: clean all traces and find global min for y-shift
-        all_cleaned = {}
-        for idx in range(n_conc):
-            label = conc_labels[idx]
-            raw_vals = df.iloc[:, idx + 1].values.copy()
-
-            # Manual spike removal
-            manual_key = (drug, response_type, label)
-            if manual_key in MANUAL_SPIKE_INDICES:
-                manual_idx = MANUAL_SPIKE_INDICES[manual_key]
-                raw_vals[manual_idx] = np.nan
-                valid = np.where(~np.isnan(raw_vals))[0]
-                if len(valid) >= 2:
-                    raw_vals = np.interp(np.arange(len(raw_vals)), valid, raw_vals[valid])
-
-            cleaned, _ = remove_spikes(raw_vals)
-
-            all_cleaned[idx] = cleaned
-
-        # Plot with original y-scale (no offset subtraction)
-        fig, ax = plt.subplots(figsize=(4, 2.8))
-
-        for rank, idx in enumerate(order):
-            label = conc_labels[idx]
-            cleaned = all_cleaned[idx]
-            color = cmap(rank / max(n_conc - 1, 1))
-            ax.plot(time, cleaned, linewidth=1.2, color=color, label=label)
-
-        ax.set_xlabel('Time (h)', fontsize=9)
-        if response_type == 'O2':
-            ax.set_ylabel(r'$O_2$ (%)', fontsize=9)
-            ax.set_title('2D Oxygen Kinetics', fontsize=10, fontweight='bold')
-        else:
-            ax.set_ylabel('Contractility', fontsize=9)
-            ax.set_title('2D Contractility Kinetics', fontsize=10, fontweight='bold')
-        ax.set_xlim(0, 96)
-        ax.tick_params(labelsize=7)
-        ax.legend(fontsize=5, title='Conc', title_fontsize=5,
-                  loc='upper left', bbox_to_anchor=(1.02, 1.0),
-                  borderpad=0.3, labelspacing=0.25, handlelength=1.2)
-        fig.tight_layout()
-
-        panel_label = f'{drug}_{response_type}'
-        png_path = fig2_dir / f'Fig_2_{panel_label}.png'
-        fig.savefig(png_path, dpi=SAVE_DPI, bbox_inches='tight', pad_inches=0.05,
-                    facecolor='white')
-        plt.close(fig)
-
-        # Save data
-        excel_path = fig2_dir / f'Fig_2_{panel_label}_data.xlsx'
+    # Save data
+    if csv_path.exists():
+        df = pd.read_csv(csv_path)
+        excel_path = fig2_dir / 'Fig_2j_Mexiletine_Contractility_data.xlsx'
         save_df = df.copy()
-        save_df.insert(0, 'Source', str(path))
+        save_df.insert(0, 'Source', str(csv_path))
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-            save_df.to_excel(writer, sheet_name=drug[:31], index=False)
+            save_df.to_excel(writer, sheet_name='Mexiletine', index=False)
+    else:
+        excel_path = fig2_dir / 'Fig_2j_Mexiletine_Contractility_data.xlsx'
 
-        register_figure('2', panel_label,
-                        f'{drug} {response_type} raw time series',
-                        png_path.relative_to(PROJECT_ROOT),
-                        excel_path.relative_to(PROJECT_ROOT),
-                        width=4.0, height=2.8,
-                        notes=f'2D raw plot, original y-scale, spike-cleaned')
-        print(f"  Fig_2_{panel_label}.png")
+    register_figure('2', 'Mexiletine_Contractility',
+                    'Contractility Dose Dependent Response (Mexiletine)',
+                    png_path.relative_to(PROJECT_ROOT),
+                    excel_path.relative_to(PROJECT_ROOT),
+                    width=12.0, height=8.0,
+                    notes='Raw per-well contractility offset-averaged. LOWESS x3 + Gaussian + CubicSpline. '
+                          'Wells {20,22,23,24,25,27} excluded. All traces offset to global average start.')
+    print(f"  Fig_2j_Mexiletine_Contractility.png")
+
+
+def _generate_fig2_epirubicin_o2():
+    """Generate Epirubicin O2 averaged dose-response plot for Figure 2.
+
+    Delegates to the standalone script plot_epirubicin_o2.py which saves directly
+    to Output/PowerPoint_Figures/Fig_2/Fig_2g_Epirubicin_O2.png.
+    This avoids reimplementing the pipeline and ensures identical output.
+
+    Reference script: Cleaned_Data/Raw_Example_Data/plot_epirubicin_o2.py
+    """
+    import subprocess
+
+    fig2_dir = FIGURES_DIR / 'Fig_2'
+    fig2_dir.mkdir(parents=True, exist_ok=True)
+
+    script = PROJECT_ROOT / 'Cleaned_Data' / 'Raw_Example_Data' / 'plot_epirubicin_o2.py'
+    csv_path = PROJECT_ROOT / 'Cleaned_Data' / 'Raw_Example_Data' / 'Epirubicin' / 'O2_mean.csv'
+
+    if not script.exists():
+        print(f"  Warning: {script} not found")
+        return
+
+    # Run the standalone script (it saves to both local and Fig_2 folders)
+    result = subprocess.run(
+        ['python', str(script)],
+        cwd=str(script.parent),
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        print(f"  Error running plot_epirubicin_o2.py: {result.stderr}")
+        return
+
+    png_path = fig2_dir / 'Fig_2g_Epirubicin_O2.png'
+    if not png_path.exists():
+        print(f"  Warning: {png_path} not generated")
+        return
+
+    # Save data
+    if csv_path.exists():
+        df = pd.read_csv(csv_path)
+        excel_path = fig2_dir / 'Fig_2g_Epirubicin_O2_data.xlsx'
+        save_df = df.copy()
+        save_df.insert(0, 'Source', str(csv_path))
+        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+            save_df.to_excel(writer, sheet_name='Epirubicin_O2', index=False)
+    else:
+        excel_path = fig2_dir / 'Fig_2g_Epirubicin_O2_data.xlsx'
+
+    register_figure('2', 'Epirubicin_O2',
+                    'Metabolic Dose Dependent Response (Epirubicin O2)',
+                    png_path.relative_to(PROJECT_ROOT),
+                    excel_path.relative_to(PROJECT_ROOT),
+                    width=12.0, height=8.0,
+                    notes='Raw per-well O2 averaged by conc. LOWESS x3 + Gaussian + CubicSpline. '
+                          'Well 1 excluded (85% outlier). Targeted baseline shift for extreme traces. '
+                          'MARGIN=1.5%.')
+    print(f"  Fig_2g_Epirubicin_O2.png")
 
 
 def _generate_fig2_epirubicin_tc50():
@@ -672,13 +711,13 @@ def _generate_fig2_epirubicin_tc50():
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
 
-    png_path = fig2_dir / 'Fig_2_Epirubicin_TC50.png'
+    png_path = fig2_dir / 'Fig_2h_Epirubicin_TC50.png'
     fig.savefig(png_path, dpi=SAVE_DPI, bbox_inches='tight', pad_inches=0.05,
                 facecolor='white')
     plt.close(fig)
 
     # Save data
-    excel_path = fig2_dir / 'Fig_2_Epirubicin_TC50_data.xlsx'
+    excel_path = fig2_dir / 'Fig_2h_Epirubicin_TC50_data.xlsx'
     save_df = df_avg.copy()
     save_df['Source'] = str(RAW_O2_PATH)
     save_df['Timepoint_h'] = time_hour
@@ -694,7 +733,358 @@ def _generate_fig2_epirubicin_tc50():
                     excel_path.relative_to(PROJECT_ROOT),
                     width=4.0, height=2.8,
                     notes=f'TC50={tc50_str} mM at {time_hour}h, 4PL sigmoid fit on per-well data')
-    print(f"  Fig_2_Epirubicin_TC50.png (TC50={tc50_str} mM)")
+    print(f"  Fig_2h_Epirubicin_TC50.png (TC50={tc50_str} mM)")
+
+
+def _generate_fig2_heatmap(csv_path, drug_name, is_contractility, out_filename,
+                           y_label, cbar_label, drop_wells=None, vmax_override=None):
+    """Generate a concentration-grouped LOWESS heatmap for Figure 2.
+
+    Follows the same pipeline as Fig 3a heatmaps but with Fig 2 styling:
+    no title, large fonts, straight x-labels, matching graph height.
+    """
+    from statsmodels.nonparametric.smoothers_lowess import lowess as lowess_func
+    from collections import OrderedDict
+    from matplotlib.colors import LinearSegmentedColormap
+    import seaborn as sns
+
+    fig2_dir = FIGURES_DIR / 'Fig_2'
+    fig2_dir.mkdir(parents=True, exist_ok=True)
+
+    if not csv_path.exists():
+        print(f"  Warning: {csv_path} not found")
+        return
+
+    LOWESS_W = 16
+    cmap = LinearSegmentedColormap.from_list('cardiac_rodeo',
+                                              [HEATMAP_BLUE, 'white', HEATMAP_RED])
+    cmap.set_bad('white')
+
+    def _get_base_conc(col_name):
+        """Strip pandas duplicate suffixes: '10.1' -> 10, '0.625.2' -> 0.625."""
+        import re
+        s = str(col_name)
+        # Try stripping trailing '.N' where N is a single digit (pandas suffix)
+        m = re.match(r'^(.+?)\.(\d)$', s)
+        if m:
+            base = m.group(1)
+            try:
+                return float(base)
+            except ValueError:
+                pass
+        try:
+            return float(s)
+        except ValueError:
+            return None
+
+    def _conc_label(col_name):
+        val = _get_base_conc(col_name)
+        if val is None: return str(col_name)
+        return str(int(val)) if val == int(val) else str(val)
+
+    def _apply_lowess(df):
+        smoothed = df.copy().astype(float)
+        for col in smoothed.columns:
+            series = smoothed[col]
+            valid = series.dropna()
+            if len(valid) < 3: continue
+            frac = min(1.0, max(LOWESS_W, 1) / len(valid))
+            fitted = lowess_func(valid.values, np.arange(len(valid)),
+                                 frac=frac, return_sorted=False)
+            target = smoothed.index.get_indexer(valid.index)
+            smoothed.iloc[target, smoothed.columns.get_loc(col)] = fitted
+        return smoothed
+
+    # Load and process
+    df_raw = pd.read_csv(csv_path, index_col=0)
+    if drop_wells:
+        cols_to_drop = [c for c in drop_wells if c in df_raw.columns]
+        if cols_to_drop:
+            df_raw = df_raw.drop(columns=cols_to_drop)
+
+    for col in df_raw.columns:
+        df_raw[col] = df_raw[col].interpolate(method='linear', limit=10, limit_direction='both')
+
+    df_smooth = _apply_lowess(df_raw)
+    data = df_smooth.T  # rows=wells, cols=time
+
+    if is_contractility:
+        data = data * 100
+    else:
+        data = data.clip(upper=100)
+
+    y_labels = [_conc_label(c) for c in data.index.tolist()]
+    x_labels = [str(t) for t in data.columns.tolist()]
+
+    # Figure sized to match dose-response graph height
+    fig, ax = plt.subplots(figsize=(12, 7))
+
+    vmax = vmax_override if vmax_override else None
+    sns.heatmap(
+        data, annot=False, cmap=cmap,
+        vmin=0, vmax=vmax,
+        cbar_kws={'shrink': 0.8},
+        xticklabels=x_labels, yticklabels=y_labels,
+        square=False, linewidths=0, ax=ax
+    )
+
+    ax.set_xlabel('Time from Exposure (h)', fontsize=22, fontweight='bold')
+    ax.set_ylabel(y_label, fontsize=22, fontweight='bold')
+    # No title
+
+    # X ticks — straight, thinned out, bold
+    n_x = len(x_labels)
+    x_step = max(1, n_x // 10)
+    ax.set_xticks(range(0, n_x, x_step))
+    ax.set_xticklabels([x_labels[i] for i in range(0, n_x, x_step)],
+                        rotation=0, ha='center', fontsize=16, fontweight='bold')
+
+    # Y ticks — one per concentration group, no "mM", bold
+    conc_groups = OrderedDict()
+    for i, lbl in enumerate(y_labels):
+        conc_groups.setdefault(lbl, []).append(i)
+    tick_positions = [(indices[0] + indices[-1]) / 2 + 0.5 for indices in conc_groups.values()]
+    ax.set_yticks(tick_positions)
+    ax.set_yticklabels(list(conc_groups.keys()), fontsize=16, rotation=0, fontweight='bold')
+
+    # Thick black borders
+    for spine in ax.spines.values():
+        spine.set_edgecolor('black')
+        spine.set_linewidth(2.0)
+    ax.tick_params(width=1.5)
+
+    # Colorbar
+    cbar = ax.collections[0].colorbar
+    cbar.ax.tick_params(labelsize=14, width=1.5)
+    cbar.set_label(cbar_label, fontsize=16, fontweight='bold')
+    cbar.outline.set_linewidth(2.0)
+    if vmax_override:
+        ticks = [t for t in range(0, int(vmax_override) + 1, 20)]
+        cbar.set_ticks(ticks)
+
+    fig.tight_layout()
+
+    dst = fig2_dir / out_filename
+    fig.savefig(str(dst), dpi=SAVE_DPI, bbox_inches='tight', pad_inches=0.05,
+                facecolor='white')
+    plt.close(fig)
+    print(f"  {out_filename}")
+    return dst
+
+
+def _generate_fig2_epirubicin_o2_heatmap():
+    """Epirubicin O2 concentration-grouped LOWESS heatmap for Figure 2."""
+    csv_path = PROJECT_ROOT / 'Cleaned_Data' / 'Heatmaps' / 'Epirubicin' / 'O2_mean_sorted.csv'
+    dst = _generate_fig2_heatmap(
+        csv_path, 'Epirubicin', is_contractility=False,
+        out_filename='Fig_2i_Epirubicin_O2_Heatmap.png',
+        y_label='Epirubicin Dose',
+        cbar_label='Oxygen (% Air)',
+        drop_wells=['0.38.1'],
+        vmax_override=100
+    )
+    if dst:
+        register_figure('2', 'Epirubicin_O2_Heatmap',
+                        'Epirubicin O2 Heatmap (LOWESS w=16)',
+                        dst.relative_to(PROJECT_ROOT), None,
+                        notes='Sorted wells, LOWESS w=16, well 0.38.1 excluded. vmax=100.')
+
+
+def _generate_fig2_doxorubicin_waveforms():
+    """Copy Doxorubicin stacked waveforms into Figure 2.
+
+    Source: Output/HeartRate_Analysis/DoseResponse/doxorubicin_Stacked.png
+    """
+    import shutil
+
+    fig2_dir = FIGURES_DIR / 'Fig_2'
+    fig2_dir.mkdir(parents=True, exist_ok=True)
+
+    src = PROJECT_ROOT / 'Output' / 'HeartRate_Analysis' / 'DoseResponse' / 'doxorubicin_Stacked.png'
+    dst = fig2_dir / 'Fig_2_Doxorubicin_Waveforms.png'
+
+    if not src.exists():
+        print(f"  Warning: {src} not found")
+        return
+
+    shutil.copy2(src, dst)
+    register_figure('2', 'Doxorubicin_Waveforms',
+                    'Doxorubicin Stacked Waveforms (3 doses x 3 timepoints)',
+                    dst.relative_to(PROJECT_ROOT),
+                    None,
+                    notes='Stacked contractility waveforms at High/Med/Low doses across 6h/27h/82h.')
+    print(f"  Fig_2_Doxorubicin_Waveforms.png")
+
+
+def _generate_fig2_mexiletine_waveforms():
+    """Generate Mexiletine stacked waveforms for Figure 2.
+
+    Delegates to the standalone script plot_mexiletine_waveforms.py.
+    Reference script: Cleaned_Data/Raw_Example_Data/plot_mexiletine_waveforms.py
+    """
+    import subprocess
+
+    fig2_dir = FIGURES_DIR / 'Fig_2'
+    fig2_dir.mkdir(parents=True, exist_ok=True)
+
+    script = PROJECT_ROOT / 'Cleaned_Data' / 'Raw_Example_Data' / 'plot_mexiletine_waveforms.py'
+    if not script.exists():
+        print(f"  Warning: {script} not found")
+        return
+
+    result = subprocess.run(
+        ['python', str(script)],
+        cwd=str(script.parent),
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        print(f"  Error running plot_mexiletine_waveforms.py: {result.stderr}")
+        return
+
+    png_path = fig2_dir / 'Fig_2k_Mexiletine_Waveforms.png'
+    if png_path.exists():
+        register_figure('2', 'Mexiletine_Waveforms',
+                        'Mexiletine Stacked Waveforms (3 doses, 48h)',
+                        png_path.relative_to(PROJECT_ROOT),
+                        None,
+                        notes='Stacked contractility waveforms at 5/1.25/0.625 mM, 48h. '
+                              'Bandpass filtered from raw Dynamix data.')
+        print(f"  Fig_2k_Mexiletine_Waveforms.png")
+    else:
+        print(f"  Warning: {png_path} not generated")
+
+
+def _generate_fig2_mexiletine_contractility_heatmap():
+    """Mexiletine Contractility heatmap for Figure 2.
+
+    Uses RAW CSV with exact exclusions from Mexiletine_Contractility_Heatmap_NOTES.txt.
+    14 wells excluded (by 1-based index + column name), then sorted ascending bottom-up.
+    """
+    from statsmodels.nonparametric.smoothers_lowess import lowess as lowess_func
+    from collections import OrderedDict
+    from matplotlib.colors import LinearSegmentedColormap
+    import seaborn as sns
+    import re
+
+    fig2_dir = FIGURES_DIR / 'Fig_2'
+    fig2_dir.mkdir(parents=True, exist_ok=True)
+
+    csv_path = PROJECT_ROOT / 'Cleaned_Data' / 'Raw_Example_Data' / 'Mexiletine' / 'Amp_std.csv'
+    if not csv_path.exists():
+        print(f"  Warning: {csv_path} not found")
+        return
+
+    # Exact exclusions from NOTES file
+    REMOVE_ORIGINAL = {4, 5, 6, 7, 14, 15, 17, 21, 22, 24, 26}  # 1-based indices
+    REMOVE_COLS_EXTRA = {'20', '2.5.1', '2.5'}  # CSV column names
+    LOWESS_W = 16
+
+    cmap_hm = LinearSegmentedColormap.from_list('cardiac_rodeo',
+                                                 [HEATMAP_BLUE, 'white', HEATMAP_RED])
+    cmap_hm.set_bad('white')
+
+    def _get_base_conc(col_name):
+        s = str(col_name)
+        m = re.match(r'^(.+?)\.(\d)$', s)
+        if m:
+            try: return float(m.group(1))
+            except ValueError: pass
+        try: return float(s)
+        except ValueError: return None
+
+    def _conc_label(col_name):
+        val = _get_base_conc(col_name)
+        if val is None: return str(col_name)
+        return str(int(val)) if val == int(val) else str(val)
+
+    # Load and drop by index + column name
+    df = pd.read_csv(csv_path, index_col=0)
+    keep_cols = [col for i, col in enumerate(df.columns) if (i + 1) not in REMOVE_ORIGINAL]
+    keep_cols = [col for col in keep_cols if col not in REMOVE_COLS_EXTRA]
+    df = df[keep_cols]
+
+    # Interpolate
+    for col in df.columns:
+        df[col] = df[col].interpolate(method='linear', limit=10, limit_direction='both')
+
+    # LOWESS full smoothing (first point NOT preserved)
+    for col in df.columns:
+        series = df[col].dropna()
+        if len(series) < 3:
+            continue
+        frac = min(1.0, max(LOWESS_W, 1) / len(series))
+        fitted = lowess_func(series.values, np.arange(len(series)),
+                             frac=frac, return_sorted=False)
+        target = df.index.get_indexer(series.index)
+        df.iloc[target, df.columns.get_loc(col)] = fitted
+
+    # Transpose (rows=wells, cols=time)
+    data = df.T
+
+    # Sort within each concentration group by average (ascending bottom-up)
+    conc_vals = [_get_base_conc(c) for c in data.index.tolist()]
+    conc_groups_sort = OrderedDict()
+    for i, cv in enumerate(conc_vals):
+        conc_groups_sort.setdefault(cv, []).append(i)
+    sorted_indices = []
+    for cv in sorted(conc_groups_sort.keys(), reverse=True):
+        group_idx = conc_groups_sort[cv]
+        group_means = [(idx, data.iloc[idx].mean()) for idx in group_idx]
+        group_means.sort(key=lambda x: x[1])  # ascending
+        sorted_indices.extend([idx for idx, _ in group_means])
+    data = data.iloc[sorted_indices]
+
+    # Scale
+    data = data * 100
+
+    y_labels = [_conc_label(c) for c in data.index.tolist()]
+    x_labels = [str(t) for t in data.columns.tolist()]
+
+    fig, ax = plt.subplots(figsize=(12, 7))
+    sns.heatmap(
+        data, annot=False, cmap=cmap_hm, vmin=0,
+        cbar_kws={'shrink': 0.8},
+        xticklabels=x_labels, yticklabels=y_labels,
+        square=False, linewidths=0, ax=ax
+    )
+
+    ax.set_xlabel('Time from Exposure (h)', fontsize=22, fontweight='bold')
+    ax.set_ylabel('Mexiletine Dose', fontsize=22, fontweight='bold')
+
+    n_x = len(x_labels)
+    x_step = max(1, n_x // 10)
+    ax.set_xticks(range(0, n_x, x_step))
+    ax.set_xticklabels([x_labels[i] for i in range(0, n_x, x_step)],
+                        rotation=0, ha='center', fontsize=16, fontweight='bold')
+
+    conc_groups2 = OrderedDict()
+    for i, lbl in enumerate(y_labels):
+        conc_groups2.setdefault(lbl, []).append(i)
+    tick_positions = [(indices[0] + indices[-1]) / 2 + 0.5 for indices in conc_groups2.values()]
+    ax.set_yticks(tick_positions)
+    ax.set_yticklabels(list(conc_groups2.keys()), fontsize=16, rotation=0, fontweight='bold')
+
+    for spine in ax.spines.values():
+        spine.set_edgecolor('black')
+        spine.set_linewidth(2.0)
+    ax.tick_params(width=1.5)
+
+    cbar = ax.collections[0].colorbar
+    cbar.ax.tick_params(labelsize=14, width=1.5)
+    cbar.set_label('Contractility (%)', fontsize=16, fontweight='bold')
+    cbar.outline.set_linewidth(2.0)
+
+    fig.tight_layout()
+    dst = fig2_dir / 'Fig_2l_Mexiletine_Contractility_Heatmap.png'
+    fig.savefig(str(dst), dpi=SAVE_DPI, bbox_inches='tight', pad_inches=0.05,
+                facecolor='white')
+    plt.close(fig)
+
+    register_figure('2', 'Mexiletine_Contractility_Heatmap',
+                    'Mexiletine Contractility Heatmap (LOWESS w=16)',
+                    dst.relative_to(PROJECT_ROOT), None,
+                    notes='14 wells excluded per NOTES file. LOWESS w=16 full smooth. Sorted ascending.')
+    print(f"  Fig_2l_Mexiletine_Contractility_Heatmap.png")
 
 
 # ============================================================================
@@ -713,320 +1103,282 @@ def generate_fig_3():
     fig3_dir = FIGURES_DIR / 'Fig_3'
     fig3_dir.mkdir(parents=True, exist_ok=True)
 
-    # ---- 3a: Epirubicin heatmaps (O2 Mean + Contractility, separate images) ----
-    # Two images for the same panel: Fig_3a_1.png (O2) and Fig_3a_2.png (Contractility)
-    # Uses LOWESS w=16 smoothed data with wells 0.38.1 and 0.75.2 excluded
-    heatmap_dir = PROJECT_ROOT / 'Cleaned_Data' / 'Heatmaps' / 'Epirubicin (F03)'
-    heatmap_files = [('O2_mean_final.csv', 'O2 Mean', 'Fig_3a_1.png'),
-                     ('Amp_std_final.csv', 'Contractility', 'Fig_3a_2.png')]
-
-    heatmap_w = HEATMAP_WIDTH * 1.6
-    cmap = LinearSegmentedColormap.from_list('cardiac_rodeo', [HEATMAP_BLUE, 'white', HEATMAP_RED])
-    cmap.set_bad('white')
-
-    # Known concentrations for Epirubicin — used to strip pandas .1/.2 suffixes
-    KNOWN_CONC = {12, 6, 3, 1.5, 0.75, 0.38, 0.19, 0.094}
-
-    def strip_pandas_suffix(col_name):
-        """Strip pandas duplicate suffixes: '5.1' -> '5', '2.5.2' -> '2.5', '0.16.1' -> '0.16'."""
-        import re
-        s = str(col_name)
-        # Try progressively shorter prefixes to match a known concentration
-        parts = s.split('.')
-        for n in range(len(parts), 0, -1):
-            candidate = '.'.join(parts[:n])
-            try:
-                val = float(candidate)
-                if val in KNOWN_CONC:
-                    return str(int(val)) if val == int(val) else str(val)
-            except ValueError:
-                continue
-        return s
-
-    tracking_sheets = {}
-    for fname, title_label, out_name in heatmap_files:
-        fpath = heatmap_dir / fname
-        if fpath.exists():
-            data_raw = pd.read_csv(fpath, index_col=0)
-            data = data_raw.T
-
-            # Scale contractility by 1e2; clip O2 outliers above 100
-            is_contractility = 'Amp' in fname
-            if is_contractility:
-                data = data * 100
-                cbar_label = r'Contractility ($\cdot 10^{-2}$)'
-                title_suffix = 'Contractility'
-            else:
-                data = data.clip(upper=100)
-                cbar_label = r'$O_2$ Mean'
-                title_suffix = r'$O_2$ Mean'
-
-            y_labels = [strip_pandas_suffix(c) for c in data.index.tolist()]
-            x_labels = [str(t) for t in data.columns.tolist()]
-
-            fig_hm, ax = plt.subplots(figsize=(heatmap_w, HEATMAP_WIDTH * 0.6))
-
-            sns.heatmap(
-                data, annot=False, cmap=cmap,
-                cbar_kws={'shrink': 0.8},
-                xticklabels=x_labels, yticklabels=y_labels,
-                square=True, linewidths=0, ax=ax
-            )
-
-            ax.set_xlabel('Time (h)', fontsize=6)
-            ax.set_ylabel('Concentration (mM)', fontsize=6)
-            ax.set_title(f'Epirubicin {title_suffix}', fontsize=7, fontweight='bold')
-
-            n_x = len(x_labels)
-            x_step = max(1, n_x // 8)
-            ax.set_xticks(range(0, n_x, x_step))
-            ax.set_xticklabels([x_labels[i] for i in range(0, n_x, x_step)], rotation=45, ha='right', fontsize=5)
-
-            # Place one tick per unique concentration, centered on its group
-            from collections import OrderedDict
-            conc_groups = OrderedDict()
-            for i, lbl in enumerate(y_labels):
-                conc_groups.setdefault(lbl, []).append(i)
-            tick_positions = []
-            tick_labels_conc = []
-            for lbl, indices in conc_groups.items():
-                center = (indices[0] + indices[-1]) / 2 + 0.5
-                tick_positions.append(center)
-                tick_labels_conc.append(lbl)
-            ax.set_yticks(tick_positions)
-            ax.set_yticklabels(tick_labels_conc, fontsize=5, rotation=0)
-
-            cbar = ax.collections[0].colorbar
-            cbar.ax.tick_params(labelsize=5)
-            cbar.set_label('')  # no label on the far side
-
-            # Set explicit colorbar ticks spanning full range including endpoints
-            import numpy as np
-            vmin_cb, vmax_cb = cbar.vmin, cbar.vmax
-            if is_contractility:
-                # More ticks for contractility: 0, 5, 10, 15, 20, 25 + actual max
-                ticks = [t for t in [0, 5, 10, 15, 20, 25] if t <= vmax_cb]
-                if vmax_cb not in ticks:
-                    ticks.append(round(vmax_cb, 1))
-                cbar.set_ticks(ticks)
-            else:
-                # O2: 0, 20, 40, 60, 80, 100 + actual max
-                ticks = [t for t in [0, 20, 40, 60, 80, 100] if t <= vmax_cb]
-                if vmax_cb > 100:
-                    ticks.append(round(vmax_cb, 0))
-                cbar.set_ticks(ticks)
-
-            fig_hm.tight_layout()
-
-            # Place colorbar label between heatmap and colorbar
-            hm_bbox = ax.get_position()
-            cb_bbox = cbar.ax.get_position()
-            label_x = (hm_bbox.x1 + cb_bbox.x0) / 2
-            label_y = (cb_bbox.y0 + cb_bbox.y1) / 2
-            fig_hm.text(label_x, label_y, cbar_label, fontsize=5,
-                        ha='center', va='center', rotation=90)
-
-            dst = fig3_dir / out_name
-            fig_hm.savefig(str(dst), dpi=600, bbox_inches='tight')
-            plt.close(fig_hm)
-            print(f"  Saved: {dst.name}")
-
-            tracking_sheets[f'Heatmap_{fname.replace(".csv", "")}'] = data
-        else:
-            print(f"  Warning: {fpath} not found")
-
-    # Save tracking data and register panel a
-    if tracking_sheets:
-        excel_path = fig3_dir / 'Fig_3a_data.xlsx'
-        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-            for sheet, df in tracking_sheets.items():
-                df.to_excel(writer, sheet_name=sheet[:31], index=True)
-        print(f"  Saved: {excel_path}")
-    register_figure('3', 'a', 'Epirubicin Heatmaps (O2 Mean + Contractility, LOWESS w=16)',
-                    (fig3_dir / 'Fig_3a_1.png').relative_to(PROJECT_ROOT),
-                    (fig3_dir / 'Fig_3a_data.xlsx').relative_to(PROJECT_ROOT),
-                    width=heatmap_w, height=HEATMAP_WIDTH * 0.6,
-                    source_script='generate_paper_figures.py',
-                    notes='Two images: Fig_3a_1.png (O2) + Fig_3a_2.png (Contractility)')
-
-    # ---- 3b: 2x2 grid of surface equation examples (4 individual images) ----
-    import sys
+    # ---- 3a: O2 Heatmaps (Dactinomycin, Nifedipine, Mexiletine) ----
+    # ---- 3b: Surface Plots (Mexiletine Eq7, Nifedipine Eq10, Dactinomycin Eq3) ----
     import inspect
-    import warnings as _warnings
-    _warnings.filterwarnings('ignore', category=RuntimeWarning)
-    sys.path.insert(0, str(PROJECT_ROOT / 'Picking Equations' / 'equation_fitting'))
+    import warnings
+    import sys
+    from matplotlib.ticker import NullFormatter
+    from collections import OrderedDict
+    from statsmodels.nonparametric.smoothers_lowess import lowess as lowess_func
+    from matplotlib.colors import LinearSegmentedColormap as LSC
+
+    # --- Helper: LOWESS smoothing per column ---
+    LOWESS_W_3AB = 16
+
+    def _apply_lowess_per_col(df):
+        """Apply LOWESS smoothing (w=16) per column along the index (time axis)."""
+        smoothed = df.copy().astype(float)
+        for col in smoothed.columns:
+            series = smoothed[col]
+            valid = series.dropna()
+            if len(valid) < 3:
+                continue
+            frac = min(1.0, max(LOWESS_W_3AB, 1) / len(valid))
+            fitted = lowess_func(valid.values, np.arange(len(valid)),
+                                 frac=frac, return_sorted=False)
+            target = smoothed.index.get_indexer(valid.index)
+            smoothed.iloc[target, smoothed.columns.get_loc(col)] = fitted
+        return smoothed
+
+    # --- Heatmap configuration ---
+    heatmap_drugs = OrderedDict([
+        ('Dactinomycin', {'remove_rows': {1, 8, 12, 16, 20, 24, 27}}),
+        ('Nifedipine',   {'remove_rows': {5, 6}}),
+        ('Mexiletine',   {'remove_rows': {2, 3, 9, 13, 20}}),
+    ])
+
+    heatmap_cmap = LSC.from_list('bwr_custom', [HEATMAP_BLUE, 'white', HEATMAP_RED])
+    heatmap_cmap.set_bad('white')
+
+    # --- Surface configuration ---
+    # Drug -> (equation_name, sheet_name)
+    surface_drugs = OrderedDict([
+        ('Mexiletine',    ('biphasic_response',    'biphasic_response')),
+        ('Nifedipine',    ('modified_hill_simple',  'modified_hill_simple')),
+        ('Dactinomycin',  ('gaussian_hill_hybrid',  'gaussian_hill_hybrid')),
+    ])
+
+    # Load equation functions
+    eq_fitting_dir = str(PROJECT_ROOT / 'Picking Equations' / 'equation_fitting')
+    if eq_fitting_dir not in sys.path:
+        sys.path.insert(0, eq_fitting_dir)
     from equations import EQUATION_FUNCTIONS
 
-    SURFACE_PLOTS = [
-        (1,  'dual_exponential',  'Mexiletine',   'Fig_3b_1.png'),
-        (5,  'gaussian_ridge',    'Amiodarone',   'Fig_3b_2.png'),
-        (11, 'pkpd_elimination',  'Daunorubicin', 'Fig_3b_3.png'),
-        (12, 'hormesis_v0',       'Vioxx',        'Fig_3b_4.png'),
-    ]
+    # Load coefficient Excel once
+    coeff_xl_path = PROJECT_ROOT / 'EQN_Coefficients' / 'all_equations_coefficients.xlsx'
 
-    N_GRID = 100
-    t_grid = np.linspace(0, 96, N_GRID)
-    dr_grid = np.linspace(0, 2, N_GRID)
-    T_mesh, Dr_mesh = np.meshgrid(t_grid, dr_grid)
+    # ----- Generate 3a heatmaps -----
+    print("  Generating Panel 3a heatmaps...")
+    heatmap_data_for_excel = {}  # drug -> processed DataFrame
 
-    def _get_o2_params(func, row):
-        sig = inspect.signature(func)
-        param_names = list(sig.parameters.keys())[1:]  # skip X
-        values = []
-        for p in param_names:
-            col = f'{p}.1'
-            if col in row.index:
-                values.append(float(row[col]))
-            elif p in row.index:
-                values.append(float(row[p]))
-            else:
-                raise KeyError(f"Column '{col}' not found")
-        return values
+    for drug, cfg in heatmap_drugs.items():
+        csv_path = PROJECT_ROOT / 'Cleaned_Data' / 'Heatmaps' / drug / 'O2_mean_sorted.csv'
+        if not csv_path.exists():
+            print(f"    WARNING: {csv_path} not found, skipping {drug} heatmap")
+            continue
 
-    # First pass: compute all 4 surfaces to find global vmin/vmax
-    surface_data = []
-    for surf_num, eq_name, drug_name, out_name in SURFACE_PLOTS:
+        # 1. Load sorted O2 data
+        df_raw = pd.read_csv(csv_path, index_col=0)
+
+        # 2. Remove outlier data points (O2 > 80 or < 0 -> NaN)
+        df_raw = df_raw.where((df_raw >= 0) & (df_raw <= 80))
+
+        # 3. Drop wells with > 50% NaN
+        nan_frac = df_raw.isna().mean()
+        keep_cols = nan_frac[nan_frac <= 0.5].index
+        df_raw = df_raw[keep_cols]
+
+        # 4. Linear interpolation within each well
+        for col in df_raw.columns:
+            df_raw[col] = df_raw[col].interpolate(method='linear', limit=10,
+                                                   limit_direction='both')
+
+        # 5. LOWESS smoothing per-well along time
+        df_smooth = _apply_lowess_per_col(df_raw)
+
+        # 6. Transpose (rows=wells, cols=time)
+        data = df_smooth.T
+
+        # 7. Remove manually flagged rows (1-indexed from sorted order)
+        remove_rows = cfg['remove_rows']
+        if remove_rows:
+            # Convert 1-indexed row numbers to 0-indexed
+            rows_to_drop = [data.index[i - 1] for i in sorted(remove_rows)
+                            if i - 1 < len(data)]
+            data = data.drop(rows_to_drop, errors='ignore')
+
+        # 8. Clip O2 at 100
+        data = data.clip(upper=100)
+
+        # Store for Excel export
+        heatmap_data_for_excel[drug] = data.copy()
+
+        # 9-14. Plot heatmap
+        fig_hm, ax_hm = plt.subplots(figsize=(7, 7))
+        sns.heatmap(data.values, cmap=heatmap_cmap, vmin=0, vmax=100,
+                    cbar=False, square=False, linewidths=0, ax=ax_hm)
+
+        # No tick values, just axis labels
+        ax_hm.set_xticks([])
+        ax_hm.set_yticks([])
+        ax_hm.set_xlabel('Time from Exposure (h)', fontsize=22, fontweight='bold')
+        ax_hm.set_ylabel(f'{drug} Dose', fontsize=22, fontweight='bold')
+
+        # No border spines
+        for spine in ax_hm.spines.values():
+            spine.set_visible(False)
+
+        hm_filename = f'Fig_3a_{drug}_O2_Heatmap.png'
+        hm_path = fig3_dir / hm_filename
+        fig_hm.savefig(hm_path, dpi=600, bbox_inches='tight',
+                       facecolor='white', pad_inches=0.02)
+        plt.close(fig_hm)
+        print(f"    Saved: {hm_path}")
+
+        register_figure('3', f'a_{drug}_O2_Heatmap',
+                        f'{drug} O2 heatmap (Panel 3a)',
+                        hm_path.relative_to(PROJECT_ROOT),
+                        notes=f'LOWESS w=16, rows removed: {sorted(remove_rows)}',
+                        source_script='generate_paper_figures.py')
+
+    # ----- Generate 3b surface plots -----
+    print("  Generating Panel 3b surface plots...")
+    surface_data_for_excel = {}  # drug -> (Z_matrix, coeffs_dict, eq_name)
+
+    # Equation display names for filenames
+    eq_filename_map = {
+        'biphasic_response': 'Eq7_biphasic_response',
+        'modified_hill_simple': 'Eq10_modified_hill_simple',
+        'gaussian_hill_hybrid': 'Eq3_gaussian_hill_hybrid',
+    }
+
+    LABEL_SIZE_3B = 24
+
+    for drug, (eq_name, sheet_name) in surface_drugs.items():
+        # Load coefficients for this equation
+        df_coeff = pd.read_excel(coeff_xl_path, sheet_name=sheet_name, header=1)
+        df_coeff.columns = df_coeff.columns.str.strip()
+
+        drug_row = df_coeff[df_coeff['Drug'] == drug]
+        if drug_row.empty:
+            print(f"    WARNING: {drug} not found in {sheet_name} sheet, skipping")
+            continue
+        drug_row = drug_row.iloc[0]
+
+        # Get the equation function and its parameter names (skip 'X')
         func = EQUATION_FUNCTIONS[eq_name]
-        df_eq = pd.read_excel(
-            PROJECT_ROOT / 'EQN_Coefficients' / 'all_equations_coefficients.xlsx',
-            sheet_name=eq_name, header=1)
-        df_eq.columns = df_eq.columns.str.strip()
-        row = df_eq[df_eq['Drug'] == drug_name].iloc[0]
-        params = _get_o2_params(func, row)
-        Z = func([Dr_mesh, T_mesh], *params)
-        Z = np.where(np.isfinite(Z), Z, 0.0)
+        param_names = list(inspect.signature(func).parameters.keys())[1:]
+
+        # Extract O2 parameters (use .1 suffix columns)
+        o2_params = []
+        coeffs_dict = {'equation': eq_name, 'drug': drug}
+        for pname in param_names:
+            col_o2 = f'{pname}.1'
+            if col_o2 in drug_row.index:
+                val = float(drug_row[col_o2])
+            else:
+                # Fallback to non-suffix column (shouldn't happen for O2)
+                val = float(drug_row[pname])
+            o2_params.append(val)
+            coeffs_dict[f'{pname}_O2'] = val
+
+        # Build 100x100 meshgrid: Time [0, 96] x Dose Ratio [0, 2]
+        time_arr = np.linspace(0, 96, 100)
+        dose_arr = np.linspace(0, 2, 100)
+        T_mesh, Dr_mesh = np.meshgrid(time_arr, dose_arr)
+
+        # Evaluate surface
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            Z = func([Dr_mesh, T_mesh], *o2_params)
+
         Z = np.clip(Z, -500, 500)
-        surface_data.append((surf_num, eq_name, drug_name, out_name, Z))
+        Z = np.where(np.isfinite(Z), Z, 0)
 
-    global_vmin = min(np.min(Z) for *_, Z in surface_data)
-    global_vmax = max(np.max(Z) for *_, Z in surface_data)
+        surface_data_for_excel[drug] = (Z, coeffs_dict, eq_name)
 
-    # Second pass: plot each with shared color scale, Fig_4 style (tight titles, no colorbar)
-    from matplotlib.ticker import FuncFormatter, NullFormatter
+        # Per-surface color scaling
+        z_min, z_max = float(np.nanmin(Z)), float(np.nanmax(Z))
 
-    def _fmt_tick(x, pos):
-        if x == int(x):
-            return f'{int(x)}'
-        elif abs(x) < 0.1:
-            return f'{x:.2f}'.rstrip('0').rstrip('.')
-        else:
-            return f'{x:.1f}'.rstrip('0').rstrip('.')
+        # Plot
+        fig_surf = plt.figure(figsize=(7, 7.5))
+        ax_surf = fig_surf.add_subplot(111, projection='3d')
 
-    TITLE_SIZE = 28
-    LABEL_SIZE = 24
-    TICK_SIZE = 20
+        ax_surf.plot_surface(T_mesh, Dr_mesh, Z, cmap='turbo',
+                             vmin=z_min, vmax=z_max,
+                             rcount=100, ccount=100, antialiased=True)
 
-    for surf_num, eq_name, drug_name, out_name, Z in surface_data:
-        fig_s = plt.figure(figsize=(7, 7.5))
-        ax_s = fig_s.add_subplot(111, projection='3d', computed_zorder=False)
-
-        ax_s.plot_surface(T_mesh, Dr_mesh, Z, cmap='turbo',
-                          edgecolor='none', antialiased=True, alpha=0.9,
-                          linewidth=0, rcount=100, ccount=100,
-                          vmin=global_vmin, vmax=global_vmax)
-
-        ax_s.view_init(elev=25, azim=-158)
-        ax_s.set_xlim(0, 96)
-        ax_s.set_ylim(0, 2)
-        ax_s.set_zlim(global_vmin, global_vmax)
+        ax_surf.view_init(elev=25, azim=-158)
 
         # Transparent panes
-        ax_s.xaxis.pane.fill = False
-        ax_s.yaxis.pane.fill = False
-        ax_s.zaxis.pane.fill = False
-        ax_s.grid(True, alpha=0.2)
+        ax_surf.xaxis.pane.fill = False
+        ax_surf.yaxis.pane.fill = False
+        ax_surf.zaxis.pane.fill = False
+        ax_surf.xaxis.pane.set_edgecolor((0, 0, 0, 0))
+        ax_surf.yaxis.pane.set_edgecolor((0, 0, 0, 0))
+        ax_surf.zaxis.pane.set_edgecolor((0, 0, 0, 0))
 
-        # Axis labels and ticks — tight like Fig_4
-        ax_s.set_xlabel('Time (h)', fontsize=LABEL_SIZE, labelpad=6)
-        ax_s.set_ylabel('Dose Ratio', fontsize=LABEL_SIZE, labelpad=6)
-        ax_s.tick_params(axis='x', labelsize=TICK_SIZE, pad=0)
-        ax_s.tick_params(axis='y', labelsize=TICK_SIZE, pad=0)
-        ax_s.tick_params(axis='z', labelsize=TICK_SIZE, pad=0)
-        ax_s.xaxis.set_major_formatter(FuncFormatter(_fmt_tick))
-        ax_s.yaxis.set_major_formatter(FuncFormatter(_fmt_tick))
-        ax_s.zaxis.set_major_formatter(FuncFormatter(_fmt_tick))
+        # Grid alpha
+        ax_surf.xaxis._axinfo['grid']['color'] = (0, 0, 0, 0.2)
+        ax_surf.yaxis._axinfo['grid']['color'] = (0, 0, 0, 0.2)
+        ax_surf.zaxis._axinfo['grid']['color'] = (0, 0, 0, 0.2)
 
-        # Z-axis label via text2D (tight against ticks)
-        ax_s.text2D(-0.02, 0.5, r'$O_2$ (%)', transform=ax_s.transAxes,
-                    fontsize=LABEL_SIZE, rotation=90, va='center', ha='right')
+        # NO title
 
-        # Title via text2D (tight on the wireframe) — drug name + surface number
-        ax_s.text2D(0.5, 0.97, f'{drug_name} (Surface {surf_num})', transform=ax_s.transAxes,
-                    fontsize=TITLE_SIZE, fontweight='bold', ha='center', va='top')
+        # NO tick numbers — use NullFormatter on all axes
+        ax_surf.xaxis.set_major_formatter(NullFormatter())
+        ax_surf.yaxis.set_major_formatter(NullFormatter())
+        ax_surf.zaxis.set_major_formatter(NullFormatter())
 
-        plt.subplots_adjust(left=0.25, right=0.98, top=0.96, bottom=0.02)
+        # Axis labels via set_xlabel/set_ylabel and text2D for Z
+        ax_surf.set_xlabel('Time (h)', fontsize=LABEL_SIZE_3B, labelpad=-10)
+        ax_surf.set_ylabel('Dose Ratio', fontsize=LABEL_SIZE_3B, labelpad=-10)
+        ax_surf.text2D(0.05, 0.5, r'$O_2$ (%)', transform=ax_surf.transAxes,
+                       fontsize=LABEL_SIZE_3B, rotation=90, va='center', ha='right')
 
-        dst = fig3_dir / out_name
-        fig_s.savefig(str(dst), dpi=600, bbox_inches='tight',
-                      facecolor='none', edgecolor='none', transparent=True, pad_inches=0.02)
-        plt.close(fig_s)
-        print(f"  Saved: {dst.name}")
+        surf_filename = f'{drug}_{eq_filename_map[eq_name]}.png'
+        surf_path = fig3_dir / surf_filename
+        fig_surf.savefig(surf_path, dpi=600, bbox_inches='tight',
+                         transparent=True, pad_inches=0.02)
+        plt.close(fig_surf)
+        print(f"    Saved: {surf_path}")
 
-    # Generate shared colorbar image
-    fig_cb, ax_cb = plt.subplots(figsize=(0.4, 3))
-    norm = plt.Normalize(vmin=global_vmin, vmax=global_vmax)
-    sm = plt.cm.ScalarMappable(cmap='turbo', norm=norm)
-    sm.set_array([])
-    cbar = fig_cb.colorbar(sm, cax=ax_cb)
-    cbar.ax.tick_params(labelsize=6)
-    cbar.ax.yaxis.set_ticks_position('right')
-    cbar.ax.yaxis.set_label_position('left')
-    cbar.set_label(r'$O_2$ Mean', fontsize=8, rotation=90, va='bottom')
-    cb_dst = fig3_dir / 'Fig_3b_colorbar.png'
-    fig_cb.savefig(str(cb_dst), dpi=600, bbox_inches='tight', facecolor='white')
-    plt.close(fig_cb)
-    print(f"  Saved: {cb_dst.name}")
+        register_figure('3', f'b_{drug}_surface',
+                        f'{drug} {eq_name} O2 surface (Panel 3b)',
+                        surf_path.relative_to(PROJECT_ROOT),
+                        notes=f'Equation: {eq_name}, per-surface color scaling',
+                        source_script='generate_paper_figures.py')
 
-    # Save data Excel for Fig 3b
-    fig3b_excel = fig3_dir / 'Fig_3b_data.xlsx'
-    with pd.ExcelWriter(fig3b_excel, engine='openpyxl') as writer:
-        # Coefficients sheet: one row per surface with equation, drug, and all params
-        coeff_rows = []
-        for surf_num, eq_name, drug_name, out_name, Z in surface_data:
-            func = EQUATION_FUNCTIONS[eq_name]
-            df_eq = pd.read_excel(
-                PROJECT_ROOT / 'EQN_Coefficients' / 'all_equations_coefficients.xlsx',
-                sheet_name=eq_name, header=1)
-            df_eq.columns = df_eq.columns.str.strip()
-            row = df_eq[df_eq['Drug'] == drug_name].iloc[0]
-            sig = inspect.signature(func)
-            param_names = list(sig.parameters.keys())[1:]  # skip X
-            coeff_entry = {
-                'Panel': out_name.replace('.png', ''),
-                'Surface_Number': surf_num,
-                'Equation': eq_name,
-                'Drug': drug_name,
-                'Source': str(PROJECT_ROOT / 'EQN_Coefficients' / 'all_equations_coefficients.xlsx'),
+    # ----- Save combined data Excel files (one per drug) -----
+    print("  Saving Panel 3a/3b data files...")
+    for drug in heatmap_drugs:
+        excel_filename = f'Fig_3b_{drug}_data.xlsx'
+        excel_path = fig3_dir / excel_filename
+
+        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+            # Sheet 1: Heatmap_Processed
+            if drug in heatmap_data_for_excel:
+                heatmap_data_for_excel[drug].to_excel(writer, sheet_name='Heatmap_Processed')
+
+            # Sheet 2: Surface_Z
+            if drug in surface_data_for_excel:
+                Z_mat, coeffs, eq_name_used = surface_data_for_excel[drug]
+                z_df = pd.DataFrame(Z_mat,
+                                    index=[f'dr_{d:.4f}' for d in np.linspace(0, 2, 100)],
+                                    columns=[f't_{t:.2f}' for t in np.linspace(0, 96, 100)])
+                z_df.to_excel(writer, sheet_name='Surface_Z')
+
+                # Sheet 3: Surface_Coefficients
+                coeff_df = pd.DataFrame([coeffs])
+                coeff_df.to_excel(writer, sheet_name='Surface_Coefficients', index=False)
+
+            # Sheet 4: Summary
+            sources = {
+                'Heatmap_Source': str(PROJECT_ROOT / 'Cleaned_Data' / 'Heatmaps' / drug / 'O2_mean_sorted.csv'),
+                'Coefficient_Source': str(coeff_xl_path),
             }
-            for p in param_names:
-                col = f'{p}.1'
-                if col in row.index:
-                    coeff_entry[f'{p}_O2'] = float(row[col])
-                elif p in row.index:
-                    coeff_entry[f'{p}_O2'] = float(row[p])
-            coeff_rows.append(coeff_entry)
-        pd.DataFrame(coeff_rows).to_excel(writer, sheet_name='Coefficients', index=False)
+            if drug in surface_data_for_excel:
+                _, coeffs, eq_name_used = surface_data_for_excel[drug]
+                sources['Equation'] = eq_name_used
+                sources['Sheet'] = eq_name_used
+            sources['Pipeline'] = ('Load sorted O2 CSV -> outlier removal (O2>80 or <0) -> '
+                                   'drop wells >50% NaN -> linear interp (limit=10) -> '
+                                   'LOWESS w=16 -> transpose -> remove flagged rows -> clip at 100')
+            summary_df = pd.DataFrame([sources])
+            summary_df.to_excel(writer, sheet_name='Summary', index=False)
 
-        # Grid axes
-        pd.DataFrame({'Time_h': t_grid}).to_excel(writer, sheet_name='Grid_Time', index=False)
-        pd.DataFrame({'Dose_Ratio': dr_grid}).to_excel(writer, sheet_name='Grid_DoseRatio', index=False)
-
-        # One sheet per surface: Z values (rows=dose_ratio, cols=time)
-        for surf_num, eq_name, drug_name, out_name, Z in surface_data:
-            sheet_name = f'{drug_name}_Eq{surf_num}'[:31]
-            df_z = pd.DataFrame(Z, index=np.round(dr_grid, 4), columns=np.round(t_grid, 2))
-            df_z.index.name = 'Dose_Ratio'
-            df_z.columns.name = 'Time_h'
-            df_z.to_excel(writer, sheet_name=sheet_name)
-
-    print(f"  Saved: {fig3b_excel.name}")
-
-    register_figure('3', 'b', '2x2 Surface Equation Examples',
-                    (fig3_dir / 'Fig_3b_1.png').relative_to(PROJECT_ROOT),
-                    fig3b_excel.relative_to(PROJECT_ROOT), width=6, height=5,
-                    source_script='generate_paper_figures.py',
-                    notes='Four images: Fig_3b_1 (Mexiletine/Eq1), Fig_3b_2 (Amiodarone/Eq5), '
-                          'Fig_3b_3 (Daunorubicin/Eq11), Fig_3b_4 (Vioxx/Eq12) + Fig_3b_colorbar.png')
+        print(f"    Saved: {excel_path}")
 
     # ---- 3c: R2 comparison chart (O2 only, sorted best→worst, top 3 highlighted) ----
     # Render large and square at high DPI, then scale down in PPTX
@@ -1035,19 +1387,34 @@ def generate_fig_3():
     r2_df = r2_df.sort_values('O2', ascending=True).reset_index(drop=True)
 
     _surface_names = {
-        'Dual Exponential (Eq1)': 'Surface 1',
-        'Bivariate Gaussian (Eq2)': 'Surface 2',
-        'Gaussian-Hill Hybrid (Eq3)': 'Surface 3',
-        'Modified Hill (Hormesis) (Eq4)': 'Surface 4',
-        'Gaussian Ridge (Eq5)': 'Surface 5',
-        'Adaptive Response (Eq6)': 'Surface 6',
-        'Biphasic Response (Eq7)': 'Surface 7',
-        'Cumulative Exposure (Eq8)': 'Surface 8',
-        'Recovery Model (Eq9)': 'Surface 9',
-        'Modified Hill (Simple) (Eq10)': 'Surface 10',
-        'PKPD Elimination (Eq11)': 'Surface 11',
-        'Hormesis V0 (Legacy) (Eq12)': 'Surface 12',
+        'Dual Exponential (Eq1)': 'Dual Exponential',
+        'Bivariate Gaussian (Eq2)': 'Bivariate Gaussian',
+        'Gaussian-Hill Hybrid (Eq3)': 'Gaussian-Hill Hybrid',
+        'Modified Hill (Hormesis) (Eq4)': 'Hormesis Hill',
+        'Gaussian Ridge (Eq5)': 'Gaussian Ridge',
+        'Adaptive Response (Eq6)': 'Adaptive Response',
+        'Biphasic Response (Eq7)': 'Biphasic Response',
+        'Cumulative Exposure (Eq8)': 'Cumulative Exposure',
+        'Recovery Model (Eq9)': 'Recovery Model',
+        'Modified Hill (Simple) (Eq10)': 'Modified Hill',
+        'PKPD Elimination (Eq11)': 'PKPD Elimination',
+        'Hormesis V0 (Legacy) (Eq12)': 'Dual Hill Hormesis',
     }
+    # Rainbow colors assigned by rank (top=red, bottom=pink)
+    _rainbow_colors = [
+        '#d62728',   # red
+        '#e6550d',   # red-orange
+        '#ff7f0e',   # orange
+        '#ffc107',   # amber
+        '#8bc34a',   # yellow-green
+        '#2ca02c',   # green
+        '#00897b',   # teal
+        '#17becf',   # cyan
+        '#1f77b4',   # blue
+        '#5c6bc0',   # indigo
+        '#9467bd',   # purple
+        '#e377c2',   # pink
+    ]
     r2_df['Equation'] = r2_df['Equation'].map(_surface_names).fillna(r2_df['Equation'])
 
     r2_w, r2_h = 5.0, 3.5  # Wider than tall so plot area looks square
@@ -1057,32 +1424,35 @@ def generate_fig_3():
     y = np.arange(n)
     vals = r2_df['O2'].values
 
-    bar_colors = [COLORS['blue'] if i >= n - 3 else COLORS['grey'] for i in range(n)]
-    alphas = [1.0 if i >= n - 3 else 0.4 for i in range(n)]
+    # Assign rainbow colors: bottom bar (index 0) = pink, top bar (index n-1) = red
+    bar_colors = [_rainbow_colors[n - 1 - i] if i < len(_rainbow_colors) else COLORS['grey'] for i in range(n)]
 
     bars = ax.barh(y, vals, height=0.55, color=bar_colors)
-    for bar, alpha in zip(bars, alphas):
-        bar.set_alpha(alpha)
 
     for i, (bar, v) in enumerate(zip(bars, vals)):
-        fw = 'bold' if i >= n - 3 else 'normal'
+        fw = 'bold' if i >= n - 3 else 'bold'
         if v >= 0:
             ax.text(v + 0.01, bar.get_y() + bar.get_height() / 2,
-                    f'{v:.3f}', va='center', ha='left', fontsize=8,
+                    f'{v:.2f}', va='center', ha='left', fontsize=11,
                     fontweight=fw)
         else:
             # Place negative value labels to the right of zero line
             ax.text(0.01, bar.get_y() + bar.get_height() / 2,
-                    f'{v:.3f}', va='center', ha='left', fontsize=8,
+                    f'{v:.2f}', va='center', ha='left', fontsize=11,
                     fontweight=fw)
 
     ax.set_yticks(y)
-    ax.set_yticklabels(r2_df['Equation'], fontsize=9)
-    ax.set_xlabel('R²', fontsize=12)
-    ax.axvline(x=0, color='black', linewidth=0.5, zorder=0)
-    ax.tick_params(axis='x', labelsize=10)
+    ax.set_yticklabels(r2_df['Equation'], fontsize=12, fontweight='bold')
+    ax.set_xlabel(r'R$^2$', fontsize=14, fontweight='bold')
+    ax.axvline(x=0, color='black', linewidth=1.5, zorder=0)
+    ax.tick_params(axis='x', labelsize=12, width=1.5)
+    ax.tick_params(axis='y', width=1.5)
+    for label in ax.get_xticklabels():
+        label.set_fontweight('bold')
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_linewidth(1.8)
+    ax.spines['left'].set_linewidth(1.8)
 
     fig.tight_layout()
 
@@ -1093,115 +1463,96 @@ def generate_fig_3():
     save_figure(fig, '3', 'c', 'R² Equation Comparison',
                 {'R2_Data': r2_df_full}, width=r2_w, height=r2_h)
 
-    # ---- 3d: Accuracy vs AUC scatter - RandomForest, 3 equations (3 panels) ----
-    loocv_path = PROJECT_ROOT / 'Output' / 'Performance_Metrics' / 'loocv_results.csv'
+    # ---- 3d: 3-panel strip — Accuracy vs AUC ROC for all 12 equations ----
+    # Panels: Arrhythmia/XGBoost, Heart Damage/GaussianNB, Concern/GaussianNB
+    loocv_path = PROJECT_ROOT / 'Output' / 'All_Equations_LOOCV' / 'loocv_all_equations.csv'
     if loocv_path.exists():
         loocv_df = pd.read_csv(loocv_path)
 
-        equation_colors = {
-            'pkpd_elimination': COLORS['green'],
-            'dual_exponential': COLORS['blue'],
-            'modified_hill_hormesis': COLORS['dusty_rose'],
-        }
+        # Spectral color scheme (matches Fig 3c bar order)
+        _eq_colors = [
+            ('dual_exponential',       '#d62728'),
+            ('hormesis_v0',            '#e6550d'),
+            ('pkpd_elimination',       '#ff7f0e'),
+            ('biphasic_response',      '#ffc107'),
+            ('modified_hill_hormesis', '#8bc34a'),
+            ('modified_hill_simple',   '#2ca02c'),
+            ('adaptive_response',      '#00897b'),
+            ('gaussian_ridge',         '#17becf'),
+            ('bivariate_gaussian',     '#1f77b4'),
+            ('gaussian_hill_hybrid',   '#5c6bc0'),
+            ('recovery_model',         '#9467bd'),
+            ('cumulative_exposure',    '#e377c2'),
+        ]
 
-        targets = ['Arrhythmia', 'heart_damage', 'Concern_Binary']
-        target_titles = {'Arrhythmia': 'Arrhythmia', 'heart_damage': 'Heart Damage', 'Concern_Binary': 'Concern'}
-        main_model = 'RandomForest'
+        _panels = [
+            ('Arrhythmia',     'XGBoost',    'Arrhythmia'),
+            ('heart_damage',   'GaussianNB', 'Heart Damage'),
+            ('Concern_Binary', 'GaussianNB', 'Concern (Binary)'),
+        ]
 
-        panel_size = 2.0
-        fig_width = panel_size * 3 + 1.5
-        fig_height = panel_size + 0.6
-        _def_3d = (fig_width, fig_height)
-        size_3d = get_layout_size('3', 'd', default=_def_3d)
-        if size_3d:
-            fig_width, fig_height = size_3d
+        strip_w, strip_h = 13, 4.3
+        fig_d, axes_d = plt.subplots(1, 3, figsize=(strip_w, strip_h))
 
-        fig, axes = plt.subplots(1, 3, figsize=(fig_width, fig_height), sharey=True)
-        fig.subplots_adjust(left=0.10, right=0.78, wspace=0.15, top=0.85, bottom=0.25)
+        for pi, (ax_d, (target, model, title)) in enumerate(zip(axes_d, _panels)):
+            subset = loocv_df[(loocv_df['Target'] == target) &
+                              (loocv_df['Model'] == model)]
 
-        for idx, (target, ax) in enumerate(zip(targets, axes)):
-            target_df = loocv_df[(loocv_df['Target'] == target) & (loocv_df['Model'] == main_model)].copy()
+            # Diagonal reference
+            ax_d.plot([0, 1], [0, 1], '--', color='gray', linewidth=1,
+                      alpha=0.5, zorder=1)
 
-            for _, row in target_df.iterrows():
-                eq = row['Equation']
-                acc = row['Accuracy']
-                auc_val = row['AUC']
+            for eq_name, eq_color in _eq_colors:
+                row = subset[subset['Equation'] == eq_name]
+                if row.empty:
+                    continue
+                ax_d.scatter(row['Accuracy'].values[0], row['AUC'].values[0],
+                             c=eq_color, s=70, zorder=3,
+                             edgecolors='black', linewidths=0.8)
 
-                if eq in equation_colors:
-                    ax.scatter(acc, auc_val, c=equation_colors[eq], marker='o',
-                              s=60, edgecolors='black', linewidth=0.8, zorder=3)
+            ax_d.set_xlim(0, 1)
+            ax_d.set_ylim(0, 1)
+            ax_d.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
+            ax_d.set_xticklabels(['0', '0.25', '0.5', '0.75', '1'],
+                                 fontsize=11, fontweight='bold')
+            ax_d.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
+            ax_d.set_box_aspect(1)
 
-            ax.plot([0, 1], [0, 1], color='gray', linestyle='--', alpha=0.5, linewidth=1, zorder=1)
+            ax_d.set_xlabel('Accuracy', fontsize=14, fontweight='bold')
+            ax_d.set_title(title, fontsize=15, fontweight='bold')
 
-            ax.set_xlabel('Prediction\nAccuracy', fontsize=9, fontweight='bold')
-            if idx == 0:
-                ax.set_ylabel('AUC ROC', fontsize=9, fontweight='bold')
-            ax.set_title(target_titles[target], fontsize=10, fontweight='bold')
+            if pi == 0:
+                ax_d.set_ylabel('AUC ROC', fontsize=14, fontweight='bold')
+                ax_d.set_yticklabels(['0', '0.25', '0.5', '0.75', '1'],
+                                     fontsize=11, fontweight='bold')
+            else:
+                ax_d.set_yticklabels([])
 
-            ax.set_xlim(0, 1)
-            ax.set_ylim(0, 1)
-            ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
-            ax.set_xticklabels(['0', '0.25', '0.5', '0.75', '1.0'])
-            if idx == 0:
-                ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
-                ax.set_yticklabels(['0', '0.25', '0.5', '0.75', '1.0'])
-            ax.set_box_aspect(1)
-            ax.grid(True, alpha=0.3)
-            ax.tick_params(labelsize=7)
+            for spine in ax_d.spines.values():
+                spine.set_edgecolor('black')
+                spine.set_linewidth(1.8)
+            ax_d.tick_params(width=1.5)
+            ax_d.grid(False)
 
-        _eq_labels = {
-            'pkpd_elimination': 'Surface 11',
-            'dual_exponential': 'Surface 1',
-            'modified_hill_hormesis': 'Surface 4',
-        }
-        eq_legend = [Patch(facecolor=c, edgecolor='black',
-                           label=_eq_labels.get(eq, eq.replace('_', ' ').title()))
-                     for eq, c in equation_colors.items()]
+        fig_d.tight_layout(w_pad=1.0)
 
-        fig.legend(handles=eq_legend, title='Surface', loc='center right',
-                   bbox_to_anchor=(0.98, 0.5), fontsize=7, title_fontsize=8)
+        # Collect all plotted data for provenance
+        loocv_data = loocv_df[
+            ((loocv_df['Target'] == 'Arrhythmia') & (loocv_df['Model'] == 'XGBoost')) |
+            ((loocv_df['Target'] == 'heart_damage') & (loocv_df['Model'] == 'GaussianNB')) |
+            ((loocv_df['Target'] == 'Concern_Binary') & (loocv_df['Model'] == 'GaussianNB'))
+        ].copy()
+        loocv_data['Source'] = str(loocv_path)
 
-
-        loocv_df_full = loocv_df.copy()
-        loocv_df_full['Source'] = str(loocv_path)
-        loocv_df_full['Plot_Filter'] = 'RandomForest model, 3 targets, 3 equations'
-
-        save_figure(fig, '3', 'd', 'Accuracy vs AUC Scatter (RandomForest)',
-                    {'LOOCV_Full': loocv_df_full,
-                     'LOOCV_Plotted': loocv_df[(loocv_df['Target'].isin(targets)) & (loocv_df['Model'] == main_model)]},
-                    width=fig_width, height=fig_height)
-
-        # Save arrhythmia panel alone (no title) as separate HQ PNG
-        arr_target = 'Arrhythmia'
-        arr_df = loocv_df[(loocv_df['Target'] == arr_target) & (loocv_df['Model'] == main_model)].copy()
-
-        fig_arr, ax_arr = plt.subplots(1, 1, figsize=(panel_size + 0.3, panel_size + 0.6))
-        fig_arr.subplots_adjust(left=0.18, right=0.95, top=0.95, bottom=0.22)
-
-        for _, row in arr_df.iterrows():
-            eq = row['Equation']
-            if eq in equation_colors:
-                ax_arr.scatter(row['Accuracy'], row['AUC'], c=equation_colors[eq], marker='o',
-                               s=80, edgecolors='black', linewidth=0.8, zorder=3,
-                               label=_eq_labels.get(eq, eq.replace('_', ' ').title()))
-
-        ax_arr.plot([0, 1], [0, 1], color='gray', linestyle='--', alpha=0.5, linewidth=1, zorder=1)
-        ax_arr.set_xlabel('Prediction\nAccuracy', fontsize=10, fontweight='bold')
-        ax_arr.set_ylabel('AUC ROC', fontsize=10, fontweight='bold')
-        ax_arr.set_xlim(0, 1)
-        ax_arr.set_ylim(0, 1)
-        ax_arr.set_box_aspect(1)
-        ax_arr.grid(True, alpha=0.3)
-        ax_arr.tick_params(labelsize=8)
-        ax_arr.legend(fontsize=7, title='Surface', title_fontsize=8)
-
-        arr_out = FIGURES_DIR / 'Fig_3' / 'Fig_3d_Arrhythmia_NoTitle.png'
-        fig_arr.savefig(arr_out, dpi=600, bbox_inches='tight', facecolor='white')
-        plt.close(fig_arr)
-        print(f"  Saved arrhythmia-only panel: {arr_out}")
+        save_figure(fig_d, '3', 'd',
+                    'LOOCV Accuracy vs AUC — 12 Equations (3-panel strip)',
+                    {'LOOCV_Strip_Data': loocv_data},
+                    width=strip_w, height=strip_h,
+                    notes='Panels: Arrhythmia/XGBoost, Heart Damage/GaussianNB, '
+                          'Concern/GaussianNB. 12 equations, spectral colors.')
 
     else:
-        print("  Warning: loocv_results.csv not found for Fig 3d")
+        print("  Warning: loocv_all_equations.csv not found for Fig 3d")
 
     # ---- 3e: Daunorubicin 3D surfaces with raw data (O2 + Contractility combined) ----
     import math
@@ -3543,7 +3894,7 @@ def _update_slide_titles(unpack_dir):
 
 # Slides where the user manually manages grouping and labels in PowerPoint.
 # _add_panel_labels will skip these to avoid destroying manual layout.
-MANUAL_GROUP_SLIDES = {3, 4, 5}
+MANUAL_GROUP_SLIDES = {2, 3, 4, 5}  # Slide 2: Panel_2a-l groups managed manually
 
 
 def _add_panel_labels(unpack_dir):
@@ -3853,28 +4204,106 @@ COMPOUND_PANELS = {
 # Bypasses position-based sorting for the 4 generated panels on slide 2.
 # External images (plate photos, EMFs, microscopy) are untouched.
 # Keys are rIds from slide2.xml, values are source filenames (relative to Fig_2 dir).
-SLIDE2_RID_MAP = {
-    'rId13': 'Fig_2i.png',                        # SNR Quality Analysis
-    'rId14': 'Fig_2_Epirubicin_O2.png',           # Epirubicin O2 raw time series
-    'rId15': 'Fig_2_Epirubicin_Contractility.png', # Epirubicin Contractility raw time series
-    'rId16': 'Fig_2_Epirubicin_TC50.png',          # Epirubicin TC50 dose-response
+# Slide 2 panel-to-filename mapping.
+# Panel letters correspond to groups named Panel_2{letter} in the PPTX.
+# rIds are discovered at runtime — NOT hardcoded.
+# Panels a-f are externally managed (not replaced by the script).
+SLIDE2_PANEL_MAP = {
+    'd': 'Fig_2d.png',                                   # SNR Quality Analysis
+    'g': 'Fig_2g_Epirubicin_O2.png',                     # Metabolic Dose Dependent Response (averaged)
+    'h': 'Fig_2h_Epirubicin_TC50.png',                   # Epirubicin TC50 (32h)
+    'i': 'Fig_2i_Epirubicin_O2_Heatmap.png',             # Epirubicin O2 heatmap (LOWESS w=16)
+    'j': 'Fig_2j_Mexiletine_Contractility.png',             # Mexiletine Contractility 2D dose-response
+    'k': 'Fig_2k_Mexiletine_Waveforms.png',              # Mexiletine heart rate waveforms
+    'l': 'Fig_2l_Mexiletine_Contractility_Heatmap.png',  # Mexiletine Contractility heatmap
 }
+
+
+def _discover_slide2_rids(slide_xml_path, rels_path):
+    """Discover rIds for slide 2 panels by parsing group names at runtime.
+
+    Finds groups named Panel_2{letter}, extracts the picture's r:embed rId,
+    then maps it to the media filename via the .rels file.
+
+    Returns: dict mapping panel letter -> (rId, media_filename)
+    """
+    import xml.etree.ElementTree as _ET
+
+    # Parse rels: rId -> media filename
+    _rels_ns = 'http://schemas.openxmlformats.org/package/2006/relationships'
+    _rels_tree = _ET.parse(rels_path)
+    rid_to_media = {}
+    for rel in _rels_tree.getroot().findall(f'{{{_rels_ns}}}Relationship'):
+        rid = rel.get('Id', '')
+        target = rel.get('Target', '')
+        if 'media/' in target:
+            rid_to_media[rid] = target.split('/')[-1]
+
+    # Parse slide XML: find Panel_2{letter} groups -> picture rId
+    p_ns = 'http://schemas.openxmlformats.org/presentationml/2006/main'
+    a_ns = 'http://schemas.openxmlformats.org/drawingml/2006/main'
+    r_ns = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+
+    tree = _ET.parse(slide_xml_path)
+    root = tree.getroot()
+
+    panel_rids = {}
+
+    # Search for grpSp elements (groups)
+    for grpSp in root.iter(f'{{{p_ns}}}grpSp'):
+        # Get group name
+        nvGrpSpPr = grpSp.find(f'{{{p_ns}}}nvGrpSpPr')
+        if nvGrpSpPr is None:
+            continue
+        cNvPr = nvGrpSpPr.find(f'{{{p_ns}}}cNvPr')
+        if cNvPr is None:
+            continue
+        name = cNvPr.get('name', '')
+
+        if not name.startswith('Panel_2'):
+            continue
+        letter = name.replace('Panel_2', '')
+        if len(letter) != 1:
+            continue
+
+        # Find picture inside group
+        for pic in grpSp.iter(f'{{{p_ns}}}pic'):
+            blipFill = pic.find(f'{{{p_ns}}}blipFill')
+            if blipFill is None:
+                continue
+            blip = blipFill.find(f'{{{a_ns}}}blip')
+            if blip is None:
+                continue
+            rid = blip.get(f'{{{r_ns}}}embed', '')
+            if rid and rid in rid_to_media:
+                panel_rids[letter] = (rid, rid_to_media[rid])
+                break
+
+    return panel_rids
 
 # Explicit rId-to-source mapping for slide 3.
 # This bypasses position-based sorting entirely, preventing swap bugs.
 # Keys are rIds from the slide3 XML, values are source filenames (relative to Fig_3 dir).
 SLIDE3_RID_MAP = {
-    'rId6':  'Fig_3a_1.png',           # Picture 2  in Group 28 > Group 19  (heatmap O2)
-    'rId7':  'Fig_3a_2.png',           # Picture 4  in Group 28 > Group 19  (heatmap Contractility)
-    'rId10': 'Fig_3b_1.png',           # Picture 24 in Group 27             (Mexiletine surface)
-    'rId11': 'Fig_3b_2.png',           # Picture 8  in Group 27             (Amiodarone surface)
-    'rId14': 'Fig_3b_colorbar.png',    # Picture 12 in Group 27             (colorbar)
-    'rId12': 'Fig_3b_3.png',           # Picture 457 in Group 27            (Daunorubicin surface)
-    'rId13': 'Fig_3b_4.png',           # Picture 13 in Group 27             (Vioxx surface)
-    'rId4':  'Fig_3c.png',             # Picture 4  in Group 26             (scatter)
-    'rId5':  'Fig_3d.png',             # Picture 10 in Group 15 > Panel_3d  (accuracy vs AUC)
-    'rId8':  'Fig_3e_O2.png',          # Picture 422 in Group 25            (O2 validation)
-    'rId9':  'Fig_3e_Contractility.png', # Picture 424 in Group 25          (Contractility validation)
+    # --- Panel a row (Group 2): heatmaps + surfaces, 8 pic slots (2 overlap pairs) ---
+    # x=0.179: Dacto HM (rId5 overlaps with duplicate)
+    'rId5':  'Fig_3a_Dactinomycin_O2_Heatmap.png',            # x=0.179, Picture 2 + Picture 24
+    # x=1.298: Dacto Surface
+    'rId9':  'Dactinomycin_Eq3_gaussian_hill_hybrid.png',     # x=1.298, Picture 27
+    # x=2.418: Nif HM (rId6 overlaps with duplicate)
+    'rId6':  'Fig_3a_Nifedipine_O2_Heatmap.png',             # x=2.418, Picture 4 + Picture 8
+    # x=3.537: Nif Surface
+    'rId8':  'Nifedipine_Eq10_modified_hill_simple.png',      # x=3.537, Picture 538
+    # x=4.656: Mex HM
+    'rId10': 'Fig_3a_Mexiletine_O2_Heatmap.png',             # x=4.656, Picture 29
+    # x=5.775: Mex Surface
+    'rId7':  'Mexiletine_Eq7_biphasic_response.png',          # x=5.775, Picture 13
+
+    # --- Panel c (Group 4): R² bar chart ---
+    'rId4':  'Fig_3c.png',                                    # x=0.281, y=2.397
+
+    # --- Panel d (Group 3): 3-panel scatter strip ---
+    'rId11': 'Fig_3d.png',                                    # x=1.607, y=2.374
 }
 
 
@@ -4378,9 +4807,35 @@ def update_powerpoint():
         assigned_filenames = set()  # Track newly-assigned media files
 
         # --- Slides with explicit rId mapping (bypasses position sort) ---
-        EXPLICIT_RID_MAPS = {2: SLIDE2_RID_MAP, 3: SLIDE3_RID_MAP}
-        if slide_num in EXPLICIT_RID_MAPS:
-            # Read rels to get current rId → media filename mapping
+        EXPLICIT_RID_MAPS = {3: SLIDE3_RID_MAP}
+
+        if slide_num == 2:
+            # --- Slide 2: runtime rId discovery from Panel_2{letter} groups ---
+            slide_xml_path = unpack_dir / 'ppt' / 'slides' / f'slide{slide_num}.xml'
+            rels_path = unpack_dir / 'ppt' / 'slides' / '_rels' / f'slide{slide_num}.xml.rels'
+
+            if slide_xml_path.exists() and rels_path.exists():
+                panel_rids = _discover_slide2_rids(slide_xml_path, rels_path)
+                print(f"    Discovered {len(panel_rids)} panel rIds from group names")
+
+                for panel_letter, src_name in SLIDE2_PANEL_MAP.items():
+                    if panel_letter not in panel_rids:
+                        print(f"    Warning: Panel_2{panel_letter} not found in slide XML")
+                        continue
+                    rid, media_filename = panel_rids[panel_letter]
+                    src = figs_dir / fig_prefix / src_name
+                    if src.exists():
+                        shutil.copy2(src, media_dir / media_filename)
+                        assigned_filenames.add(media_filename)
+                        updated += 1
+                        print(f"    Panel {panel_letter}: {src_name} -> {media_filename} ({rid})")
+                    else:
+                        print(f"    Panel {panel_letter}: Skip - {src_name} not found")
+            else:
+                print(f"    Warning: slide2 XML/rels not found for panel discovery")
+
+        elif slide_num in EXPLICIT_RID_MAPS:
+            # --- Slide 3: explicit rId mapping (stable since structure doesn't change) ---
             rels_path = unpack_dir / 'ppt' / 'slides' / '_rels' / f'slide{slide_num}.xml.rels'
             import xml.etree.ElementTree as _ET
             _rels_ns = 'http://schemas.openxmlformats.org/package/2006/relationships'
@@ -4406,6 +4861,59 @@ def update_powerpoint():
                     print(f"    {src_name} -> {media_filename} ({rid})")
                 else:
                     print(f"    Skip: {src_name} not found")
+
+            # --- Slide 3: enforce panel positions for Group 2 row ---
+            if slide_num == 3:
+                _SLIDE3_POSITIONS = {
+                    'rId5':  (0.179, 1.203, 1.0, 1.0),  # Dacto HM
+                    'rId9':  (1.298, 1.203, 1.0, 1.0),  # Dacto Surf
+                    'rId6':  (2.418, 1.203, 1.0, 1.0),  # Nif HM
+                    'rId8':  (3.537, 1.203, 1.0, 1.0),  # Nif Surf
+                    'rId10': (4.656, 1.203, 1.0, 1.0),  # Mex HM
+                    'rId7':  (5.775, 1.203, 1.0, 1.0),  # Mex Surf
+                }
+                _slide_xml_path = unpack_dir / 'ppt' / 'slides' / f'slide{slide_num}.xml'
+                _s3tree = _ET.parse(_slide_xml_path)
+                _s3root = _s3tree.getroot()
+                _ns_a = 'http://schemas.openxmlformats.org/drawingml/2006/main'
+                _ns_r = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+                _EMU = 914400
+                _fixes = 0
+                for _pic in _s3root.iter('pic'):
+                    # Try both namespaced and unnamespaced
+                    pass
+                # Use lxml for reliable namespace handling
+                from lxml import etree as _lxml_ET
+                _s3tree_lx = _lxml_ET.parse(str(_slide_xml_path))
+                _s3root_lx = _s3tree_lx.getroot()
+                for _pic in _s3root_lx.iter():
+                    _ptag = _pic.tag.split('}')[-1] if '}' in _pic.tag else _pic.tag
+                    if _ptag != 'pic':
+                        continue
+                    _blip = _pic.find(f'.//{{{_ns_a}}}blip')
+                    if _blip is None:
+                        continue
+                    _rid = _blip.get(f'{{{_ns_r}}}embed', '')
+                    if _rid not in _SLIDE3_POSITIONS:
+                        continue
+                    _tx, _ty, _tw, _th = _SLIDE3_POSITIONS[_rid]
+                    for _child in _pic:
+                        if 'spPr' in _child.tag.split('}')[-1]:
+                            _xfrm = _child.find(f'{{{_ns_a}}}xfrm')
+                            if _xfrm is not None:
+                                _off = _xfrm.find(f'{{{_ns_a}}}off')
+                                _ext = _xfrm.find(f'{{{_ns_a}}}ext')
+                                if _off is not None:
+                                    _off.set('x', str(int(_tx * _EMU)))
+                                    _off.set('y', str(int(_ty * _EMU)))
+                                if _ext is not None:
+                                    _ext.set('cx', str(int(_tw * _EMU)))
+                                    _ext.set('cy', str(int(_th * _EMU)))
+                                _fixes += 1
+                _s3tree_lx.write(str(_slide_xml_path), xml_declaration=True,
+                                 encoding='UTF-8', standalone=True)
+                if _fixes:
+                    print(f"    Enforced positions for {_fixes} Group 2 panels")
         else:
             # --- All other slides: position-based assignment ---
             img_idx = start_idx
@@ -4442,7 +4950,7 @@ def update_powerpoint():
         # Handle excess images beyond panel count — only for slides without offset
         # (offset != 0 means external images are present that we must not touch)
         # Skip for slides with explicit rId mapping (no position-based idx)
-        if slide_num not in EXPLICIT_RID_MAPS:
+        if slide_num not in EXPLICIT_RID_MAPS and slide_num != 2:
             end_idx = img_idx
             if offset == 0 and len(image_files) > end_idx:
                 for i in range(end_idx, len(image_files)):

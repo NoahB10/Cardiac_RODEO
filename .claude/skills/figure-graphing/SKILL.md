@@ -26,12 +26,38 @@ The script automatically:
 4. Repacks the PowerPoint
 
 **Figure-to-Image Mapping:**
+
+**Slide 2 (Fig 2) — Runtime Panel Discovery (NOT hardcoded rIds):**
+Slide 2 uses named groups `Panel_2a` through `Panel_2l` in the PPTX.
+The script discovers rIds at runtime by parsing group names — this survives
+PowerPoint re-saves that renumber rIds. Defined in `SLIDE2_PANEL_MAP`:
+
+| Panel | Filename in Fig_2/ | Description |
+|-------|-------------------|-------------|
+| a–f | *external* | Not replaced (plate photo, microscopy, diagrams) |
+| d | `Fig_2i.png` | SNR Quality Analysis |
+| g | `Fig_2_Epirubicin_O2.png` | Metabolic Dose Dependent Response (averaged) |
+| h | `Fig_2_Epirubicin_TC50.png` | Epirubicin TC50 (32h) |
+| i | `Fig_2_Epirubicin_O2_heatmap.png` | Epirubicin O2 heatmap (LOWESS w=16) |
+| j | `Fig_2_Mexiletine_Contractility.png` | Mexiletine Contractility 2D dose-response |
+| k | `Fig_2k_Mexiletine_Waveforms.png` | Mexiletine heart rate waveforms (48h) |
+| l | `Fig_2_Mexiletine_Contractility_heatmap.png` | Mexiletine Contractility heatmap |
+
+To change which image goes to which panel, edit `SLIDE2_PANEL_MAP` in
+`generate_paper_figures.py`. The key is the panel letter, the value is the
+filename (relative to `Output/PowerPoint_Figures/Fig_2/`).
+
+Slide 2 is in `MANUAL_GROUP_SLIDES` — the script does NOT auto-group/label
+this slide. Panel groups and labels are managed manually in PowerPoint.
+The `_discover_slide2_rids()` function handles the rId lookup.
+
+**Other slides — position-based or explicit rId mapping:**
 | Figure | PowerPoint Images | Slide |
 |--------|------------------|-------|
-| Fig_3 (a-e) | image4-8 | 3 |
-| Fig_6 (a-h) | image11-18 | 6 |
-| Fig_7 (a-h) | image19-26 | 7 |
-| Fig_8 (a-f) | image27-32 | 8 |
+| Fig_3 (a-e) | SLIDE3_RID_MAP (explicit) | 3 |
+| Fig_6 (a-h) | position-based | 6 |
+| Fig_7 (a-h) | position-based | 7 |
+| Fig_8 (a-f) | position-based | 8 |
 
 **CRITICAL — Cross-Slide Panel Alignment (Figures 6, 7, 8):**
 Figures 6, 7, and 8 show the same panel layout (a–f) for different drug categories
@@ -109,6 +135,43 @@ metric_colors = {
     'AUC': '#4A6FBF',         # Dark Blue
     'Sensitivity': '#E89B7A', # Coral
     'Specificity': '#A8C4A2', # Sage
+}
+```
+
+### Equation Colors (Rainbow by R² Rank — Fig 3c)
+Used in the R² comparison bar chart and any figure referencing equations by name.
+Colors are assigned in rainbow order from best R² (red) to worst (pink).
+
+```python
+EQUATION_COLORS = {
+    'Dual Exponential':     '#d62728',  # Red
+    'Hormesis Hill':        '#e6550d',  # Red-Orange
+    'PKPD Elimination':     '#ff7f0e',  # Orange
+    'Biphasic Response':    '#ffc107',  # Amber
+    'Dual Hill Hormesis':   '#8bc34a',  # Yellow-Green
+    'Modified Hill':        '#2ca02c',  # Green
+    'Adaptive Response':    '#00897b',  # Teal
+    'Gaussian Ridge':       '#17becf',  # Cyan
+    'Bivariate Gaussian':   '#1f77b4',  # Blue
+    'Gaussian-Hill Hybrid': '#5c6bc0',  # Indigo
+    'Recovery Model':       '#9467bd',  # Purple
+    'Cumulative Exposure':  '#e377c2',  # Pink
+}
+
+# Internal code names → display names
+EQUATION_DISPLAY_NAMES = {
+    'dual_exponential':      'Dual Exponential',
+    'bivariate_gaussian':    'Bivariate Gaussian',
+    'gaussian_hill_hybrid':  'Gaussian-Hill Hybrid',
+    'modified_hill_hormesis':'Hormesis Hill',
+    'gaussian_ridge':        'Gaussian Ridge',
+    'adaptive_response':     'Adaptive Response',
+    'biphasic_response':     'Biphasic Response',
+    'cumulative_exposure':   'Cumulative Exposure',
+    'recovery_model':        'Recovery Model',
+    'modified_hill_simple':  'Modified Hill',
+    'pkpd_elimination':      'PKPD Elimination',
+    'hormesis_v0':           'Dual Hill Hormesis',
 }
 ```
 
@@ -1857,12 +1920,283 @@ print(f"Saved: {excel_path}")
 
 - [ ] `import figure_config` is the first line
 - [ ] Figure saved at 600 DPI
-- [ ] Naming follows `Fig_X_letter_description` convention (e.g., `Fig_1_a_ROC.png`)
-- [ ] Excel file created with matching name
-- [ ] Excel includes "Metadata" sheet with timestamp and source script
+- [ ] Naming follows `Fig_Xletter.png` convention (e.g., `Fig_6a.png`, `Fig_3c.png`)
+- [ ] Excel file created with matching name (e.g., `Fig_6a_data.xlsx`)
 - [ ] Panel label added (if multi-panel figure)
 - [ ] **CRITICAL: Figure inserted into PowerPoint at designated position**
 - [ ] Entry added to `figure_registry.csv`
 - [ ] External sources documented in `external_sources.txt`
 - [ ] All related figures use consistent colors/fonts/styles
 - [ ] **Error bars included** on bar plots and box-and-whisker plots (std or SEM)
+- [ ] **`exact_size` used** for square panels (ROC, CM, threshold) where dimensions must be precise
+- [ ] **`get_layout_size()` called** to check if PPTX aspect ratio requires dimension adjustment
+- [ ] **Compound panels** use correct suffix naming (e.g., `Fig_3a_1.png`, `Fig_3a_2.png`)
+
+## Script Architecture Reference (`generate_paper_figures.py`)
+
+This section documents the internal mechanisms of the figure generation script. **Always reference these when editing the script to avoid breaking the pipeline.**
+
+### File Naming Convention (ACTUAL)
+
+**CRITICAL: The script does NOT use `Fig_X_letter_description.png`.** The actual convention is:
+
+```
+Fig_{FigureID}{Letter}.png        # Standard panels
+Fig_{FigureID}{Letter}_{Suffix}.png  # Compound panel sub-images
+Fig_{FigureID}{Letter}_data.xlsx  # Data tracking file
+```
+
+**Examples:**
+```
+Fig_6a.png              # Figure 6, panel a (ROC curve)
+Fig_6b.png              # Figure 6, panel b (confusion matrix)
+Fig_3a_1.png            # Figure 3, panel a, sub-image 1 (heatmap O2)
+Fig_3a_2.png            # Figure 3, panel a, sub-image 2 (heatmap contractility)
+Fig_3b_colorbar.png     # Figure 3, panel b, shared colorbar
+Fig_3e_O2.png           # Figure 3, panel e, O2 3D surface
+Fig_3e_Contractility.png # Figure 3, panel e, contractility 3D surface
+Fig_6a_data.xlsx        # Tracking data for Fig 6a
+```
+
+This naming is baked into `save_figure()` at line ~198:
+```python
+png_path = folder / f'Fig_{fig_id}{letter}.png'
+```
+
+### `save_figure()` — Central Save Function
+
+All figure saving goes through this function. Understand it before changing any save logic.
+
+```python
+def save_figure(fig, fig_id, letter, description, data_dict=None,
+                width=SINGLE_W, height=SINGLE_H, notes='', exact_size=False,
+                source_script='generate_paper_figures.py'):
+```
+
+**Parameters:**
+| Parameter | Purpose |
+|-----------|---------|
+| `fig` | Matplotlib figure object |
+| `fig_id` | Figure number as string (e.g., `'6'`, `'S1'`) |
+| `letter` | Panel letter (e.g., `'a'`, `'b'`) or compound label (e.g., `'Epirubicin_TC50'`) |
+| `description` | Human-readable description for the registry |
+| `data_dict` | `{sheet_name: DataFrame}` — saved to `*_data.xlsx` for tracking |
+| `exact_size` | **CRITICAL** — see below |
+| `source_script` | Script name for provenance tracking |
+
+**`exact_size` parameter (CRITICAL):**
+
+- `exact_size=False` (default): Saves with `bbox_inches='tight'`, which crops whitespace. The final image may be slightly different from `figsize`. Good for figures where content matters more than exact pixel dimensions.
+
+- `exact_size=True`: Saves at the exact `figsize` dimensions — no cropping, no whitespace removal. **Use this for square panels** (ROC, confusion matrix, threshold scatter) where the figure dimensions must precisely match the PPTX slot to avoid distortion.
+
+```python
+# CORRECT: Square panels use exact_size=True
+save_figure(fig, fig_num, 'a', 'ROC Curve',
+            {'ROC_Data': roc_df}, width=SQUARE_SIZE, height=SQUARE_SIZE, exact_size=True)
+
+# CORRECT: Non-square panels use exact_size=False (default)
+save_figure(fig, '3', 'c', 'R² Equation Comparison',
+            {'R2_Data': r2_df}, width=5.0, height=3.5)
+```
+
+**When to use `exact_size=True`:**
+- ROC curves (panel a)
+- Confusion matrices (panel b)
+- Threshold scatter plots (panel d)
+- Cumulative probability plots (panel e)
+- Any panel where `fig.subplots_adjust()` is used to manually control margins
+
+### `get_layout_size()` — PPTX Aspect Ratio Matching
+
+This function ensures generated figures match the aspect ratio of their PPTX placeholder shapes. **Always call it when defining panel dimensions.**
+
+```python
+def get_layout_size(fig_id, letter, default=None):
+    """Get figure dimensions that match the PPTX aspect ratio at the default scale.
+
+    Returns the *default* size adjusted to match the PPTX panel's aspect ratio.
+    PowerPoint then scales the high-res image down to fit, keeping it sharp.
+    """
+```
+
+**How it works:**
+1. Reads `slide_layout.json` (populated via `--extract-layout`)
+2. Looks up the PPTX shape dimensions for `Fig_{fig_id}{letter}`
+3. Compares PPTX aspect ratio with the `default` aspect ratio
+4. If they differ by >5%, adjusts the default to match PPTX AR while keeping the larger dimension at the default scale
+5. Returns `None` if no adjustment is needed (aspect ratios already match)
+
+**Usage pattern (MANDATORY for all panels in Figures 6/7/8):**
+```python
+_def_a = (SQUARE_SIZE, SQUARE_SIZE)  # Default: 1.7" × 1.7" square
+size_a = get_layout_size(fig_num, 'a', default=_def_a) or _def_a
+# size_a is now either adjusted to match PPTX AR, or the original default
+
+fig, ax = plt.subplots(figsize=(size_a[0], size_a[1]))  # Use adjusted size
+```
+
+**Why this matters:**
+- Without `get_layout_size()`, a 1.7" × 1.7" figure placed into a non-square PPTX slot gets stretched/squished
+- The function preserves resolution (generates at default scale) while matching the target shape's proportions
+- Figures 6, 7, 8 all use this for panels a through h
+
+**`slide_layout.json` format:**
+```json
+{
+    "slides": {
+        "6": {
+            "Fig_6a": {"w": 1555750, "h": 1555750, "x": 274320, "y": 731520},
+            "Fig_6b": {"w": 1555750, "h": 1555750, "x": 1966820, "y": 731520},
+            ...
+        }
+    }
+}
+```
+Dimensions are in EMU (English Metric Units): 914400 EMU = 1 inch.
+
+**To update `slide_layout.json` after manual PPTX edits:**
+```bash
+python generate_paper_figures.py --extract-layout
+```
+
+### `render_scale` — High-Resolution Rendering for Small Panels
+
+Some panels (e.g., ROC curves) are displayed small in PPTX (1.7") but need crisp text. The solution: render at a multiple of the display size, then save with `exact_size=True` at the target dimensions.
+
+**How it works:**
+```python
+_def_a = (SQUARE_SIZE, SQUARE_SIZE)   # Display size: 1.7" × 1.7"
+size_a = get_layout_size(fig_num, 'a', default=_def_a) or _def_a
+
+render_scale = 2.0  # Render at 2x size for crisp text
+fig, ax = plt.subplots(figsize=(size_a[0] * render_scale, size_a[1] * render_scale))
+# figsize is now 3.4" × 3.4" — all text/lines are physically larger
+
+# Scale ALL font sizes by render_scale so they appear correct at display size
+ax.set_xlabel('False Positive Rate', fontsize=8 * render_scale)   # 16pt
+ax.set_ylabel('True Positive Rate', fontsize=8 * render_scale)    # 16pt
+ax.set_title('AUC ROC', fontsize=9 * render_scale, fontweight='bold')  # 18pt
+ax.legend(fontsize=4.5 * render_scale)   # 9pt
+ax.tick_params(labelsize=7 * render_scale)  # 14pt
+
+# Save at the DISPLAY size (not render size) — PPTX sees a 1.7" image with 2x detail
+save_figure(fig, fig_num, 'a', 'ROC Curve',
+            {'ROC_Data': roc_df}, width=SQUARE_SIZE, height=SQUARE_SIZE, exact_size=True)
+```
+
+**Key rules for `render_scale`:**
+1. Multiply `figsize` by `render_scale` to create a larger canvas
+2. Multiply ALL font sizes and line widths by `render_scale`
+3. Save with `exact_size=True` and `width`/`height` set to the DISPLAY size (not render size)
+4. The saved image will be 600 DPI at `render_scale × display_size` — PowerPoint scales it down, keeping it sharp
+
+**Currently used for:**
+- Panel a (ROC curves): `render_scale = 2.0`
+- Panel g (ROC comparisons in Fig 6/7): `render_scale = 3.0`
+
+### Compound Panels — One Letter, Multiple Images
+
+Some panels consist of multiple side-by-side images sharing a single panel letter. The `COMPOUND_PANELS` dict maps `(fig_id, letter)` to a list of filename suffixes.
+
+```python
+COMPOUND_PANELS = {
+    # Panel 3a: two heatmaps side-by-side
+    ('3', 'a'): ['1', '2'],
+    # Panel 3b: four 3D surfaces in 2×2 grid + shared colorbar
+    # Order matches position sort: top-left, top-right, colorbar, bottom-left, bottom-right
+    ('3', 'b'): ['1', '2', 'colorbar', '3', '4'],
+    # Panel 3e: two 3D surfaces (O2 + Contractility)
+    ('3', 'e'): ['O2', 'Contractility'],
+}
+```
+
+**File naming for compound panels:**
+```
+Fig_{FigureID}{Letter}_{Suffix}.png
+```
+Examples:
+- `Fig_3a_1.png`, `Fig_3a_2.png` — Panel 3a sub-images
+- `Fig_3b_1.png`, `Fig_3b_2.png`, `Fig_3b_colorbar.png`, `Fig_3b_3.png`, `Fig_3b_4.png`
+- `Fig_3e_O2.png`, `Fig_3e_Contractility.png`
+
+**How compound panels affect the PPTX pipeline:**
+1. **Image slot counting:** Each suffix uses one image slot in the PPTX. Panel 3b needs 5 slots even though it's one "panel."
+2. **Position sorting:** The update function assigns sub-images to PPTX slots in position order (top-left first, reading left-to-right, top-to-bottom).
+3. **Outlier detection:** For compound panels with ≥3 images, the script checks if any assigned slot is >1.0" from the median x-position. If so, it swaps that slot with a closer non-panel image to keep the grid intact.
+4. **Panel labels:** All sub-images within a compound panel get the SAME panel letter label in the PPTX grouping.
+
+**Adding a new compound panel:**
+1. Add the entry to `COMPOUND_PANELS`
+2. Generate each sub-image with the matching suffix filename
+3. Ensure the PPTX slide has enough image slots (the script auto-adds slots if needed)
+4. Registry entry goes under the main letter (e.g., `('3', 'b')`) — not per sub-image
+
+### `MANUAL_GROUP_SLIDES` — Slides Excluded from Auto-Grouping
+
+```python
+MANUAL_GROUP_SLIDES = {3, 4, 5}
+```
+
+The `_add_panel_labels()` function normally auto-groups each `(image, letter-label)` pair into `<p:grpSp>` groups in the PPTX XML. **Slides in `MANUAL_GROUP_SLIDES` are skipped** — the user manages groups and labels manually in PowerPoint.
+
+**Why certain slides are manual:**
+- **Slide 3:** Complex layout with compound panels (heatmaps, 2×2 surface grid, scatter plot). Auto-grouping can't handle the nested structure.
+- **Slides 4 & 5:** 5×5 drug grids with 25+ individual images. Grouping is done by the grid generation scripts, not the main pipeline.
+
+**If you add a new slide that needs manual layout control,** add its slide number to `MANUAL_GROUP_SLIDES`.
+
+### PowerPoint Update Pipeline (OOXML XML Approach)
+
+**IMPORTANT: The script does NOT use `python-pptx` for updates.** It uses raw OOXML XML manipulation:
+
+```
+1. UNPACK:  Cardiac_RODEO_Tracked.pptx → workspace/pptx_unpack/ (ZIP extraction)
+2. MAP:     Read slide XML rels to find which imageN.png corresponds to each panel
+3. REPLACE: Copy new PNGs over the existing media files in ppt/media/
+4. LABELS:  Add/update panel letter labels in slide XML
+5. REPACK:  workspace/pptx_unpack/ → Cardiac_RODEO_Tracked.pptx (ZIP compression)
+```
+
+**Scripts used:**
+- `~/.claude/skills/pptx/ooxml/scripts/unpack.py` — extracts PPTX to directory
+- `~/.claude/skills/pptx/ooxml/scripts/pack.py` — recompresses directory to PPTX
+
+**Image mapping strategies (in order of priority):**
+
+1. **Explicit rId maps** (slides 2, 3): `SLIDE2_RID_MAP`, `SLIDE3_RID_MAP` — hardcoded `rId → source_filename` mappings that bypass position sorting entirely. Used for slides with complex layouts where position sorting would fail.
+
+2. **Position-based sorting** (all other slides): Reads image positions from slide XML, sorts by visual position (top-to-bottom, left-to-right), then assigns panels in letter order.
+
+**Offset parameter in `_get_mappings()`:**
+```python
+# Each mapping tuple: (fig_prefix, letters, slide_num, offset)
+('Fig_2', 'ijkl', 2, -1),   # offset=-1: panels aligned to LAST images on slide
+('Fig_6', 'abcdefgh', 6),   # offset=0 (default): panels start at first image
+```
+- `offset=0`: Panels start at the first image (most common)
+- `offset=-1`: Panels are the last N images on the slide (external images come first)
+- `offset=N>0`: Skip the first N images (they are external)
+
+**What happens to excess image slots:**
+If a slide has more image slots than panels, excess slots beyond the panels are blanked (replaced with 1×1 transparent PNGs) — unless the image is shared with another slide or the slide uses an offset.
+
+### Figure-to-Slide Mapping Reference
+
+```python
+_get_mappings() returns:
+    ('Fig_1', '', 1),            # External schematic (not auto-updated)
+    ('Fig_2', 'ijkl', 2, -1),   # Generated panels are last 4 images
+    ('Fig_3', 'abcde', 3),      # 5 panels (a,b have compound sub-images)
+    ('Fig_4', '', 4),            # O2 5×5 grid (managed by separate script)
+    ('Fig_5', '', 5),            # Contractility 5×5 grid (separate script)
+    ('Fig_6', 'abcdefgh', 6),   # Arrhythmia + Heart Damage + MoLFormer comparison
+    ('Fig_7', 'abcdefgh', 7),   # Arrhythmia + Heart Damage + ADMET comparison
+    ('Fig_8', 'abcdef', 8),     # Concern Binary (no comparison panels g/h)
+    ('Fig_S1', 'abc', 9),       # Supplement: Vandetanib heatmaps
+    ('Fig_S2', 'ab', 10),       # Supplement: Daunorubicin 2D time series
+    ('Fig_S3', 'a', 11),        # Supplement: Other models scatter
+    ('Fig_S4', 'ab', 12),       # Supplement: LOOCV comparison
+```
+
+**Auto-extension:** `_get_effective_mappings()` auto-discovers extra panels if a slide has more images than the base mapping. This is used by `--extract-layout` and `_add_panel_labels()` but NOT by `update_powerpoint()` (which only replaces known panels).

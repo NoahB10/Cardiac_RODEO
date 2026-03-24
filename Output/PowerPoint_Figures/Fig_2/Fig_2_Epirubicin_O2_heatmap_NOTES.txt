@@ -1,0 +1,51 @@
+Epirubicin O2 Heatmap Option — Production Notes
+=================================================
+
+File: Fig_2_Epirubicin_O2_option.png
+
+Source Data
+-----------
+  Cleaned_Data/Heatmaps/Epirubicin/O2_mean_sorted.csv
+  Wells sorted ascending bottom-up (lowest avg at bottom within each
+  concentration group).
+
+Excluded Wells (7 CSV columns dropped)
+---------------------------------------
+  '0.38.1'  — original exclusion from Fig_3a
+  '12.0'    — mapped to label 12.1 (removed by user)
+  '3.0'     — mapped to label 3.2 (removed by user)
+  '0.19'    — mapped to label 0.19.1 (removed by user)
+  '1.5.1'   — mapped to label 1.5.1 (removed by user)
+  '0.75.1'  — mapped to label 0.75.1 (removed by user)
+  '0.75.3'  — mapped to label 0.75.2 (removed by user)
+
+  After exclusion: 12 wells remain.
+
+Processing Pipeline
+-------------------
+  1. Load sorted CSV (rows=time, columns=wells)
+  2. Drop the 7 excluded wells listed above
+  3. Interpolate NaN gaps (linear, limit=10, both directions)
+  4. LOWESS w=16 per-well along time (NO cross-concentration smoothing)
+     - statsmodels.nonparametric.smoothers_lowess.lowess
+     - frac = min(1.0, max(16, 1) / len(to_smooth))
+     - First time point preserved (not smoothed)
+  5. Transpose for heatmap (rows=wells, cols=time)
+  6. Fix baselines: set t=0 for each well to the median of its
+     concentration's t=4h values
+  7. Clip O2 at 100
+
+Plot Settings
+-------------
+  Colormap: Blue (#123BFF) -> White -> Red (#FF2908)
+  Square cells, no borders (linewidths=0)
+  Y-axis: One centered tick per concentration group
+  Concentrations shown: 12, 6, 3, 1.5, 0.75, 0.38, 0.094
+  X-axis: Time (h), every ~8th tick
+  DPI: 600
+
+To Add to generate_paper_figures.py
+------------------------------------
+  ALL_CSV_DROPS = ['0.38.1', '12.0', '3.0', '0.19', '1.5.1', '0.75.1', '0.75.3']
+  Source: Cleaned_Data/Heatmaps/Epirubicin/O2_mean_sorted.csv
+  Pipeline: interpolate -> LOWESS w=16 per column -> transpose -> fix baselines -> clip 100

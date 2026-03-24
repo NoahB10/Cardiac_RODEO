@@ -1,0 +1,84 @@
+Figure 2 Heatmap Options — Production Notes
+=============================================
+
+6 candidate heatmaps for Figure 2 (pick 1 O2 + 1 Contractility).
+
+All use the same processing pipeline:
+  1. Load sorted CSV from Cleaned_Data/Heatmaps/{Drug}/
+     (wells sorted ascending bottom-up within each concentration group)
+  2. Drop excluded wells (listed below per drug)
+  3. Interpolate NaN gaps (linear, limit=10, both directions)
+  4. LOWESS w=16 per-well along time (no cross-concentration smoothing)
+     - statsmodels.nonparametric.smoothers_lowess.lowess
+     - frac = min(1.0, max(16, 1) / len(to_smooth))
+     - First time point preserved (not smoothed)
+  5. Transpose for heatmap (rows=wells, cols=time)
+  6. O2: clip at 100; Contractility: scale by 100
+
+Plot settings: Blue (#123BFF) -> White -> Red (#FF2908), square cells,
+linewidths=0, DPI=600, one centered tick per concentration group.
+
+
+=== O2 OPTIONS ===
+
+1. Fig_2_Epirubicin_O2_option.png
+   Source: Cleaned_Data/Heatmaps/Epirubicin/O2_mean_sorted.csv
+   Known concs: {12, 6, 3, 1.5, 0.75, 0.38, 0.19, 0.094}
+   Dropped wells: ['0.38.1']
+   Remaining: 18 wells
+
+2. Fig_2_Daunorubicin_O2_option.png
+   Source: Cleaned_Data/Heatmaps/Daunorubicin/O2_mean_sorted.csv
+   Known concs: {8, 4, 2, 1, 0.5, 0.25, 0.125}
+   Dropped wells: none
+   Remaining: 21 wells
+
+3. Fig_2_Chlorpromazine_O2_option.png
+   Source: Cleaned_Data/Heatmaps/Chlorpromazine/O2_mean_sorted.csv
+   Known concs: {20, 10, 5, 2.5, 1.25, 0.625, 0.313, 0.156}
+   Dropped wells: none
+   Remaining: 23 wells
+
+
+=== CONTRACTILITY OPTIONS ===
+
+4. Fig_2_Epirubicin_Contractility_option.png
+   Source: Cleaned_Data/Heatmaps/Epirubicin/Amp_std_sorted.csv
+   Known concs: {12, 6, 3, 1.5, 0.75, 0.38, 0.19, 0.094}
+   Dropped wells: ['12.1', '6.3', '3', '3.2', '0.19', '0.38', '0.38.2', '0.75.2']
+   Remaining: 15 wells
+
+5. Fig_2_Cobimetinib_Contractility_option.png
+   Source: Cleaned_Data/Heatmaps/Cobimetinib/Amp_std_sorted.csv
+   Known concs: {4, 2, 1, 0.5, 0.25, 0.125, 0.063, 0.031}
+   Dropped wells: ['4.2', '4.3', '2.1', '2.2', '0.25.1', '0.25']
+   Remaining: 21 wells
+
+6. Fig_2_Doxorubicin_Contractility_option.png
+   Source: Cleaned_Data/Heatmaps/Doxorubicin/Amp_std_sorted.csv
+   Known concs: {10, 5, 2.5, 1.25, 0.63, 0.31, 0.16}
+   Dropped wells: ['2.5.1', '2.5', '2.5.2', '0.63', '0.16.1']
+   Remaining: 16 wells
+
+
+=== TO ADD TO generate_paper_figures.py ===
+
+When a pair is chosen, add to generate_fig_2() using this pattern:
+
+    from statsmodels.nonparametric.smoothers_lowess import lowess as lowess_func
+
+    HEATMAP_CONFIG = {
+        'drug': 'Epirubicin',
+        'csv': 'Cleaned_Data/Heatmaps/Epirubicin/O2_mean_sorted.csv',
+        'drop_wells': ['0.38.1'],
+        'known_concs': {12, 6, 3, 1.5, 0.75, 0.38, 0.19, 0.094},
+        'is_contractility': False,
+    }
+
+    df = pd.read_csv(config['csv'], index_col=0)
+    df = df.drop(columns=[c for c in config['drop_wells'] if c in df.columns])
+    for col in df.columns:
+        df[col] = df[col].interpolate(method='linear', limit=10, limit_direction='both')
+    df_smooth = _apply_lowess_per_col(df, window=16)  # existing helper
+    data = df_smooth.T
+    # Then plot with strip_label using config['known_concs']
