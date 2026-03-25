@@ -450,14 +450,14 @@ def generate_fig_2():
         step = max(1, len(x_labels) // 10)
         ax.set_xticks(x[::step])
         ax.set_xticklabels([x_labels[i] for i in range(0, len(x_labels), step)],
-                           rotation=0, ha='center', fontsize=6, fontweight='bold')
+                           rotation=0, ha='center', fontsize=16, fontweight='bold')
 
-        ax.set_ylabel('% Measurements', fontsize=8, fontweight='bold')
-        ax.set_xlabel('SNR Threshold', fontsize=8, fontweight='bold')
-        ax.set_title('SNR Quality Analysis', fontsize=9, fontweight='bold')
+        ax.set_ylabel('% Measurements', fontsize=18, fontweight='bold')
+        ax.set_xlabel('SNR Threshold', fontsize=18, fontweight='bold')
+        ax.set_title('SNR Quality Analysis', fontsize=19, fontweight='bold')
         ax.set_ylim(0, 105)
-        ax.tick_params(labelsize=6)
-        ax.legend(fontsize=5, loc='lower right')
+        ax.tick_params(labelsize=16)
+        ax.legend(fontsize=15, loc='lower right')
         for spine in ax.spines.values():
             spine.set_edgecolor('black')
             spine.set_linewidth(1.5)
@@ -697,17 +697,17 @@ def _generate_fig2_epirubicin_tc50():
         ax.axhline(50, color='grey', linestyle='--', linewidth=1, alpha=0.5)
         ax.axvline(tc50, color='red', linestyle='--', linewidth=1.5)
         ax.text(0.05, 0.08, f'TC50={tc50:.3f} mM', transform=ax.transAxes,
-                fontsize=9, fontweight='bold')
+                fontsize=19, fontweight='bold')
 
     ax.set_xscale('log')
-    ax.set_xlabel('Concentration (mM)', fontsize=9)
-    ax.set_ylabel('O2 Consumption (%)', fontsize=9)
-    ax.set_title(f'{drug} TC50 ({time_hour}h)', fontsize=10, fontweight='bold')
+    ax.set_xlabel('Concentration (mM)', fontsize=19)
+    ax.set_ylabel('O2 Consumption (%)', fontsize=19)
+    ax.set_title(f'{drug} TC50 ({time_hour}h)', fontsize=20, fontweight='bold')
     ax.set_ylim(0, 100)
     ax.set_xticks(x_conc)
-    ax.set_xticklabels([f'{c:.3g}' for c in x_conc], fontsize=7)
-    ax.tick_params(labelsize=7)
-    ax.legend(fontsize=7, loc='upper right')
+    ax.set_xticklabels([f'{c:.3g}' for c in x_conc], fontsize=17)
+    ax.tick_params(labelsize=17)
+    ax.legend(fontsize=17, loc='upper right')
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
 
@@ -817,7 +817,7 @@ def _generate_fig2_heatmap(csv_path, drug_name, is_contractility, out_filename,
     x_labels = [str(t) for t in data.columns.tolist()]
 
     # Figure sized to match dose-response graph height
-    fig, ax = plt.subplots(figsize=(12, 7))
+    fig, ax = plt.subplots(figsize=(6, 3.5))
 
     vmax = vmax_override if vmax_override else None
     sns.heatmap(
@@ -828,8 +828,8 @@ def _generate_fig2_heatmap(csv_path, drug_name, is_contractility, out_filename,
         square=False, linewidths=0, ax=ax
     )
 
-    ax.set_xlabel('Time from Exposure (h)', fontsize=22, fontweight='bold')
-    ax.set_ylabel(y_label, fontsize=22, fontweight='bold')
+    ax.set_xlabel('Time from Exposure (h)', fontsize=32, fontweight='bold')
+    ax.set_ylabel(y_label, fontsize=32, fontweight='bold')
     # No title
 
     # X ticks — straight, thinned out, bold
@@ -837,7 +837,7 @@ def _generate_fig2_heatmap(csv_path, drug_name, is_contractility, out_filename,
     x_step = max(1, n_x // 10)
     ax.set_xticks(range(0, n_x, x_step))
     ax.set_xticklabels([x_labels[i] for i in range(0, n_x, x_step)],
-                        rotation=0, ha='center', fontsize=16, fontweight='bold')
+                        rotation=0, ha='center', fontsize=26, fontweight='bold')
 
     # Y ticks — one per concentration group, no "mM", bold
     conc_groups = OrderedDict()
@@ -845,7 +845,7 @@ def _generate_fig2_heatmap(csv_path, drug_name, is_contractility, out_filename,
         conc_groups.setdefault(lbl, []).append(i)
     tick_positions = [(indices[0] + indices[-1]) / 2 + 0.5 for indices in conc_groups.values()]
     ax.set_yticks(tick_positions)
-    ax.set_yticklabels(list(conc_groups.keys()), fontsize=16, rotation=0, fontweight='bold')
+    ax.set_yticklabels(list(conc_groups.keys()), fontsize=26, rotation=0, fontweight='bold')
 
     # Thick black borders
     for spine in ax.spines.values():
@@ -855,8 +855,8 @@ def _generate_fig2_heatmap(csv_path, drug_name, is_contractility, out_filename,
 
     # Colorbar
     cbar = ax.collections[0].colorbar
-    cbar.ax.tick_params(labelsize=14, width=1.5)
-    cbar.set_label(cbar_label, fontsize=16, fontweight='bold')
+    cbar.ax.tick_params(labelsize=24, width=1.5)
+    cbar.set_label(cbar_label, fontsize=26, fontweight='bold')
     cbar.outline.set_linewidth(2.0)
     if vmax_override:
         ticks = [t for t in range(0, int(vmax_override) + 1, 20)]
@@ -1040,7 +1040,7 @@ def _generate_fig2_mexiletine_contractility_heatmap():
     y_labels = [_conc_label(c) for c in data.index.tolist()]
     x_labels = [str(t) for t in data.columns.tolist()]
 
-    fig, ax = plt.subplots(figsize=(12, 7))
+    fig, ax = plt.subplots(figsize=(6, 3.5))
     sns.heatmap(
         data, annot=False, cmap=cmap_hm, vmin=0,
         cbar_kws={'shrink': 0.8},
@@ -1048,21 +1048,21 @@ def _generate_fig2_mexiletine_contractility_heatmap():
         square=False, linewidths=0, ax=ax
     )
 
-    ax.set_xlabel('Time from Exposure (h)', fontsize=22, fontweight='bold')
-    ax.set_ylabel('Mexiletine Dose', fontsize=22, fontweight='bold')
+    ax.set_xlabel('Time from Exposure (h)', fontsize=32, fontweight='bold')
+    ax.set_ylabel('Mexiletine Dose', fontsize=32, fontweight='bold')
 
     n_x = len(x_labels)
     x_step = max(1, n_x // 10)
     ax.set_xticks(range(0, n_x, x_step))
     ax.set_xticklabels([x_labels[i] for i in range(0, n_x, x_step)],
-                        rotation=0, ha='center', fontsize=16, fontweight='bold')
+                        rotation=0, ha='center', fontsize=26, fontweight='bold')
 
     conc_groups2 = OrderedDict()
     for i, lbl in enumerate(y_labels):
         conc_groups2.setdefault(lbl, []).append(i)
     tick_positions = [(indices[0] + indices[-1]) / 2 + 0.5 for indices in conc_groups2.values()]
     ax.set_yticks(tick_positions)
-    ax.set_yticklabels(list(conc_groups2.keys()), fontsize=16, rotation=0, fontweight='bold')
+    ax.set_yticklabels(list(conc_groups2.keys()), fontsize=26, rotation=0, fontweight='bold')
 
     for spine in ax.spines.values():
         spine.set_edgecolor('black')
@@ -1070,8 +1070,8 @@ def _generate_fig2_mexiletine_contractility_heatmap():
     ax.tick_params(width=1.5)
 
     cbar = ax.collections[0].colorbar
-    cbar.ax.tick_params(labelsize=14, width=1.5)
-    cbar.set_label('Contractility (%)', fontsize=16, fontweight='bold')
+    cbar.ax.tick_params(labelsize=24, width=1.5)
+    cbar.set_label('Contractility (%)', fontsize=26, fontweight='bold')
     cbar.outline.set_linewidth(2.0)
 
     fig.tight_layout()
@@ -1204,16 +1204,16 @@ def generate_fig_3():
         # Store for Excel export
         heatmap_data_for_excel[drug] = data.copy()
 
-        # 9-14. Plot heatmap
-        fig_hm, ax_hm = plt.subplots(figsize=(7, 7))
+        # 9-14. Plot heatmap (large figsize, scale down in PPTX)
+        fig_hm, ax_hm = plt.subplots(figsize=(10, 10))
         sns.heatmap(data.values, cmap=heatmap_cmap, vmin=0, vmax=100,
                     cbar=False, square=False, linewidths=0, ax=ax_hm)
 
         # No tick values, just axis labels
         ax_hm.set_xticks([])
         ax_hm.set_yticks([])
-        ax_hm.set_xlabel('Time from Exposure (h)', fontsize=22, fontweight='bold')
-        ax_hm.set_ylabel(f'{drug} Dose', fontsize=22, fontweight='bold')
+        ax_hm.set_xlabel('Time from Exposure (h)', fontsize=40, fontweight='bold')
+        ax_hm.set_ylabel(f'{drug} Dose', fontsize=40, fontweight='bold')
 
         # No border spines
         for spine in ax_hm.spines.values():
@@ -1243,7 +1243,7 @@ def generate_fig_3():
         'gaussian_hill_hybrid': 'Eq3_gaussian_hill_hybrid',
     }
 
-    LABEL_SIZE_3B = 24
+    LABEL_SIZE_3B = 34
 
     for drug, (eq_name, sheet_name) in surface_drugs.items():
         # Load coefficients for this equation
@@ -1292,7 +1292,7 @@ def generate_fig_3():
         z_min, z_max = float(np.nanmin(Z)), float(np.nanmax(Z))
 
         # Plot
-        fig_surf = plt.figure(figsize=(7, 7.5))
+        fig_surf = plt.figure(figsize=(10, 10))
         ax_surf = fig_surf.add_subplot(111, projection='3d')
 
         ax_surf.plot_surface(T_mesh, Dr_mesh, Z, cmap='turbo',
@@ -1417,7 +1417,7 @@ def generate_fig_3():
     ]
     r2_df['Equation'] = r2_df['Equation'].map(_surface_names).fillna(r2_df['Equation'])
 
-    r2_w, r2_h = 5.0, 3.5  # Wider than tall so plot area looks square
+    r2_w, r2_h = 12, 6.0
     fig, ax = plt.subplots(figsize=(r2_w, r2_h))
 
     n = len(r2_df)
@@ -1430,22 +1430,22 @@ def generate_fig_3():
     bars = ax.barh(y, vals, height=0.55, color=bar_colors)
 
     for i, (bar, v) in enumerate(zip(bars, vals)):
-        fw = 'bold' if i >= n - 3 else 'bold'
+        fw = 'bold'
         if v >= 0:
             ax.text(v + 0.01, bar.get_y() + bar.get_height() / 2,
-                    f'{v:.2f}', va='center', ha='left', fontsize=11,
+                    f'{v:.2f}', va='center', ha='left', fontsize=24,
                     fontweight=fw)
         else:
             # Place negative value labels to the right of zero line
             ax.text(0.01, bar.get_y() + bar.get_height() / 2,
-                    f'{v:.2f}', va='center', ha='left', fontsize=11,
+                    f'{v:.2f}', va='center', ha='left', fontsize=24,
                     fontweight=fw)
 
     ax.set_yticks(y)
-    ax.set_yticklabels(r2_df['Equation'], fontsize=12, fontweight='bold')
-    ax.set_xlabel(r'R$^2$', fontsize=14, fontweight='bold')
+    ax.set_yticklabels(r2_df['Equation'], fontsize=25, fontweight='bold')
+    ax.set_xlabel(r'R$^2$', fontsize=28, fontweight='bold')
     ax.axvline(x=0, color='black', linewidth=1.5, zorder=0)
-    ax.tick_params(axis='x', labelsize=12, width=1.5)
+    ax.tick_params(axis='x', labelsize=25, width=1.5)
     ax.tick_params(axis='y', width=1.5)
     for label in ax.get_xticklabels():
         label.set_fontweight('bold')
@@ -1491,7 +1491,7 @@ def generate_fig_3():
             ('Concern_Binary', 'GaussianNB', 'Concern (Binary)'),
         ]
 
-        strip_w, strip_h = 13, 4.3
+        strip_w, strip_h = 24, 8
         fig_d, axes_d = plt.subplots(1, 3, figsize=(strip_w, strip_h))
 
         for pi, (ax_d, (target, model, title)) in enumerate(zip(axes_d, _panels)):
@@ -1507,24 +1507,25 @@ def generate_fig_3():
                 if row.empty:
                     continue
                 ax_d.scatter(row['Accuracy'].values[0], row['AUC'].values[0],
-                             c=eq_color, s=70, zorder=3,
+                             c=eq_color, s=390, zorder=3,
                              edgecolors='black', linewidths=0.8)
 
-            ax_d.set_xlim(0, 1)
-            ax_d.set_ylim(0, 1)
+            ax_d.set_xlim(0, 1.05)
+            ax_d.set_ylim(0, 1.05)
             ax_d.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
             ax_d.set_xticklabels(['0', '0.25', '0.5', '0.75', '1'],
-                                 fontsize=11, fontweight='bold')
+                                 fontsize=29, fontweight='bold')
             ax_d.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
             ax_d.set_box_aspect(1)
 
-            ax_d.set_xlabel('Accuracy', fontsize=14, fontweight='bold')
-            ax_d.set_title(title, fontsize=15, fontweight='bold')
+            ax_d.set_xlabel('Accuracy', fontsize=32, fontweight='bold')
+            ax_d.text(0.5, 0.97, title, transform=ax_d.transAxes,
+                      fontsize=33, fontweight='bold', ha='center', va='top')
 
             if pi == 0:
-                ax_d.set_ylabel('AUC ROC', fontsize=14, fontweight='bold')
+                ax_d.set_ylabel('AUC ROC', fontsize=32, fontweight='bold')
                 ax_d.set_yticklabels(['0', '0.25', '0.5', '0.75', '1'],
-                                     fontsize=11, fontweight='bold')
+                                     fontsize=29, fontweight='bold')
             else:
                 ax_d.set_yticklabels([])
 
@@ -4285,25 +4286,19 @@ def _discover_slide2_rids(slide_xml_path, rels_path):
 # This bypasses position-based sorting entirely, preventing swap bugs.
 # Keys are rIds from the slide3 XML, values are source filenames (relative to Fig_3 dir).
 SLIDE3_RID_MAP = {
-    # --- Panel a row (Group 2): heatmaps + surfaces, 8 pic slots (2 overlap pairs) ---
-    # x=0.179: Dacto HM (rId5 overlaps with duplicate)
-    'rId5':  'Fig_3a_Dactinomycin_O2_Heatmap.png',            # x=0.179, Picture 2 + Picture 24
-    # x=1.298: Dacto Surface
-    'rId9':  'Dactinomycin_Eq3_gaussian_hill_hybrid.png',     # x=1.298, Picture 27
-    # x=2.418: Nif HM (rId6 overlaps with duplicate)
-    'rId6':  'Fig_3a_Nifedipine_O2_Heatmap.png',             # x=2.418, Picture 4 + Picture 8
-    # x=3.537: Nif Surface
-    'rId8':  'Nifedipine_Eq10_modified_hill_simple.png',      # x=3.537, Picture 538
-    # x=4.656: Mex HM
-    'rId10': 'Fig_3a_Mexiletine_O2_Heatmap.png',             # x=4.656, Picture 29
-    # x=5.775: Mex Surface
-    'rId7':  'Mexiletine_Eq7_biphasic_response.png',          # x=5.775, Picture 13
+    # --- Panel a row (Group 5): heatmaps + surfaces, left to right ---
+    'rId6':  'Fig_3a_Dactinomycin_O2_Heatmap.png',            # x=0.360, w=0.809, Picture 2
+    'rId10': 'Dactinomycin_Eq3_gaussian_hill_hybrid.png',     # x=1.200, w=1.000, Picture 15
+    'rId7':  'Fig_3a_Nifedipine_O2_Heatmap.png',             # x=2.230, w=0.810, Picture 4
+    'rId9':  'Nifedipine_Eq10_modified_hill_simple.png',      # x=3.071, w=1.000, Picture 8
+    'rId11': 'Fig_3a_Mexiletine_O2_Heatmap.png',             # x=4.101, w=0.810, Picture 538
+    'rId8':  'Mexiletine_Eq7_biphasic_response.png',          # x=4.942, w=1.000, Picture 12
 
     # --- Panel c (Group 4): R² bar chart ---
-    'rId4':  'Fig_3c.png',                                    # x=0.281, y=2.397
+    'rId4':  'Fig_3c.png',                                    # x=0.170, y=2.336, w=1.462, h=1.215
 
     # --- Panel d (Group 3): 3-panel scatter strip ---
-    'rId11': 'Fig_3d.png',                                    # x=1.607, y=2.374
+    'rId5':  'Fig_3d.png',                                    # x=0.388, y=2.306, w=2.920, h=1.124
 }
 
 
@@ -4865,12 +4860,17 @@ def update_powerpoint():
             # --- Slide 3: enforce panel positions for Group 2 row ---
             if slide_num == 3:
                 _SLIDE3_POSITIONS = {
-                    'rId5':  (0.179, 1.203, 1.0, 1.0),  # Dacto HM
-                    'rId9':  (1.298, 1.203, 1.0, 1.0),  # Dacto Surf
-                    'rId6':  (2.418, 1.203, 1.0, 1.0),  # Nif HM
-                    'rId8':  (3.537, 1.203, 1.0, 1.0),  # Nif Surf
-                    'rId10': (4.656, 1.203, 1.0, 1.0),  # Mex HM
-                    'rId7':  (5.775, 1.203, 1.0, 1.0),  # Mex Surf
+                    # Panel a row (Group 5)
+                    'rId6':  (0.360, 1.247, 0.809, 0.809),  # Dacto HM
+                    'rId10': (1.200, 1.152, 1.000, 1.000),  # Dacto Surf
+                    'rId7':  (2.230, 1.247, 0.810, 0.810),  # Nif HM
+                    'rId9':  (3.071, 1.152, 1.000, 1.000),  # Nif Surf
+                    'rId11': (4.101, 1.247, 0.810, 0.810),  # Mex HM
+                    'rId8':  (4.942, 1.152, 1.000, 1.000),  # Mex Surf
+                    # Panel c (Group 4)
+                    'rId4':  (0.170, 2.336, 1.462, 1.215),  # R² chart
+                    # Panel d (Group 3)
+                    'rId5':  (0.388, 2.306, 2.920, 1.124),  # Scatter strip
                 }
                 _slide_xml_path = unpack_dir / 'ppt' / 'slides' / f'slide{slide_num}.xml'
                 _s3tree = _ET.parse(_slide_xml_path)

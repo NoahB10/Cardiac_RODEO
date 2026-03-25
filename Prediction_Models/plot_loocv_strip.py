@@ -43,7 +43,7 @@ PANELS = [
 def main():
     df = pd.read_csv(DATA_DIR / 'loocv_all_equations.csv')
 
-    fig, axes = plt.subplots(1, 3, figsize=(13, 4.3))
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5.2))
 
     for i, (ax, (target, model, title)) in enumerate(zip(axes, PANELS)):
         subset = df[(df['Target'] == target) & (df['Model'] == model)]
@@ -57,26 +57,27 @@ def main():
             if row.empty:
                 continue
             ax.scatter(row['Accuracy'].values[0], row['AUC'].values[0],
-                       c=eq_color, s=70, zorder=3,
+                       c=eq_color, s=390, zorder=3,
                        edgecolors='black', linewidths=0.8)
 
         # Axes
-        ax.set_xlim(0, 1)
-        ax.set_ylim(0, 1)
+        ax.set_xlim(0, 1.05)
+        ax.set_ylim(0, 1.05)
         ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
         ax.set_xticklabels(['0', '0.25', '0.5', '0.75', '1'],
-                           fontsize=11, fontweight='bold')
+                           fontsize=19, fontweight='bold')
         ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
         ax.set_box_aspect(1)
 
-        ax.set_xlabel('Accuracy', fontsize=14, fontweight='bold')
-        ax.set_title(title, fontsize=15, fontweight='bold')
+        ax.set_xlabel('Accuracy', fontsize=22, fontweight='bold')
+        ax.text(0.5, 0.97, title, transform=ax.transAxes,
+                fontsize=23, fontweight='bold', ha='center', va='top')
 
         # Y-axis label only on leftmost
         if i == 0:
-            ax.set_ylabel('AUC ROC', fontsize=14, fontweight='bold')
+            ax.set_ylabel('AUC ROC', fontsize=22, fontweight='bold')
             ax.set_yticklabels(['0', '0.25', '0.5', '0.75', '1'],
-                               fontsize=11, fontweight='bold')
+                               fontsize=19, fontweight='bold')
         else:
             ax.set_yticklabels([])
 
