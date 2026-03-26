@@ -1555,7 +1555,7 @@ def generate_fig_3():
     else:
         print("  Warning: loocv_all_equations.csv not found for Fig 3d")
 
-    # ---- 3e: Individual wells vs PKPD model (Vandetanib O2 + Sotalol Contractility) ----
+    # ---- 3e: Individual wells vs PKPD model (Vandetanib O2 + Daunorubicin Contractility) ----
     # Uses the same smoothing pipeline as plot_all_2d_with_model.py
     from matplotlib.lines import Line2D as _Line2D
     from scipy.ndimage import gaussian_filter1d as _gaussian_filter1d
@@ -1646,11 +1646,10 @@ def generate_fig_3():
     _FIG3E_PANELS = [
         ('Vandetanib', 'O2', 'Vandetanib (G11)', [0.5, 0.125, 0.062],
          lambda conc, v_norm, t_fine: v_norm.min() > 0),
-        ('Sotalol', 'Contractility', 'Sotalol', [5.0, 2.5, 0.313],
-         lambda conc, v_norm, t_fine: not (
-             v_norm[np.argmin(np.abs(t_fine - 95))] > 1.03 or
-             v_norm[np.argmin(np.abs(t_fine - 50))] > 1.10 or
-             (conc == 0.313 and v_norm[np.argmin(np.abs(t_fine - 40))] < 0.75)
+        ('Daunorubicin', 'Contractility', 'Daunorubicin (F03)', [0.5, 0.25, 0.125],
+         lambda conc, v_norm, t_fine: (
+             v_norm.max() < 3.0 and
+             not (conc == 0.25 and (v_norm.max() - v_norm.min()) > 1.0)
          )),
     ]
 
@@ -1784,12 +1783,12 @@ def generate_fig_3():
     print(f"  Saved: Fig_3e_data.xlsx")
 
     register_figure('3', 'e',
-                    'Vandetanib O2 + Sotalol Contractility (Individual Wells vs PKPD Model)',
+                    'Vandetanib O2 + Daunorubicin Contractility (Individual Wells vs PKPD Model)',
                     individual_paths[0].relative_to(PROJECT_ROOT),
                     fig3e_excel.relative_to(PROJECT_ROOT),
                     width=SQUARE_SIZE * 1.8, height=SQUARE_SIZE * 1.8,
                     source_script='generate_paper_figures.py',
-                    notes='Two images: Fig_3e_O2.png (Vandetanib) + Fig_3e_Contractility.png (Sotalol)')
+                    notes='Two images: Fig_3e_O2.png (Vandetanib) + Fig_3e_Contractility.png (Daunorubicin)')
 
 
 
@@ -4246,7 +4245,7 @@ COMPOUND_PANELS = {
     # Panel 3b: four 3D surfaces in 2x2 grid + shared colorbar
     # Order matches position sort: top-left, top-right, colorbar (right of row1), bottom-left, bottom-right
     ('3', 'b'): ['1', '2', 'colorbar', '3', '4'],
-    # Panel 3e: Vandetanib O2 + Sotalol Contractility individual wells vs model
+    # Panel 3e: Vandetanib O2 + Daunorubicin Contractility individual wells vs model
     ('3', 'e'): ['O2', 'Contractility'],
 }
 
