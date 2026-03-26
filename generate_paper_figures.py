@@ -1555,193 +1555,241 @@ def generate_fig_3():
     else:
         print("  Warning: loocv_all_equations.csv not found for Fig 3d")
 
-    # ---- 3e: Daunorubicin 3D surfaces with raw data (O2 + Contractility combined) ----
-    import math
+    # ---- 3e: Individual wells vs PKPD model (Vandetanib O2 + Sotalol Contractility) ----
+    # Uses the same smoothing pipeline as plot_all_2d_with_model.py
+    from matplotlib.lines import Line2D as _Line2D
+    from scipy.ndimage import gaussian_filter1d as _gaussian_filter1d
+    from scipy.interpolate import CubicSpline as _CubicSpline
+    import statsmodels.api as _sm
+    from collections import defaultdict as _defaultdict
 
+    _STAGE2_DIR = PROJECT_ROOT / 'Cleaned_Data' / 'Raw_Example_Data' / 'Stage2_Tables'
+    _MAX_NAN_GAP = 7
+
+    def _max_nan_gap(arr):
+        mx = cur = 0
+        for v in arr:
+            if np.isnan(v): cur += 1; mx = max(mx, cur)
+            else: cur = 0
+        return mx
+
+    def _interp_limited(arr, max_gap):
+        if _max_nan_gap(arr) > max_gap: return None
+        valid = np.where(~np.isnan(arr))[0]
+        return np.interp(np.arange(len(arr)), valid, arr[valid]) if len(valid) >= 2 else None
+
+    def _remove_spikes(vals, mult=5.0):
+        vals = np.array(vals, dtype=float); n = len(vals)
+        if n < 3: return vals.copy()
+        diffs = np.abs(np.diff(vals)); vd = diffs[~np.isnan(diffs)]
+        if len(vd) == 0: return vals.copy()
+        ts = np.median(vd)
+        if ts < 1e-9: ts = np.mean(vd) if np.mean(vd) > 1e-9 else 1.0
+        mask = np.zeros(n, dtype=bool)
+        for i in range(1, n-1):
+            if np.isnan(vals[i]) or np.isnan(vals[i-1]) or np.isnan(vals[i+1]): continue
+            avg = (vals[i-1]+vals[i+1])/2; dev = abs(vals[i]-avg); nd = abs(vals[i+1]-vals[i-1])
+            if dev > mult*ts and dev > 2*max(nd, ts): mask[i] = True
+        if not mask.any(): return vals.copy()
+        c = vals.copy(); c[mask] = np.nan
+        vi = np.where(~np.isnan(c))[0]
+        return np.interp(np.arange(n), vi, c[vi]) if len(vi) >= 2 else c
+
+    def _intensive_smooth(vals, time):
+        c = vals.copy(); valid = ~np.isnan(c)
+        if valid.sum() >= 4:
+            lo = _sm.nonparametric.lowess(c[valid], time[valid], frac=0.55)
+            c = np.interp(time, lo[:,0], lo[:,1])
+        for frac in [0.45, 0.35]:
+            lo = _sm.nonparametric.lowess(c, time, frac=frac)
+            c = np.interp(time, lo[:,0], lo[:,1])
+        c = _gaussian_filter1d(c, sigma=3.0)
+        cs = _CubicSpline(time, c, bc_type=((1, 0.0), (2, 0.0)))
+        t_fine = np.linspace(time[0], time[-1], 1000)
+        return t_fine, cs(t_fine)
+
+    def _process_well(vals, time):
+        c = _remove_spikes(vals, 5.0)
+        c = _interp_limited(c, _MAX_NAN_GAP)
+        if c is None: return None
+        c = _remove_spikes(c, 2.5)
+        vi = np.where(~np.isnan(c))[0]
+        if len(vi) < 4: return None
+        c = np.interp(np.arange(len(c)), vi, c[vi])
+        return _intensive_smooth(c, time)
+
+    # Load PKPD params
     coeff_path = PROJECT_ROOT / 'EQN_Coefficients' / 'all_equations_coefficients.xlsx'
     df_coeff = pd.read_excel(coeff_path, sheet_name='pkpd_elimination', header=1)
     df_coeff.columns = df_coeff.columns.str.strip()
 
-    # Generate individual 3D surfaces — auto-expand dose ratio to fit all data
-    row = df_coeff[df_coeff['Drug'] == 'Daunorubicin'].iloc[0]
+    # Parse concentration columns (strip pandas suffixes)
+    def _parse_conc_cols(columns):
+        col_strs = [str(c) for c in columns]
+        base_names = {s for s in col_strs if '.' not in s}
+        results = {}
+        for s in col_strs:
+            nd = s.count('.')
+            if nd == 0:
+                try: results[s] = float(s)
+                except ValueError: pass
+            elif nd >= 2:
+                try: results[s] = float(s[:s.rfind('.')])
+                except ValueError: pass
+            else:
+                ip = s[:s.index('.')]
+                try: results[s] = float(ip) if ip in base_names else float(s)
+                except ValueError: pass
+        return results
+
+    # Config: (drug, resp_type, folder, concs_to_keep, outlier_filter)
+    _FIG3E_PANELS = [
+        ('Vandetanib', 'O2', 'Vandetanib (G11)', [0.5, 0.125, 0.062],
+         lambda conc, v_norm, t_fine: v_norm.min() > 0),
+        ('Sotalol', 'Contractility', 'Sotalol', [5.0, 2.5, 0.313],
+         lambda conc, v_norm, t_fine: not (
+             v_norm[np.argmin(np.abs(t_fine - 95))] > 1.03 or
+             v_norm[np.argmin(np.abs(t_fine - 50))] > 1.10 or
+             (conc == 0.313 and v_norm[np.argmin(np.abs(t_fine - 40))] < 0.75)
+         )),
+    ]
 
     individual_paths = []
-    for resp_type in ['O2', 'Contractility']:
-        sq = SQUARE_SIZE * 1.8
-        fig_single = plt.figure(figsize=(sq, sq))
-        ax = fig_single.add_subplot(111, projection='3d', computed_zorder=False)
+    all_excel_data = {}
 
+    for drug, resp_type, folder, keep_concs, outlier_fn in _FIG3E_PANELS:
+        keep_set = set(keep_concs)
+        concs_sorted = sorted(keep_concs, reverse=True)
+        n_conc = len(concs_sorted)
+        cmap = plt.get_cmap('plasma', n_conc)
+        conc_to_color = {c: cmap(i / max(n_conc-1, 1)) for i, c in enumerate(concs_sorted)}
+
+        # Load data
+        csv_name = 'O2_mean.csv' if resp_type == 'O2' else 'Amp_std.csv'
+        csv_path = _STAGE2_DIR / folder / csv_name
+        df_csv = pd.read_csv(csv_path)
+        time_raw = pd.to_numeric(df_csv.iloc[:, 0], errors='coerce')
+        vm = time_raw.notna()
+        df_csv = df_csv[vm].reset_index(drop=True)
+        time = time_raw[vm].values.astype(float)
+        conc_map = _parse_conc_cols(df_csv.columns[1:])
+
+        wells = []
+        for col in df_csv.columns[1:]:
+            cs = str(col)
+            if cs not in conc_map or conc_map[cs] not in keep_set: continue
+            wells.append((conc_map[cs], pd.to_numeric(df_csv[col], errors='coerce').values.astype(float)))
+
+        conc_groups = _defaultdict(list)
+        for conc, vals in wells:
+            result = _process_well(vals, time)
+            if result is not None:
+                conc_groups[conc].append(result)
+
+        # PKPD model params
+        row_drug = df_coeff[df_coeff['Drug'] == drug].iloc[0]
         sfx = '.1' if resp_type == 'O2' else ''
-        R0 = float(row[f'R0{sfx}'])
-        Emax = float(row[f'Emax{sfx}'])
-        kappa = float(row[f'kappa{sfx}'])
-        n_p = float(row[f'n{sfx}'])
-        m_p = float(row[f'm{sfx}'])
-        tau = float(row[f'tau{sfx}'])
-        k_el = float(row[f'k_elim{sfx}'])
-        cmax = float(row[f'Cmax_used{sfx}'])
+        p = {k: float(row_drug[f'{k}{sfx}']) for k in ['R0', 'Emax', 'kappa', 'n', 'm', 'tau', 'k_elim']}
+        p['Cmax'] = float(row_drug[f'Cmax_used{sfx}'])
+        t_align = time[1] if len(time) > 1 else 1.0
+        t_model = np.linspace(0, 100, 1000)
 
-        data_path = (PROJECT_ROOT / 'Cleaned_Data' / 'O2_Mean_Averaged.xlsx' if resp_type == 'O2'
-                     else PROJECT_ROOT / 'Cleaned_Data' / 'Heart_Contractility_Averaged.xlsx')
-        df_raw = pd.read_excel(data_path, sheet_name='Daunorubicin')
-        time_vals = df_raw.iloc[:, 0].values
-        all_t, all_dr, all_r = [], [], []
-        for cc in df_raw.columns[1:]:
-            try:
-                conc = float(str(cc).replace('_', '.'))
-                dr = conc / cmax
-                for t, r in zip(time_vals, df_raw[cc].values):
-                    if not np.isnan(r):
-                        all_t.append(float(t))
-                        all_dr.append(dr)
-                        all_r.append(float(r))
-            except (ValueError, TypeError):
-                continue
-        raw_t, raw_dr, raw_r = np.array(all_t), np.array(all_dr), np.array(all_r)
+        # Model direction for outlier detection
+        model_dir = {}
+        for conc in concs_sorted:
+            dr = conc / p['Cmax']
+            r = _pkpd_elimination_response(np.array([dr]), t_model.reshape(1, -1),
+                                           p['R0'], p['Emax'], max(p['kappa'], 1e-9),
+                                           p['n'], p['m'], max(p['tau'], 1e-9), max(p['k_elim'], 1e-9))
+            r = r.flatten()
+            r_at = _pkpd_elimination_response(np.array([dr]), np.array([[t_align]]),
+                                              p['R0'], p['Emax'], max(p['kappa'], 1e-9),
+                                              p['n'], p['m'], max(p['tau'], 1e-9), max(p['k_elim'], 1e-9))
+            model_dir[conc] = (r, float(r_at.flatten()[0]))
 
-        max_dr = max(2.0, math.ceil(raw_dr.max())) if len(raw_dr) > 0 else 2.0
-        dr_vec = np.linspace(0, max_dr, 60)
-        t_vec = np.linspace(0, 96, 60)
-        T, Dr = np.meshgrid(t_vec, dr_vec)
-        Resp = _pkpd_elimination_response(Dr, T, R0, Emax, kappa, n_p, m_p, tau, k_el)
+        fig, ax = plt.subplots(figsize=(12, 8))
+        excel_wells = []
 
-        Resp = Resp - R0
-        raw_r = raw_r - R0
+        for conc in concs_sorted:
+            color = conc_to_color[conc]
+            for t_fine, v_fine in conc_groups.get(conc, []):
+                baseline = v_fine[0]
+                if abs(baseline) < 1e-9: continue
+                v_norm = v_fine / baseline
+                if outlier_fn and not outlier_fn(conc, v_norm, t_fine):
+                    continue
+                ax.plot(t_fine, v_norm, linewidth=1.2, alpha=0.7, color=color)
+                excel_wells.append(pd.DataFrame({
+                    'Time_h': t_fine, 'Value_Normalized': v_norm,
+                    'Concentration_mM': conc, 'Type': 'Data',
+                }))
 
-        # Scale contractility by 100 for display
-        if resp_type == 'Contractility':
-            Resp = Resp * 100
-            raw_r = raw_r * 100
+        for conc in concs_sorted:
+            color = conc_to_color[conc]
+            r_full, r_align = model_dir[conc]
+            if abs(r_align) > 1e-9:
+                r_norm = r_full / r_align
+                ax.plot(t_model, r_norm, linewidth=2.5, color=color, linestyle='--', alpha=0.9)
+                excel_wells.append(pd.DataFrame({
+                    'Time_h': t_model, 'Value_Normalized': r_norm,
+                    'Concentration_mM': conc, 'Type': 'Model',
+                }))
 
-        vmax = float(np.nanmax(Resp))
-        norm = plt.Normalize(vmin=0, vmax=vmax)
-        ax.plot_surface(T, Dr, Resp, cmap='turbo', norm=norm,
-                        linewidth=0, antialiased=True, edgecolor='none', alpha=0.7)
-        ax.scatter(raw_t, raw_dr, raw_r, c='black', s=6, alpha=0.7, depthshade=True, zorder=10)
+        ax.axhline(1.0, color='grey', linestyle=':', linewidth=1, alpha=0.5)
+        ylabel = r'$O_2$ (fraction of baseline)' if resp_type == 'O2' else 'Contractility (fraction of baseline)'
+        ax.set_title(f'{drug} — {resp_type}', fontsize=28, fontweight='bold', pad=10)
+        ax.set_xlabel('Time from Exposure (h)', fontsize=26, fontweight='bold')
+        ax.set_ylabel(ylabel, fontsize=26, fontweight='bold')
+        ax.set_xlim(time[0], 100)
+        ax.tick_params(labelsize=20, width=1.5)
+        for label in ax.get_xticklabels() + ax.get_yticklabels():
+            label.set_fontweight('bold')
+        for spine in ax.spines.values():
+            spine.set_edgecolor('black'); spine.set_linewidth(3.0)
 
-        z_min = min(0, float(np.nanmin(raw_r))) if len(raw_r) > 0 else 0
-        z_max = max(vmax, float(np.nanmax(raw_r)) * 1.1) if len(raw_r) > 0 else vmax
-        ax.set_zlim(z_min, z_max)
-        ax.set_xlim(0, 96)
-        ax.set_ylim(0, max_dr)
+        handles = [_Line2D([0], [0], color=conc_to_color[c], linewidth=2.5) for c in concs_sorted]
+        labels = [f'{c} mM' for c in concs_sorted]
+        handles.append(_Line2D([0], [0], color='black', linewidth=2.5, linestyle='-'))
+        labels.append('— Data')
+        handles.append(_Line2D([0], [0], color='black', linewidth=2.5, linestyle='--'))
+        labels.append('-- Model')
+        loc = 'lower left' if resp_type == 'Contractility' else 'upper left'
+        ax.legend(handles, labels, fontsize=14, loc=loc,
+                  borderpad=0.3, labelspacing=0.2, handlelength=1.2,
+                  handletextpad=0.4, framealpha=0.85, edgecolor='none')
 
-        ax.set_xlabel('Time (h)', fontsize=7, labelpad=-3)
-        ax.set_ylabel('Dose Ratio', fontsize=7, labelpad=-3)
-        z_lab = r'O$_2$ (% air)' if resp_type == 'O2' else r'Contractility ($\times 10^{-2}$)'
-        ax.set_zlabel(z_lab, fontsize=7, labelpad=-3)
-        if resp_type == 'Contractility':
-            from matplotlib.ticker import MaxNLocator
-            ax.zaxis.set_major_locator(MaxNLocator(integer=True))
-        ax.view_init(elev=25, azim=-158)
-        ax.tick_params(labelsize=5, pad=-2)
-        ax.xaxis.pane.fill = False
-        ax.yaxis.pane.fill = False
-        ax.zaxis.pane.fill = False
-        ax.xaxis.pane.set_edgecolor('lightgray')
-        ax.yaxis.pane.set_edgecolor('lightgray')
-        ax.zaxis.pane.set_edgecolor('lightgray')
+        panel_label = 'O2' if resp_type == 'O2' else 'Contractility'
+        out_path = fig3_dir / f'Fig_3e_{panel_label}.png'
+        fig.savefig(str(out_path), dpi=600, bbox_inches='tight', pad_inches=0.05, facecolor='white')
+        plt.close(fig)
+        individual_paths.append(out_path)
+        print(f"  Saved: Fig_3e_{panel_label}.png")
 
-        fig_single.subplots_adjust(left=0.0, right=1.0, bottom=0.0, top=1.0)
+        sheet_name = f'{drug}_{resp_type}'[:31]
+        all_excel_data[sheet_name] = pd.concat(excel_wells, ignore_index=True)
 
-        individual_name = f'Fig_3e_{resp_type}.png'
-        individual_dst = fig3_dir / individual_name
-        # Use fixed figsize (not bbox_inches='tight') so both plots are same size
-        fig_single.savefig(str(individual_dst), dpi=600, pad_inches=0)
-        plt.close(fig_single)
-        individual_paths.append(individual_dst)
-        print(f"  Saved individual: {individual_name}")
+        # Coefficients
+        all_excel_data[f'{drug}_Coefficients'[:31]] = pd.DataFrame([{
+            'Drug': drug, 'Response_Type': resp_type, 'Equation': 'pkpd_elimination',
+            **{k: p[k] for k in ['R0', 'Emax', 'kappa', 'n', 'm', 'tau', 'k_elim', 'Cmax']},
+            'Concentrations_mM': str(keep_concs),
+            'Source': str(coeff_path),
+        }])
 
-    # Save data Excel for Fig 3e
+    # Save data Excel
     fig3e_excel = fig3_dir / 'Fig_3e_data.xlsx'
     with pd.ExcelWriter(fig3e_excel, engine='openpyxl') as writer:
-        # Coefficients sheet: one row per response type
-        coeff_rows_3e = []
-        for resp_type in ['O2', 'Contractility']:
-            sfx = '.1' if resp_type == 'O2' else ''
-            entry = {
-                'Response_Type': resp_type,
-                'Drug': 'Daunorubicin',
-                'Equation': 'pkpd_elimination',
-                'R0': float(row[f'R0{sfx}']),
-                'Emax': float(row[f'Emax{sfx}']),
-                'kappa': float(row[f'kappa{sfx}']),
-                'n': float(row[f'n{sfx}']),
-                'm': float(row[f'm{sfx}']),
-                'tau': float(row[f'tau{sfx}']),
-                'k_elim': float(row[f'k_elim{sfx}']),
-                'Cmax_used': float(row[f'Cmax_used{sfx}']),
-                'Source': str(coeff_path),
-            }
-            coeff_rows_3e.append(entry)
-        pd.DataFrame(coeff_rows_3e).to_excel(writer, sheet_name='Coefficients', index=False)
-
-        # Surface grid axes
-        dr_vec_save = np.linspace(0, max_dr, 60)
-        t_vec_save = np.linspace(0, 96, 60)
-        pd.DataFrame({'Time_h': t_vec_save}).to_excel(writer, sheet_name='Grid_Time', index=False)
-        pd.DataFrame({'Dose_Ratio': dr_vec_save}).to_excel(writer, sheet_name='Grid_DoseRatio', index=False)
-
-        # Surface Z-values and raw data for each response type
-        for resp_type in ['O2', 'Contractility']:
-            sfx = '.1' if resp_type == 'O2' else ''
-            R0_v = float(row[f'R0{sfx}'])
-            Emax_v = float(row[f'Emax{sfx}'])
-            kappa_v = float(row[f'kappa{sfx}'])
-            n_v = float(row[f'n{sfx}'])
-            m_v = float(row[f'm{sfx}'])
-            tau_v = float(row[f'tau{sfx}'])
-            k_el_v = float(row[f'k_elim{sfx}'])
-            cmax_v = float(row[f'Cmax_used{sfx}'])
-
-            T_g, Dr_g = np.meshgrid(t_vec_save, dr_vec_save)
-            Resp_g = _pkpd_elimination_response(Dr_g, T_g, R0_v, Emax_v, kappa_v, n_v, m_v, tau_v, k_el_v)
-            Resp_g = Resp_g - R0_v  # Baseline correction (matches plot)
-            if resp_type == 'Contractility':
-                Resp_g = Resp_g * 100  # Scale ×100 to match plot
-
-            sheet_z = f'{resp_type}_Surface_Z'[:31]
-            df_z = pd.DataFrame(Resp_g, index=np.round(dr_vec_save, 4), columns=np.round(t_vec_save, 2))
-            df_z.index.name = 'Dose_Ratio'
-            df_z.to_excel(writer, sheet_name=sheet_z)
-
-            # Raw experimental data points
-            data_path = (PROJECT_ROOT / 'Cleaned_Data' / 'O2_Mean_Averaged.xlsx' if resp_type == 'O2'
-                         else PROJECT_ROOT / 'Cleaned_Data' / 'Heart_Contractility_Averaged.xlsx')
-            df_raw_e = pd.read_excel(data_path, sheet_name='Daunorubicin')
-            time_vals_e = df_raw_e.iloc[:, 0].values
-            pts_t, pts_dr, pts_r = [], [], []
-            for cc in df_raw_e.columns[1:]:
-                try:
-                    conc = float(str(cc).replace('_', '.'))
-                    dr = conc / cmax_v
-                    for t, r in zip(time_vals_e, df_raw_e[cc].values):
-                        if not np.isnan(r):
-                            pts_t.append(float(t))
-                            pts_dr.append(dr)
-                            val = float(r) - R0_v  # Baseline corrected
-                            if resp_type == 'Contractility':
-                                val *= 100
-                            pts_r.append(val)
-                except (ValueError, TypeError):
-                    continue
-            raw_df = pd.DataFrame({
-                'Time_h': pts_t,
-                'Dose_Ratio': pts_dr,
-                'Response_Baseline_Corrected': pts_r,
-                'Source': str(data_path),
-            })
-            sheet_raw = f'{resp_type}_Raw_Data'[:31]
-            raw_df.to_excel(writer, sheet_name=sheet_raw, index=False)
-
+        for sheet, df_sheet in all_excel_data.items():
+            df_sheet.to_excel(writer, sheet_name=sheet, index=False)
     print(f"  Saved: Fig_3e_data.xlsx")
 
-    # Individual images placed side-by-side in PPTX via COMPOUND_PANELS
-    register_figure('3', 'e', 'Daunorubicin 3D Surfaces + Raw Data (O2 & Contractility)',
+    register_figure('3', 'e',
+                    'Vandetanib O2 + Sotalol Contractility (Individual Wells vs PKPD Model)',
                     individual_paths[0].relative_to(PROJECT_ROOT),
                     fig3e_excel.relative_to(PROJECT_ROOT),
                     width=SQUARE_SIZE * 1.8, height=SQUARE_SIZE * 1.8,
                     source_script='generate_paper_figures.py',
-                    notes='Two images: Fig_3e_O2.png + Fig_3e_Contractility.png')
+                    notes='Two images: Fig_3e_O2.png (Vandetanib) + Fig_3e_Contractility.png (Sotalol)')
 
 
 # ============================================================================
@@ -4197,7 +4245,7 @@ COMPOUND_PANELS = {
     # Panel 3b: four 3D surfaces in 2x2 grid + shared colorbar
     # Order matches position sort: top-left, top-right, colorbar (right of row1), bottom-left, bottom-right
     ('3', 'b'): ['1', '2', 'colorbar', '3', '4'],
-    # Panel 3e: two 3D surfaces (Fig_3e_O2.png + Fig_3e_Contractility.png)
+    # Panel 3e: Vandetanib O2 + Sotalol Contractility individual wells vs model
     ('3', 'e'): ['O2', 'Contractility'],
 }
 
@@ -4286,19 +4334,22 @@ def _discover_slide2_rids(slide_xml_path, rels_path):
 # This bypasses position-based sorting entirely, preventing swap bugs.
 # Keys are rIds from the slide3 XML, values are source filenames (relative to Fig_3 dir).
 SLIDE3_RID_MAP = {
-    # --- Panel a row (Group 5): heatmaps + surfaces, left to right ---
-    'rId6':  'Fig_3a_Dactinomycin_O2_Heatmap.png',            # x=0.360, w=0.809, Picture 2
-    'rId10': 'Dactinomycin_Eq3_gaussian_hill_hybrid.png',     # x=1.200, w=1.000, Picture 15
-    'rId7':  'Fig_3a_Nifedipine_O2_Heatmap.png',             # x=2.230, w=0.810, Picture 4
-    'rId9':  'Nifedipine_Eq10_modified_hill_simple.png',      # x=3.071, w=1.000, Picture 8
-    'rId11': 'Fig_3a_Mexiletine_O2_Heatmap.png',             # x=4.101, w=0.810, Picture 538
-    'rId8':  'Mexiletine_Eq7_biphasic_response.png',          # x=4.942, w=1.000, Picture 12
+    # --- Panel A row (Group 5): heatmaps + surfaces, left to right ---
+    'rId5':  'Fig_3a_Dactinomycin_O2_Heatmap.png',            # (0.386, 1.247, 0.809, 0.809) Picture 2
+    'rId9':  'Dactinomycin_Eq3_gaussian_hill_hybrid.png',     # (1.226, 1.152, 1.000, 1.000) Picture 15
+    'rId6':  'Fig_3a_Nifedipine_O2_Heatmap.png',             # (2.256, 1.247, 0.810, 0.810) Picture 4
+    'rId8':  'Nifedipine_Eq10_modified_hill_simple.png',      # (3.097, 1.152, 1.000, 1.000) Picture 8
+    'rId10': 'Fig_3a_Mexiletine_O2_Heatmap.png',             # (4.127, 1.247, 0.810, 0.810) Picture 538
+    'rId7':  'Mexiletine_Eq7_biphasic_response.png',          # (4.968, 1.152, 1.000, 1.000) Picture 12
 
-    # --- Panel c (Group 4): R² bar chart ---
-    'rId4':  'Fig_3c.png',                                    # x=0.170, y=2.336, w=1.462, h=1.215
+    # --- Panel B (Group 18): R² bar chart ---
+    'rId4':  'Fig_3c.png',                                    # (0.213, 2.268, 1.622, 1.149)
 
-    # --- Panel d (Group 3): 3-panel scatter strip ---
-    'rId5':  'Fig_3d.png',                                    # x=0.388, y=2.306, w=2.920, h=1.124
+    # --- Panel C (Group 19): placeholder (user-managed) ---
+    'rId12': 'Fig_3c_placeholder.png',                        # (2.083, 2.342, 0.573, 0.946)
+
+    # --- Panel D (Group 20): 3-panel scatter strip ---
+    'rId13': 'Fig_3d.png',                                    # (2.924, 2.293, 2.920, 1.124)
 }
 
 
@@ -4860,17 +4911,19 @@ def update_powerpoint():
             # --- Slide 3: enforce panel positions for Group 2 row ---
             if slide_num == 3:
                 _SLIDE3_POSITIONS = {
-                    # Panel a row (Group 5)
-                    'rId6':  (0.360, 1.247, 0.809, 0.809),  # Dacto HM
-                    'rId10': (1.200, 1.152, 1.000, 1.000),  # Dacto Surf
-                    'rId7':  (2.230, 1.247, 0.810, 0.810),  # Nif HM
-                    'rId9':  (3.071, 1.152, 1.000, 1.000),  # Nif Surf
-                    'rId11': (4.101, 1.247, 0.810, 0.810),  # Mex HM
-                    'rId8':  (4.942, 1.152, 1.000, 1.000),  # Mex Surf
-                    # Panel c (Group 4)
-                    'rId4':  (0.170, 2.336, 1.462, 1.215),  # R² chart
-                    # Panel d (Group 3)
-                    'rId5':  (0.388, 2.306, 2.920, 1.124),  # Scatter strip
+                    # Panel A row (Group 5)
+                    'rId5':  (0.386, 1.247, 0.809, 0.809),  # Dacto HM
+                    'rId9':  (1.226, 1.152, 1.000, 1.000),  # Dacto Surf
+                    'rId6':  (2.256, 1.247, 0.810, 0.810),  # Nif HM
+                    'rId8':  (3.097, 1.152, 1.000, 1.000),  # Nif Surf
+                    'rId10': (4.127, 1.247, 0.810, 0.810),  # Mex HM
+                    'rId7':  (4.968, 1.152, 1.000, 1.000),  # Mex Surf
+                    # Panel B (Group 18) — R² chart
+                    'rId4':  (0.213, 2.268, 1.622, 1.149),
+                    # Panel C (Group 19) — placeholder
+                    'rId12': (2.083, 2.342, 0.573, 0.946),
+                    # Panel D (Group 20) — scatter strip
+                    'rId13': (2.924, 2.293, 2.920, 1.124),
                 }
                 _slide_xml_path = unpack_dir / 'ppt' / 'slides' / f'slide{slide_num}.xml'
                 _s3tree = _ET.parse(_slide_xml_path)

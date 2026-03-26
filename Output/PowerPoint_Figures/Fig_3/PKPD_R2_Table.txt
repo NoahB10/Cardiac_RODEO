@@ -1,0 +1,100 @@
+PKPD Elimination Surface — R² per Drug
+=======================================
+
+R² computed on smoothed, averaged per-concentration data vs PKPD model prediction.
+Pipeline: spike removal → NaN gap check → second spike → NaN fill → LOWESS x3 + Gaussian σ=3 + CubicSpline
+Baseline aligned at t=0 (compressed-offset averaging, COMPRESS=0.3).
+Script: Cleaned_Data/Raw_Example_Data/plot_all_2d_with_model.py
+
+O2 (sorted by R²)
+------------------
+Drug                    R²
+Doxorubicin          0.9434
+Erlotinib            0.8887
+Daunorubicin         0.8355
+Plicamycin           0.8340
+Cobimetinib          0.8334
+Ibrutinib            0.8034
+Panobinostat         0.7523
+Vandetanib           0.7122
+Sunitinib            0.5589
+Vorinostat           0.4824
+Isoproterenol        0.4752
+Bortezomib           0.4135
+Epirubicin           0.3874
+Dactinomycin         0.1080
+Etomoxir             0.0811
+Amiodarone          -0.2513
+Vincristine         -0.2953
+Mexiletine          -0.6192
+Vioxx               -1.0353
+Sotalol             -1.1603
+Gemcitibine         -1.4771
+Nifedipine          -1.8716
+Chlorpromazine      -4.4880
+Ibuprofen           -5.1251
+Rosiglitazone      -14.2549
+
+Contractility (sorted by R²)
+-----------------------------
+Drug                    R²
+Vioxx               -0.2204
+Ibuprofen           -0.3702
+Isoproterenol       -0.4979
+Etomoxir            -0.6029
+Nifedipine          -0.6623
+Gemcitibine         -0.7985
+Erlotinib           -0.8482
+Sunitinib           -0.9310
+Vorinostat          -1.1153
+Vincristine         -1.1192
+Amiodarone          -1.1354
+Vandetanib          -1.5631
+Rosiglitazone       -1.6392
+Bortezomib          -1.8529
+Chlorpromazine      -1.8601
+Sotalol             -1.9520
+Plicamycin          -2.0025
+Epirubicin          -2.0203
+Dactinomycin        -2.1234
+Ibrutinib           -2.9906
+Cobimetinib         -3.7378
+Mexiletine          -5.4328
+Daunorubicin        -5.5730
+Doxorubicin         -5.7190
+Panobinostat       -15.7273
+
+Combined Average (O2 + Contractility)
+--------------------------------------
+Drug                  Avg R²
+Erlotinib            0.0203
+Isoproterenol       -0.0114
+Sunitinib           -0.1860
+Etomoxir            -0.2609
+Vorinostat          -0.3164
+Vandetanib          -0.4254
+Plicamycin          -0.5843
+Vioxx               -0.6279
+Amiodarone          -0.6933
+Vincristine         -0.7072
+Bortezomib          -0.7197
+Epirubicin          -0.8165
+Dactinomycin        -1.0077
+Ibrutinib           -1.0936
+Gemcitibine         -1.1378
+Nifedipine          -1.2670
+Cobimetinib         -1.4522
+Sotalol             -1.5562
+Daunorubicin        -2.3687
+Doxorubicin         -2.3878
+Ibuprofen           -2.7476
+Mexiletine          -3.0260
+Chlorpromazine      -3.1741
+Panobinostat        -7.4875
+Rosiglitazone       -7.9470
+
+Notes
+-----
+- Negative R² means the model predicts worse than a flat mean line.
+- O2 fits well for ~8 drugs (R² > 0.7); contractility fits are all negative.
+- 25 drugs total (excludes DMSO, Troglitazone, Troglitarazine).
