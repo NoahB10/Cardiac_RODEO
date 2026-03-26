@@ -1791,6 +1791,169 @@ def generate_fig_3():
                     source_script='generate_paper_figures.py',
                     notes='Two images: Fig_3e_O2.png (Vandetanib) + Fig_3e_Contractility.png (Sotalol)')
 
+    # ---- 3c (Panel C): 3D surface + raw data overlay ----
+    # Same drugs/concentrations as 3e but rendered as 3D: surface = PKPD model,
+    # scatter = individual processed wells at their dose ratios
+    print("  Generating Panel 3c: 3D surface + raw data overlay...")
+
+    _3C_PANELS = [
+        ('Sotalol', 'Contractility', 'Sotalol', [5.0, 2.5, 0.313]),
+        ('Vandetanib', 'O2', 'Vandetanib (G11)', [0.5, 0.125, 0.062]),
+    ]
+
+    panel_3c_paths = []
+    panel_3c_excel = {}
+
+    for drug, resp_type, folder, keep_concs in _3C_PANELS:
+        keep_set = set(keep_concs)
+        concs_sorted = sorted(keep_concs, reverse=True)
+
+        # Load raw per-well data (reuse 3e pipeline)
+        csv_name = 'O2_mean.csv' if resp_type == 'O2' else 'Amp_std.csv'
+        csv_path = _STAGE2_DIR / folder / csv_name
+        if not csv_path.exists():
+            print(f"    Warning: {csv_path} not found, skipping {drug}")
+            continue
+        df_csv = pd.read_csv(csv_path)
+        time_raw = pd.to_numeric(df_csv.iloc[:, 0], errors='coerce')
+        vm = time_raw.notna()
+        df_csv = df_csv[vm].reset_index(drop=True)
+        time = time_raw[vm].values.astype(float)
+        conc_map = _parse_conc_cols(df_csv.columns[1:])
+
+        wells = []
+        for col in df_csv.columns[1:]:
+            cs = str(col)
+            if cs not in conc_map or conc_map[cs] not in keep_set:
+                continue
+            wells.append((conc_map[cs], pd.to_numeric(df_csv[col], errors='coerce').values.astype(float)))
+
+        # Process wells
+        conc_well_data = _defaultdict(list)
+        for conc, vals in wells:
+            result = _process_well(vals, time)
+            if result is not None:
+                conc_well_data[conc].append(result)
+
+        # PKPD model params
+        row_drug = df_coeff[df_coeff['Drug'] == drug].iloc[0]
+        sfx = '.1' if resp_type == 'O2' else ''
+        p = {k: float(row_drug[f'{k}{sfx}']) for k in ['R0', 'Emax', 'kappa', 'n', 'm', 'tau', 'k_elim']}
+        p['Cmax'] = float(row_drug[f'Cmax_used{sfx}'])
+
+        # Build full PK-PD surface
+        max_dr = max(c / p['Cmax'] for c in concs_sorted) * 1.3
+        max_dr = max(max_dr, 0.5)  # Minimum range
+        time_vec = np.linspace(0, 96, 80)
+        dr_vec = np.linspace(0, max_dr, 80)
+        T_mesh, Dr_mesh = np.meshgrid(time_vec, dr_vec)
+        Z_surf = _pkpd_elimination_response(Dr_mesh, T_mesh,
+                                             p['R0'], p['Emax'], max(p['kappa'], 1e-9),
+                                             p['n'], p['m'], max(p['tau'], 1e-9), max(p['k_elim'], 1e-9))
+        Z_surf = np.clip(Z_surf, -500, 500)
+        Z_surf = np.where(np.isfinite(Z_surf), Z_surf, 0)
+
+        # Scale contractility to %
+        scale = 100 if resp_type == 'Contractility' else 1
+        Z_surf_disp = Z_surf * scale
+
+        # Collect scatter points from processed wells
+        scatter_t, scatter_dr, scatter_z, scatter_conc = [], [], [], []
+        for conc in concs_sorted:
+            dr = conc / p['Cmax']
+            for t_fine, v_fine in conc_well_data.get(conc, []):
+                # Subsample to ~50 points per well for clarity
+                step = max(1, len(t_fine) // 50)
+                for j in range(0, len(t_fine), step):
+                    scatter_t.append(t_fine[j])
+                    scatter_dr.append(dr)
+                    scatter_z.append(v_fine[j] * scale)
+                    scatter_conc.append(conc)
+
+        scatter_t = np.array(scatter_t)
+        scatter_dr = np.array(scatter_dr)
+        scatter_z = np.array(scatter_z)
+        scatter_conc = np.array(scatter_conc)
+
+        # Color map for concentrations
+        n_conc = len(concs_sorted)
+        cmap_conc = plt.get_cmap('plasma', n_conc)
+        conc_to_color = {c: cmap_conc(i / max(n_conc - 1, 1)) for i, c in enumerate(concs_sorted)}
+        scatter_colors = [conc_to_color[c] for c in scatter_conc]
+
+        # Plot 3D
+        fig_3c = plt.figure(figsize=(4, 4))
+        ax_3c = fig_3c.add_subplot(111, projection='3d', computed_zorder=False)
+
+        # Surface (semi-transparent)
+        z_min, z_max = float(np.nanmin(Z_surf_disp)), float(np.nanmax(Z_surf_disp))
+        ax_3c.plot_surface(T_mesh, Dr_mesh, Z_surf_disp, cmap='turbo',
+                           vmin=z_min, vmax=z_max,
+                           rcount=80, ccount=80, antialiased=True, alpha=0.5)
+
+        # Scatter raw data on top
+        ax_3c.scatter(scatter_t, scatter_dr, scatter_z,
+                      c=scatter_colors, s=12, alpha=0.85, edgecolors='black',
+                      linewidths=0.3, depthshade=True, zorder=10)
+
+        ax_3c.view_init(elev=25, azim=-158)
+
+        # Transparent panes
+        for axis in [ax_3c.xaxis, ax_3c.yaxis, ax_3c.zaxis]:
+            axis.pane.fill = False
+            axis.pane.set_edgecolor((0, 0, 0, 0))
+            axis._axinfo['grid']['color'] = (0, 0, 0, 0.2)
+
+        # Labels
+        _LBL_3C = 34
+        ax_3c.set_xlabel('Time (h)', fontsize=_LBL_3C, labelpad=-10)
+        ax_3c.set_ylabel('Dose Ratio', fontsize=_LBL_3C, labelpad=-10)
+        z_label = r'$O_2$ (%)' if resp_type == 'O2' else 'Contractility (%)'
+        ax_3c.text2D(0.05, 0.5, z_label, transform=ax_3c.transAxes,
+                     fontsize=_LBL_3C, rotation=90, va='center', ha='right')
+        ax_3c.set_title(f'{drug}', fontsize=_LBL_3C + 4, fontweight='bold', pad=5)
+
+        # Tick formatting
+        ax_3c.tick_params(labelsize=14)
+
+        out_name = f'Fig_3c_{drug}_{resp_type}_3D_overlay.png'
+        out_path = fig3_dir / out_name
+        fig_3c.savefig(str(out_path), dpi=600, bbox_inches='tight',
+                       transparent=True, pad_inches=0.02)
+        plt.close(fig_3c)
+        panel_3c_paths.append(out_path)
+        print(f"    Saved: {out_name}")
+
+        # Excel data
+        sheet = f'{drug}_{resp_type}'[:31]
+        scatter_df = pd.DataFrame({
+            'Time_h': scatter_t, 'Dose_Ratio': scatter_dr,
+            'Response': scatter_z, 'Concentration_mM': scatter_conc,
+        })
+        panel_3c_excel[sheet] = scatter_df
+        panel_3c_excel[f'{drug}_Coefficients'[:31]] = pd.DataFrame([{
+            'Drug': drug, 'Response_Type': resp_type, 'Equation': 'pkpd_elimination',
+            **{k: p[k] for k in ['R0', 'Emax', 'kappa', 'n', 'm', 'tau', 'k_elim', 'Cmax']},
+            'Concentrations_mM': str(keep_concs),
+            'Source': str(coeff_path),
+        }])
+
+    # Save combined Excel
+    if panel_3c_excel:
+        excel_3c = fig3_dir / 'Fig_3c_3D_overlay_data.xlsx'
+        with pd.ExcelWriter(excel_3c, engine='openpyxl') as writer:
+            for sheet, df_sheet in panel_3c_excel.items():
+                df_sheet.to_excel(writer, sheet_name=sheet, index=False)
+        print(f"    Saved: Fig_3c_3D_overlay_data.xlsx")
+
+        register_figure('3', 'c',
+                        '3D PKPD surface + raw data overlay (Sotalol + Vandetanib)',
+                        panel_3c_paths[0].relative_to(PROJECT_ROOT) if panel_3c_paths else '',
+                        excel_3c.relative_to(PROJECT_ROOT),
+                        source_script='generate_paper_figures.py',
+                        notes='3D surface (PKPD model) with processed per-well scatter overlay. '
+                              'Sotalol Contractility [5.0, 2.5, 0.313 mM], Vandetanib O2 [0.5, 0.125, 0.062 mM]')
+
 
 # ============================================================================
 # FIGURE 4 & 5: 3D Surface Grids
