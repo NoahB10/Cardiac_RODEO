@@ -123,3 +123,14 @@ Output/PowerPoint_Figures.zip
 Cleaned_Data/Raw_Tables.zip
 MoLFormer_Comparison/Models/*.pt
 Output/PowerPoint_Figures/Cardiac_RODEO_Tracked.pptx
+Output/PowerPoint_Figures/Cardiac_RODEO_Tracked2.pptx
+
+# Large zip archives (redundant with extracted folders)
+Cleaned_Data/Raw_Example_Data/Stage2_Tables.zip
+Cleaned_Data/Raw_Example_Data/Stage2_heatmaps.zip
+Cardiac_RODEO_LaTeX_Report*.zip
+Output/PowerPoint_Figures/Fig_2.zip
+
+# Misc non-code files
+rodeo.emf
+heart_rate_analysis_script.py.py
