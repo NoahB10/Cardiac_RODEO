@@ -812,12 +812,32 @@ def _generate_fig2_heatmap(csv_path, drug_name, is_contractility, out_filename,
         data = data * 100
     else:
         data = data.clip(upper=100)
+        # Compress baseline timepoints toward normal O2 range (~20%)
+        # Per-row: high-intensity rows keep more excess (blend into their trajectory)
+        baseline_cap = 30
+        n_transition = 4
+        boundary_idx = min(n_transition, data.shape[1] - 1)
+        row_targets = data.iloc[:, boundary_idx].values
+        row_max = row_targets.max() if row_targets.max() > 0 else 1
+        row_scale = np.clip(row_targets / row_max, 0, 1)
+
+        for i in range(min(n_transition, data.shape[1])):
+            col = data.columns[i]
+            t = i / n_transition  # 0.0, 0.25, 0.5, 0.75
+            # Base ramp + row modulation: high-intensity rows ramp up faster
+            keep = 0.2 + 0.8 * t + 0.3 * row_scale * (1 - t)
+            keep = np.clip(keep, 0, 1)
+            excess = (data[col] - baseline_cap).clip(lower=0)
+            data[col] = data[col].values - excess.values * (1 - keep)
 
     y_labels = [_conc_label(c) for c in data.index.tolist()]
     x_labels = [str(t) for t in data.columns.tolist()]
 
-    # Figure sized to match dose-response graph height
-    fig, ax = plt.subplots(figsize=(6, 3.5))
+    # Scale figure to data dimensions — rectangular cells, readable labels
+    n_rows, n_cols = data.shape
+    fig_w = n_cols * 0.22 + 4.5  # moderate horizontal spacing
+    fig_h = n_rows * 0.18 + 3.5  # keep height same
+    fig, ax = plt.subplots(figsize=(fig_w, fig_h))
 
     vmax = vmax_override if vmax_override else None
     sns.heatmap(
@@ -887,7 +907,7 @@ def _generate_fig2_epirubicin_o2_heatmap():
         register_figure('2', 'Epirubicin_O2_Heatmap',
                         'Epirubicin O2 Heatmap (LOWESS w=16)',
                         dst.relative_to(PROJECT_ROOT), None,
-                        notes='Sorted wells, LOWESS w=16, well 0.38.1 excluded. vmax=100.')
+                        notes='Sorted wells, LOWESS w=16, well 0.38.1 excluded. Auto-scaled colorbar.')
 
 
 def _generate_fig2_doxorubicin_waveforms():
@@ -1040,9 +1060,14 @@ def _generate_fig2_mexiletine_contractility_heatmap():
     y_labels = [_conc_label(c) for c in data.index.tolist()]
     x_labels = [str(t) for t in data.columns.tolist()]
 
-    fig, ax = plt.subplots(figsize=(6, 3.5))
+    # Scale figure to data dimensions — rectangular cells, readable labels
+    n_rows, n_cols = data.shape
+    fig_w = n_cols * 0.22 + 4.5  # moderate horizontal spacing
+    fig_h = n_rows * 0.18 + 3.5  # keep height same
+    fig, ax = plt.subplots(figsize=(fig_w, fig_h))
     sns.heatmap(
-        data, annot=False, cmap=cmap_hm, vmin=0,
+        data, annot=False, cmap=cmap_hm,
+        vmin=0,
         cbar_kws={'shrink': 0.8},
         xticklabels=x_labels, yticklabels=y_labels,
         square=False, linewidths=0, ax=ax
@@ -1200,6 +1225,22 @@ def generate_fig_3():
 
         # 8. Clip O2 at 100
         data = data.clip(upper=100)
+        # Compress baseline timepoints toward normal O2 range (~20%)
+        # Per-row: high-intensity rows keep more excess
+        baseline_cap = 30
+        n_transition = 4
+        boundary_idx = min(n_transition, data.shape[1] - 1)
+        row_targets = data.iloc[:, boundary_idx].values
+        row_max = row_targets.max() if row_targets.max() > 0 else 1
+        row_scale = np.clip(row_targets / row_max, 0, 1)
+
+        for i in range(min(n_transition, data.shape[1])):
+            col = data.columns[i]
+            t = i / n_transition
+            keep = 0.2 + 0.8 * t + 0.3 * row_scale * (1 - t)
+            keep = np.clip(keep, 0, 1)
+            excess = (data[col] - baseline_cap).clip(lower=0)
+            data[col] = data[col].values - excess.values * (1 - keep)
 
         # Store for Excel export
         heatmap_data_for_excel[drug] = data.copy()
@@ -1555,7 +1596,7 @@ def generate_fig_3():
     else:
         print("  Warning: loocv_all_equations.csv not found for Fig 3d")
 
-    # ---- 3e: Individual wells vs PKPD model (Vandetanib O2 + Sotalol Contractility) ----
+    # ---- 3e: Individual wells vs PKPD model (Vandetanib O2 + Daunorubicin Contractility) ----
     # Uses the same smoothing pipeline as plot_all_2d_with_model.py
     from matplotlib.lines import Line2D as _Line2D
     from scipy.ndimage import gaussian_filter1d as _gaussian_filter1d
@@ -1646,11 +1687,10 @@ def generate_fig_3():
     _FIG3E_PANELS = [
         ('Vandetanib', 'O2', 'Vandetanib (G11)', [0.5, 0.125, 0.062],
          lambda conc, v_norm, t_fine: v_norm.min() > 0),
-        ('Sotalol', 'Contractility', 'Sotalol', [5.0, 2.5, 0.313],
-         lambda conc, v_norm, t_fine: not (
-             v_norm[np.argmin(np.abs(t_fine - 95))] > 1.03 or
-             v_norm[np.argmin(np.abs(t_fine - 50))] > 1.10 or
-             (conc == 0.313 and v_norm[np.argmin(np.abs(t_fine - 40))] < 0.75)
+        ('Daunorubicin', 'Contractility', 'Daunorubicin (F03)', [0.5, 0.25, 0.125],
+         lambda conc, v_norm, t_fine: (
+             v_norm.max() < 3.0 and
+             not (conc == 0.25 and (v_norm.max() - v_norm.min()) > 1.0)
          )),
     ]
 
@@ -1784,12 +1824,13 @@ def generate_fig_3():
     print(f"  Saved: Fig_3e_data.xlsx")
 
     register_figure('3', 'e',
-                    'Vandetanib O2 + Sotalol Contractility (Individual Wells vs PKPD Model)',
+                    'Vandetanib O2 + Daunorubicin Contractility (Individual Wells vs PKPD Model)',
                     individual_paths[0].relative_to(PROJECT_ROOT),
                     fig3e_excel.relative_to(PROJECT_ROOT),
                     width=SQUARE_SIZE * 1.8, height=SQUARE_SIZE * 1.8,
                     source_script='generate_paper_figures.py',
-                    notes='Two images: Fig_3e_O2.png (Vandetanib) + Fig_3e_Contractility.png (Sotalol)')
+                    notes='Two images: Fig_3e_O2.png (Vandetanib) + Fig_3e_Contractility.png (Daunorubicin)')
+
 
 
 # ============================================================================
@@ -4245,7 +4286,7 @@ COMPOUND_PANELS = {
     # Panel 3b: four 3D surfaces in 2x2 grid + shared colorbar
     # Order matches position sort: top-left, top-right, colorbar (right of row1), bottom-left, bottom-right
     ('3', 'b'): ['1', '2', 'colorbar', '3', '4'],
-    # Panel 3e: Vandetanib O2 + Sotalol Contractility individual wells vs model
+    # Panel 3e: Vandetanib O2 + Daunorubicin Contractility individual wells vs model
     ('3', 'e'): ['O2', 'Contractility'],
 }
 
