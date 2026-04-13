@@ -264,6 +264,14 @@ def plot_averaged_offset(time, wells):
     plt.close(fig)
     print(f'  ({len(concs_sorted)} concentrations)')
 
+    # Save processed averaged data to CSV for Excel provenance
+    processed_df = pd.DataFrame({'Time_h': conc_groups[concs_sorted[0]][0][0]})
+    for conc in concs_sorted:
+        processed_df[f'{conc}_mM'] = avg_traces[conc]
+    processed_csv = OUT_DIR / 'Epirubicin_O2_averaged_processed.csv'
+    processed_df.to_csv(processed_csv, index=False)
+    print(f'  Saved processed data: {processed_csv}')
+
 
 if __name__ == '__main__':
     time, wells = load_data()

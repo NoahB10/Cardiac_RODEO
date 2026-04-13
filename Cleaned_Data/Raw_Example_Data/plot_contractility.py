@@ -283,6 +283,18 @@ def plot_averaged(drug_name, time, wells, out_dir):
     plt.close(fig)
     print(f'  ({len(concs_sorted)} concentrations)')
 
+    # Save processed averaged data to CSV for Excel provenance
+    t_fine = conc_groups[concs_sorted[0]][0][0]
+    processed_df = pd.DataFrame({'Time_h': t_fine})
+    for conc in concs_sorted:
+        traces = conc_groups[conc]
+        offset_traces = [v - (v[0] - global_avg) for _, v in traces]
+        avg = np.mean(offset_traces, axis=0) * 100
+        processed_df[f'{conc}_mM'] = avg
+    processed_csv = out_dir / f'{drug_name}_Contractility_averaged_processed.csv'
+    processed_df.to_csv(processed_csv, index=False)
+    print(f'  Saved processed data: {processed_csv}')
+
 
 if __name__ == '__main__':
     for drug_name, config in DRUGS.items():

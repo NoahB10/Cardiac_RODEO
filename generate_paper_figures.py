@@ -61,6 +61,7 @@ def clean_concentration_labels(labels):
 PROJECT_ROOT = Path(__file__).parent.resolve()
 FIGURES_DIR = PROJECT_ROOT / 'Output' / 'PowerPoint_Figures'
 REGISTRY_PATH = FIGURES_DIR / 'figure_registry.csv'
+QUICK_MODE = False  # Set via --quick flag; skips reprocessing if data already exists
 
 # Standard figure sizes from skill (inches)
 SQUARE_SIZE = 1.7           # Standard square for bar charts, scatter, ROC, CM
@@ -421,7 +422,7 @@ def generate_fig_2():
         snr_df_plot = snr_df_full[snr_df_full['SNR Bucket'] > 0].copy()
         snr_df_plot = snr_df_plot[snr_df_plot['SNR Bucket'] <= 5.0].reset_index(drop=True)
 
-        fig_w, fig_h = 3.4, 2.04
+        fig_w, fig_h = 10, 6
         fig, ax = plt.subplots(figsize=(fig_w, fig_h))
 
         x = np.arange(len(snr_df_plot))
@@ -519,43 +520,49 @@ def _generate_fig2_dose_response_2d():
 
     script = PROJECT_ROOT / 'Cleaned_Data' / 'Raw_Example_Data' / 'plot_contractility.py'
     csv_path = PROJECT_ROOT / 'Cleaned_Data' / 'Raw_Example_Data' / 'Mexiletine' / 'Amp_std.csv'
-
-    if not script.exists():
-        print(f"  Warning: {script} not found")
-        return
-
-    # Run the standalone script (it saves to both local and Fig_2 folders)
-    result = subprocess.run(
-        ['python', str(script)],
-        cwd=str(script.parent),
-        capture_output=True, text=True
-    )
-    if result.returncode != 0:
-        print(f"  Error running plot_contractility.py: {result.stderr}")
-        return
-
     png_path = fig2_dir / 'Fig_2j_Mexiletine_Contractility.png'
-    if not png_path.exists():
-        print(f"  Warning: {png_path} not generated")
-        return
+    processed_csv = PROJECT_ROOT / 'Cleaned_Data' / 'Raw_Example_Data' / 'Mexiletine' / 'Mexiletine_Contractility_averaged_processed.csv'
 
-    # Save data
-    if csv_path.exists():
-        df = pd.read_csv(csv_path)
-        excel_path = fig2_dir / 'Fig_2j_Mexiletine_Contractility_data.xlsx'
-        save_df = df.copy()
-        save_df.insert(0, 'Source', str(csv_path))
-        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-            save_df.to_excel(writer, sheet_name='Mexiletine', index=False)
+    # Quick mode: skip reprocessing if PNG + processed data already exist
+    if QUICK_MODE and png_path.exists() and processed_csv.exists():
+        print(f"  [quick] Skipping Mexiletine Contractility reprocessing (data exists)")
     else:
-        excel_path = fig2_dir / 'Fig_2j_Mexiletine_Contractility_data.xlsx'
+        if not script.exists():
+            print(f"  Warning: {script} not found")
+            return
+
+        # Run the standalone script (it saves to both local and Fig_2 folders)
+        result = subprocess.run(
+            ['python', str(script)],
+            cwd=str(script.parent),
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            print(f"  Error running plot_contractility.py: {result.stderr}")
+            return
+
+        if not png_path.exists():
+            print(f"  Warning: {png_path} not generated")
+            return
+
+    # Save data — processed (plotted) data + raw source
+    excel_path = fig2_dir / 'Fig_2j_Mexiletine_Contractility_data.xlsx'
+    with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+        if processed_csv.exists():
+            proc_df = pd.read_csv(processed_csv)
+            proc_df.insert(0, 'Source', str(csv_path))
+            proc_df.to_excel(writer, sheet_name='Plotted_Data', index=False)
+        if csv_path.exists():
+            raw_df = pd.read_csv(csv_path)
+            raw_df.insert(0, 'Source', str(csv_path))
+            raw_df.to_excel(writer, sheet_name='Raw_Data', index=False)
 
     register_figure('2', 'Mexiletine_Contractility',
                     'Contractility Dose Dependent Response (Mexiletine)',
                     png_path.relative_to(PROJECT_ROOT),
                     excel_path.relative_to(PROJECT_ROOT),
                     width=12.0, height=8.0,
-                    notes='Raw per-well contractility offset-averaged. LOWESS x3 + Gaussian + CubicSpline. '
+                    notes='Processed per-conc averaged contractility (%). LOWESS x3 + Gaussian + CubicSpline. '
                           'Wells {20,22,23,24,25,27} excluded. All traces offset to global average start.')
     print(f"  Fig_2j_Mexiletine_Contractility.png")
 
@@ -576,43 +583,49 @@ def _generate_fig2_epirubicin_o2():
 
     script = PROJECT_ROOT / 'Cleaned_Data' / 'Raw_Example_Data' / 'plot_epirubicin_o2.py'
     csv_path = PROJECT_ROOT / 'Cleaned_Data' / 'Raw_Example_Data' / 'Epirubicin' / 'O2_mean.csv'
-
-    if not script.exists():
-        print(f"  Warning: {script} not found")
-        return
-
-    # Run the standalone script (it saves to both local and Fig_2 folders)
-    result = subprocess.run(
-        ['python', str(script)],
-        cwd=str(script.parent),
-        capture_output=True, text=True
-    )
-    if result.returncode != 0:
-        print(f"  Error running plot_epirubicin_o2.py: {result.stderr}")
-        return
-
     png_path = fig2_dir / 'Fig_2g_Epirubicin_O2.png'
-    if not png_path.exists():
-        print(f"  Warning: {png_path} not generated")
-        return
+    processed_csv = PROJECT_ROOT / 'Cleaned_Data' / 'Raw_Example_Data' / 'Epirubicin' / 'Epirubicin_O2_averaged_processed.csv'
 
-    # Save data
-    if csv_path.exists():
-        df = pd.read_csv(csv_path)
-        excel_path = fig2_dir / 'Fig_2g_Epirubicin_O2_data.xlsx'
-        save_df = df.copy()
-        save_df.insert(0, 'Source', str(csv_path))
-        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-            save_df.to_excel(writer, sheet_name='Epirubicin_O2', index=False)
+    # Quick mode: skip reprocessing if PNG + processed data already exist
+    if QUICK_MODE and png_path.exists() and processed_csv.exists():
+        print(f"  [quick] Skipping Epirubicin O2 reprocessing (data exists)")
     else:
-        excel_path = fig2_dir / 'Fig_2g_Epirubicin_O2_data.xlsx'
+        if not script.exists():
+            print(f"  Warning: {script} not found")
+            return
+
+        # Run the standalone script (it saves to both local and Fig_2 folders)
+        result = subprocess.run(
+            ['python', str(script)],
+            cwd=str(script.parent),
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            print(f"  Error running plot_epirubicin_o2.py: {result.stderr}")
+            return
+
+        if not png_path.exists():
+            print(f"  Warning: {png_path} not generated")
+            return
+
+    # Save data — processed (plotted) data + raw source
+    excel_path = fig2_dir / 'Fig_2g_Epirubicin_O2_data.xlsx'
+    with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+        if processed_csv.exists():
+            proc_df = pd.read_csv(processed_csv)
+            proc_df.insert(0, 'Source', str(csv_path))
+            proc_df.to_excel(writer, sheet_name='Plotted_Data', index=False)
+        if csv_path.exists():
+            raw_df = pd.read_csv(csv_path)
+            raw_df.insert(0, 'Source', str(csv_path))
+            raw_df.to_excel(writer, sheet_name='Raw_Data', index=False)
 
     register_figure('2', 'Epirubicin_O2',
                     'Metabolic Dose Dependent Response (Epirubicin O2)',
                     png_path.relative_to(PROJECT_ROOT),
                     excel_path.relative_to(PROJECT_ROOT),
                     width=12.0, height=8.0,
-                    notes='Raw per-well O2 averaged by conc. LOWESS x3 + Gaussian + CubicSpline. '
+                    notes='Processed per-conc averaged O2. LOWESS x3 + Gaussian + CubicSpline. '
                           'Well 1 excluded (85% outlier). Targeted baseline shift for extreme traces. '
                           'MARGIN=1.5%.')
     print(f"  Fig_2g_Epirubicin_O2.png")
@@ -948,30 +961,52 @@ def _generate_fig2_mexiletine_waveforms():
     fig2_dir.mkdir(parents=True, exist_ok=True)
 
     script = PROJECT_ROOT / 'Cleaned_Data' / 'Raw_Example_Data' / 'plot_mexiletine_waveforms.py'
-    if not script.exists():
-        print(f"  Warning: {script} not found")
-        return
-
-    result = subprocess.run(
-        ['python', str(script)],
-        cwd=str(script.parent),
-        capture_output=True, text=True
-    )
-    if result.returncode != 0:
-        print(f"  Error running plot_mexiletine_waveforms.py: {result.stderr}")
-        return
-
     png_path = fig2_dir / 'Fig_2k_Mexiletine_Waveforms.png'
-    if png_path.exists():
-        register_figure('2', 'Mexiletine_Waveforms',
-                        'Mexiletine Stacked Waveforms (3 doses, 48h)',
-                        png_path.relative_to(PROJECT_ROOT),
-                        None,
-                        notes='Stacked contractility waveforms at 5/1.25/0.625 mM, 48h. '
-                              'Bandpass filtered from raw Dynamix data.')
-        print(f"  Fig_2k_Mexiletine_Waveforms.png")
+    processed_csv = PROJECT_ROOT / 'Cleaned_Data' / 'Raw_Example_Data' / 'Mexiletine' / 'Mexiletine_Waveforms_processed.csv'
+
+    # Quick mode: skip reprocessing if PNG + processed data already exist
+    if QUICK_MODE and png_path.exists() and processed_csv.exists():
+        print(f"  [quick] Skipping Mexiletine Waveforms reprocessing (data exists)")
     else:
-        print(f"  Warning: {png_path} not generated")
+        if not script.exists():
+            print(f"  Warning: {script} not found")
+            return
+
+        result = subprocess.run(
+            ['python', str(script)],
+            cwd=str(script.parent),
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            print(f"  Error running plot_mexiletine_waveforms.py: {result.stderr}")
+            return
+
+        if not png_path.exists():
+            print(f"  Warning: {png_path} not generated")
+            return
+
+    # Save processed waveform data + raw source to Excel
+    excel_path = fig2_dir / 'Fig_2k_Mexiletine_Waveforms_data.xlsx'
+    source_xlsx = PROJECT_ROOT / 'Output' / '2D_Raw_Plots' / 'Raw_Example_Outputs' / 'Mexiletine' / 'Mexiletine_DoseResponse_48h_Option2.xlsx'
+    with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+        if processed_csv.exists():
+            proc_df = pd.read_csv(processed_csv)
+            if 'Source' not in proc_df.columns:
+                proc_df.insert(0, 'Source', str(source_xlsx))
+            proc_df.to_excel(writer, sheet_name='Plotted_Data', index=False)
+        if source_xlsx.exists():
+            raw_summary = pd.read_excel(source_xlsx, sheet_name='Summary')
+            if 'Source' not in raw_summary.columns:
+                raw_summary.insert(0, 'Source', str(source_xlsx))
+            raw_summary.to_excel(writer, sheet_name='Raw_Summary', index=False)
+
+    register_figure('2', 'Mexiletine_Waveforms',
+                    'Mexiletine Stacked Waveforms (3 doses, 48h)',
+                    png_path.relative_to(PROJECT_ROOT),
+                    excel_path.relative_to(PROJECT_ROOT),
+                    notes='Stacked contractility waveforms at 5/2.5/0.625 mM, 48h. '
+                          'CubicSpline smoothed from raw Dynamix data.')
+    print(f"  Fig_2k_Mexiletine_Waveforms.png")
 
 
 def _generate_fig2_mexiletine_contractility_heatmap():
@@ -5078,10 +5113,17 @@ def main():
     parser.add_argument('--list', action='store_true', help='List registered figures')
     parser.add_argument('--supplements', action='store_true', help='Generate supplement figures')
     parser.add_argument('--no-pptx', action='store_true', help='Skip PowerPoint update')
+    parser.add_argument('--quick', action='store_true',
+                        help='Skip reprocessing raw data if processed data + PNGs already exist')
     parser.add_argument('--extract-layout', action='store_true',
                         help='Extract layout from PPTX (positions/sizes) and save to slide_layout.json')
 
     args = parser.parse_args()
+
+    global QUICK_MODE
+    if args.quick:
+        QUICK_MODE = True
+        print("  [--quick] Skipping reprocessing where processed data already exists")
 
     if args.extract_layout:
         extract_slide_layout()

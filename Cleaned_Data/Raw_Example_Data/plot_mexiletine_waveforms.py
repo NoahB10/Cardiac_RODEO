@@ -15,7 +15,9 @@ from matplotlib.lines import Line2D
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent / 'Mexiletine'
-FIG2_DIR = Path(__file__).resolve().parents[2] / 'Output' / 'PowerPoint_Figures' / 'Fig_2'
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+WAVEFORM_DATA_DIR = PROJECT_ROOT / 'Output' / '2D_Raw_Plots' / 'Raw_Example_Outputs' / 'Mexiletine'
+FIG2_DIR = PROJECT_ROOT / 'Output' / 'PowerPoint_Figures' / 'Fig_2'
 FIG2_DIR.mkdir(parents=True, exist_ok=True)
 
 SAVE_DPI = 600
@@ -113,13 +115,36 @@ def load_and_plot(xlsx_path, option_label, is_main=False):
     print(f'Saved: {out_fig2.name}')
 
     plt.close(fig)
+
+    # Save processed waveform data for Excel provenance
+    if is_main:
+        T_START_W, T_END_W = 5.0, 12.0
+        processed_frames = []
+        for level in LEVEL_ORDER:
+            if level not in waveforms:
+                continue
+            t_fine, sig_fine, bpm, conc = waveforms[level]
+            mask = (t_fine >= T_START_W) & (t_fine <= T_END_W)
+            t_clip = t_fine[mask] - T_START_W
+            s_clip = sig_fine[mask]
+            frame = pd.DataFrame({
+                f'{level}_{conc}mM_time_s': t_clip,
+                f'{level}_{conc}mM_{bpm:.0f}BPM': s_clip,
+            })
+            processed_frames.append(frame)
+        if processed_frames:
+            processed_df = pd.concat(processed_frames, axis=1)
+            processed_csv = BASE / 'Mexiletine_Waveforms_processed.csv'
+            processed_df.to_csv(processed_csv, index=False)
+            print(f'Saved processed data: {processed_csv.name}')
+
     return out_fig2
 
 
 if __name__ == '__main__':
     # Option 2 = main (Med=2.5 mM), Option 4 = alternative (Med=1.25 mM)
-    opt2 = BASE / 'Mexiletine_DoseResponse_48h_Option2.xlsx'
-    opt4 = BASE / 'Mexiletine_DoseResponse_48h_Option4.xlsx'
+    opt2 = WAVEFORM_DATA_DIR / 'Mexiletine_DoseResponse_48h_Option2.xlsx'
+    opt4 = WAVEFORM_DATA_DIR / 'Mexiletine_DoseResponse_48h_Option4.xlsx'
 
     print('=== Option 2 (main) ===')
     load_and_plot(opt2, 'Option 2', is_main=True)

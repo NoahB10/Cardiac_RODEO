@@ -12,8 +12,11 @@ Create publication-quality figures for scientific papers and reports.
 **IMPORTANT:** When generating figures using `generate_paper_figures.py`, the PowerPoint is **automatically updated**:
 
 ```bash
-# Generate figure and auto-update PowerPoint
+# Generate figure (full reprocessing from raw data)
 python generate_paper_figures.py --figure 3
+
+# Quick mode: skip reprocessing, use existing processed data + PNGs
+python generate_paper_figures.py --figure 2 --quick
 
 # Skip PowerPoint update (figures only)
 python generate_paper_figures.py --figure 3 --no-pptx
@@ -1646,11 +1649,23 @@ insert_subfigure_boxes(
 | `1x3` | 3 side-by-side | 3 | Wide comparison |
 | `2x3` | 2×3 grid | 6 | Six panels |
 
-**Workflow for tracked figures:**
-1. Generate and save PNG at 600 DPI
-2. Save Excel with data and metadata
-3. **Insert into PowerPoint using `insert_figures_to_slide()` with appropriate layout**
-4. Update `figure_registry.csv`
+**Data Pipeline for tracked figures (raw → processed → plot):**
+1. Load raw data from source CSV/Excel in `Cleaned_Data/`
+2. Apply processing pipeline (spike removal, interpolation, LOWESS x3, Gaussian, CubicSpline, averaging per concentration, offset adjustment)
+3. Save processed data as `*_processed.csv` alongside raw source (intermediate artifact)
+4. Generate and save PNG at 600 DPI from the processed data
+5. Package Excel data file with two sheets:
+   - **`Plotted_Data`**: the exact processed values used in the plot (someone can recreate the figure from this sheet alone)
+   - **`Raw_Data`**: the original source data for provenance
+   - Both sheets include a `Source` column pointing to the raw data path
+6. Register in `figure_registry.csv`
+7. Auto-update PowerPoint (unless `--no-pptx`)
+
+**Quick mode (`--quick`):**
+```bash
+python generate_paper_figures.py --figure 2 --quick
+```
+Skips the heavy reprocessing subprocess calls (LOWESS smoothing, etc.) when the PNG + processed CSV already exist. Still rebuilds Excel data files and updates PowerPoint. Use for fast iteration on layout/styling without waiting for data reprocessing.
 
 **If replacing an existing figure:**
 1. Delete the old shape from the slide first
@@ -1672,11 +1687,11 @@ Examples:
 - `Fig_2_b_ROC_Arrhythmia.png` / `Fig_2_b_ROC_Arrhythmia.xlsx`
 - `Fig_3_c_SHAP_importance.png` / `Fig_3_c_SHAP_importance.xlsx`
 
-**Excel file contents should include:**
-- Raw data used for plotting
-- Any computed values (means, standard deviations, etc.)
-- Column headers matching axis labels
-- A "Metadata" sheet with generation timestamp and source script
+**Excel file contents MUST include:**
+- **`Plotted_Data` sheet**: The exact processed/smoothed/averaged values that were plotted. This sheet alone should be sufficient to recreate the figure. Column headers should match axis labels (e.g., `Time_h`, `12_mM`, `6_mM`).
+- **`Raw_Data` sheet** (or `Raw_Summary`): The original unprocessed source data for full provenance.
+- **`Source` column** in both sheets: Absolute path to the original raw data file.
+- Never save just the raw data — the Excel must contain the processed values that match what's actually plotted.
 
 ### Folder Structure for PowerPoint Projects
 
