@@ -1,0 +1,207 @@
+Drug: Bortezomib (A09)
+Interpolation: linear, limit=4 segments
+Columns dropped when >= 50% missing data
+Wells within each concentration sorted by average values (highest to lowest)
+
+Diameter normalization: ENABLED for amp_std and amp_dom_freq metrics
+Total wells analyzed: 32
+  - Wells WITH diameter data: 16 (50.0%)
+  - Wells WITHOUT diameter data: 16 (50.0%)
+  - Excluded plates (no diameter): namedlogs, Plate3, Raw_WellsAH
+
+[O2_mean] column mapping:
+  B: 2.4 -> A11 (avg: 38.50)
+  C: 2.4 -> A12 (avg: 49.26)
+  D: 2.4 -> B11 (avg: 16.89)
+  E: 2.4 -> B12 (avg: 28.03)
+  F: 1.2 -> C11 (avg: 4.65)
+  G: 1.2 -> C12 (avg: 16.28)
+  H: 1.2 -> D11 (avg: 19.50)
+  I: 1.2 -> D12 (avg: 30.03)
+  J: 0.6 -> E11 (avg: 35.30)
+  K: 0.6 -> E12 (avg: 23.89)
+  L: 0.6 -> F11 (avg: 23.56)
+  M: 0.6 -> F12 (avg: 20.78)
+  N: 0.3 -> G11 (avg: 26.96)
+  O: 0.3 -> H11 (avg: 36.48)
+  P: 0.3 -> H12 (avg: 23.84)
+  Q: 0.15 -> I11 (avg: 24.53)
+  R: 0.15 -> I12 (avg: 16.95)
+  S: 0.15 -> J11 (avg: 20.20)
+  T: 0.15 -> J12 (avg: 26.29)
+  U: 0.075 -> K11 (avg: 10.74)
+  V: 0.075 -> K12 (avg: 22.06)
+  W: 0.075 -> L11 (avg: 13.53)
+  X: 0.075 -> L12 (avg: 23.99)
+  Y: 0.038 -> M11 (avg: 30.17)
+  Z: 0.038 -> N11 (avg: 24.90)
+  AA: 0.038 -> N12 (avg: 10.01)
+  AB: 0.019 -> O11 (avg: 17.73)
+  AC: 0.019 -> O12 (avg: 17.14)
+  AD: 0.019 -> P11 (avg: 29.32)
+  AE: 0.019 -> P12 (avg: 37.07)
+  Dropped: 0.3 -> G12, 0.038 -> M12
+
+[O2_dom_freq] column mapping:
+  B: 2.4 -> A11 (avg: 1.42)
+  C: 2.4 -> A12 (avg: 1.41)
+  D: 2.4 -> B11 (avg: 1.38)
+  E: 2.4 -> B12 (avg: 1.29)
+  F: 1.2 -> C11 (avg: 1.48)
+  G: 1.2 -> C12 (avg: 1.57)
+  H: 1.2 -> D11 (avg: 1.35)
+  I: 1.2 -> D12 (avg: 1.44)
+  J: 0.6 -> E11 (avg: 1.52)
+  K: 0.6 -> E12 (avg: 1.20)
+  L: 0.6 -> F11 (avg: 1.29)
+  M: 0.6 -> F12 (avg: 1.48)
+  N: 0.3 -> G11 (avg: 1.48)
+  O: 0.3 -> H11 (avg: 1.49)
+  P: 0.3 -> H12 (avg: 1.35)
+  Q: 0.15 -> I11 (avg: 1.61)
+  R: 0.15 -> I12 (avg: 1.39)
+  S: 0.15 -> J11 (avg: 1.43)
+  T: 0.15 -> J12 (avg: 1.03)
+  U: 0.075 -> K11 (avg: 1.42)
+  V: 0.075 -> K12 (avg: 1.35)
+  W: 0.075 -> L11 (avg: 1.28)
+  X: 0.075 -> L12 (avg: 1.34)
+  Y: 0.038 -> M11 (avg: 1.43)
+  Z: 0.038 -> N11 (avg: 1.60)
+  AA: 0.038 -> N12 (avg: 1.09)
+  AB: 0.019 -> O11 (avg: 1.12)
+  AC: 0.019 -> O12 (avg: 1.30)
+  AD: 0.019 -> P11 (avg: 1.40)
+  AE: 0.019 -> P12 (avg: 1.27)
+  Dropped: 0.3 -> G12, 0.038 -> M12
+
+[O2_std] column mapping:
+  B: 2.4 -> A11 (avg: 1.87)
+  C: 2.4 -> A12 (avg: 1.64)
+  D: 2.4 -> B11 (avg: 1.49)
+  E: 2.4 -> B12 (avg: 7.00)
+  F: 1.2 -> C11 (avg: 1.14)
+  G: 1.2 -> C12 (avg: 2.73)
+  H: 1.2 -> D11 (avg: 2.00)
+  I: 1.2 -> D12 (avg: 2.01)
+  J: 0.6 -> E11 (avg: 1.29)
+  K: 0.6 -> E12 (avg: 2.39)
+  L: 0.6 -> F11 (avg: 1.31)
+  M: 0.6 -> F12 (avg: 1.72)
+  N: 0.3 -> G11 (avg: 2.02)
+  O: 0.3 -> H11 (avg: 2.03)
+  P: 0.3 -> H12 (avg: 2.90)
+  Q: 0.15 -> I11 (avg: 1.23)
+  R: 0.15 -> I12 (avg: 2.03)
+  S: 0.15 -> J11 (avg: 1.98)
+  T: 0.15 -> J12 (avg: 5.44)
+  U: 0.075 -> K11 (avg: 1.33)
+  V: 0.075 -> K12 (avg: 3.87)
+  W: 0.075 -> L11 (avg: 3.66)
+  X: 0.075 -> L12 (avg: 2.15)
+  Y: 0.038 -> M11 (avg: 1.62)
+  Z: 0.038 -> N11 (avg: 4.55)
+  AA: 0.038 -> N12 (avg: 2.23)
+  AB: 0.019 -> O11 (avg: 1.21)
+  AC: 0.019 -> O12 (avg: 1.83)
+  AD: 0.019 -> P11 (avg: 2.87)
+  AE: 0.019 -> P12 (avg: 1.93)
+  Dropped: 0.3 -> G12, 0.038 -> M12
+
+[Amp_std] column mapping:
+  B: 2.4 -> A11 (avg: 0.13)
+  C: 2.4 -> A12 (avg: 0.18)
+  D: 2.4 -> B11 (avg: 0.14)
+  E: 2.4 -> B12 (avg: 0.04)
+  F: 1.2 -> C11 (avg: 0.17)
+  G: 1.2 -> C12 (avg: 0.03)
+  H: 1.2 -> D11 (avg: 0.08)
+  I: 1.2 -> D12 (avg: 0.10)
+  J: 0.6 -> E11 (avg: 0.10)
+  K: 0.6 -> E12 (avg: 0.08)
+  L: 0.6 -> F11 (avg: 0.12)
+  M: 0.6 -> F12 (avg: 0.14)
+  N: 0.3 -> G11 (avg: 0.06)
+  O: 0.3 -> H11 (avg: 0.13)
+  P: 0.3 -> H12 (avg: 0.04)
+  Q: 0.15 -> I11 (avg: 0.12)
+  R: 0.15 -> I12 (avg: 0.09)
+  S: 0.15 -> J11 (avg: 0.10)
+  T: 0.15 -> J12 (avg: 0.03)
+  U: 0.075 -> K11 (avg: 0.16)
+  V: 0.075 -> K12 (avg: 0.03)
+  W: 0.075 -> L11 (avg: 0.10)
+  X: 0.075 -> L12 (avg: 0.07)
+  Y: 0.038 -> M11 (avg: 0.11)
+  Z: 0.038 -> N11 (avg: 0.05)
+  AA: 0.038 -> N12 (avg: 0.06)
+  AB: 0.019 -> O11 (avg: 0.14)
+  AC: 0.019 -> O12 (avg: 0.09)
+  AD: 0.019 -> P11 (avg: 0.04)
+  AE: 0.019 -> P12 (avg: 0.12)
+  Dropped: 0.3 -> G12, 0.038 -> M12
+
+[Amp_dom_freq] column mapping:
+  B: 2.4 -> A11 (avg: 1.47)
+  C: 2.4 -> A12 (avg: 1.45)
+  D: 2.4 -> B11 (avg: 1.31)
+  E: 2.4 -> B12 (avg: 1.14)
+  F: 1.2 -> C11 (avg: 1.25)
+  G: 1.2 -> C12 (avg: 1.37)
+  H: 1.2 -> D11 (avg: 1.44)
+  I: 1.2 -> D12 (avg: 1.41)
+  J: 0.6 -> E11 (avg: 1.34)
+  K: 0.6 -> E12 (avg: 1.55)
+  L: 0.6 -> F11 (avg: 1.25)
+  M: 0.6 -> F12 (avg: 1.52)
+  N: 0.3 -> G11 (avg: 1.54)
+  O: 0.3 -> H11 (avg: 1.24)
+  P: 0.3 -> H12 (avg: 1.28)
+  Q: 0.15 -> I11 (avg: 1.45)
+  R: 0.15 -> I12 (avg: 1.28)
+  S: 0.15 -> J11 (avg: 1.41)
+  T: 0.15 -> J12 (avg: 1.66)
+  U: 0.075 -> K11 (avg: 1.56)
+  V: 0.075 -> K12 (avg: 1.20)
+  W: 0.075 -> L11 (avg: 1.28)
+  X: 0.075 -> L12 (avg: 1.60)
+  Y: 0.038 -> M11 (avg: 1.35)
+  Z: 0.038 -> N11 (avg: 1.52)
+  AA: 0.038 -> N12 (avg: 1.29)
+  AB: 0.019 -> O11 (avg: 1.51)
+  AC: 0.019 -> O12 (avg: 1.54)
+  AD: 0.019 -> P11 (avg: 1.35)
+  AE: 0.019 -> P12 (avg: 1.30)
+  Dropped: 0.3 -> G12, 0.038 -> M12
+
+Wells without diameter data (not normalized):
+  I11 - no_diameter_data
+  K11 - no_diameter_data
+  O11 - no_diameter_data
+  M11 - no_diameter_data
+  L12 - no_diameter_data
+  N12 - no_diameter_data
+  N11 - no_diameter_data
+  P12 - no_diameter_data
+  P11 - no_diameter_data
+  O12 - no_diameter_data
+  L11 - no_diameter_data
+  I12 - no_diameter_data
+  J12 - no_diameter_data
+  J11 - no_diameter_data
+  K12 - no_diameter_data
+  I11 - no_diameter_data
+  K11 - no_diameter_data
+  O11 - no_diameter_data
+  M11 - no_diameter_data
+  L12 - no_diameter_data
+  N12 - no_diameter_data
+  N11 - no_diameter_data
+  P12 - no_diameter_data
+  P11 - no_diameter_data
+  O12 - no_diameter_data
+  L11 - no_diameter_data
+  I12 - no_diameter_data
+  J12 - no_diameter_data
+  J11 - no_diameter_data
+  K12 - no_diameter_data

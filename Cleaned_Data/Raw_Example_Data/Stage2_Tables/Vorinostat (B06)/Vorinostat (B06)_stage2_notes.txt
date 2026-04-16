@@ -1,0 +1,211 @@
+Drug: Vorinostat (B06)
+Interpolation: linear, limit=4 segments
+Columns dropped when >= 50% missing data
+Wells within each concentration sorted by average values (highest to lowest)
+
+Diameter normalization: ENABLED for amp_std and amp_dom_freq metrics
+Total wells analyzed: 31
+  - Wells WITH diameter data: 14 (45.2%)
+  - Wells WITHOUT diameter data: 17 (54.8%)
+  - Excluded plates (no diameter): namedlogs, Plate3, Raw_WellsAH
+
+[O2_mean] column mapping:
+  B: 9.6 -> A05 (avg: 38.73)
+  C: 9.6 -> A06 (avg: 80.83)
+  D: 9.6 -> B05 (avg: 43.77)
+  E: 9.6 -> B06 (avg: 49.46)
+  F: 4.8 -> C05 (avg: 20.08)
+  G: 4.8 -> C06 (avg: 30.31)
+  H: 4.8 -> D05 (avg: 20.02)
+  I: 4.8 -> D06 (avg: 33.02)
+  J: 2.4 -> E06 (avg: 46.98)
+  K: 2.4 -> F05 (avg: 28.34)
+  L: 2.4 -> F06 (avg: 22.89)
+  M: 1.2 -> G05 (avg: 26.82)
+  N: 1.2 -> G06 (avg: 14.50)
+  O: 1.2 -> H05 (avg: 13.83)
+  P: 1.2 -> H06 (avg: 38.54)
+  Q: 0.6 -> I05 (avg: 23.95)
+  R: 0.6 -> I06 (avg: 26.17)
+  S: 0.6 -> J05 (avg: 37.03)
+  T: 0.6 -> J06 (avg: 26.13)
+  U: 0.3 -> K05 (avg: 16.88)
+  V: 0.3 -> K06 (avg: 38.80)
+  W: 0.3 -> L05 (avg: 18.61)
+  X: 0.3 -> L06 (avg: 38.42)
+  Y: 0.15 -> M05 (avg: 10.97)
+  Z: 0.15 -> M06 (avg: 4.80)
+  AA: 0.15 -> N05 (avg: 11.60)
+  AB: 0.15 -> N06 (avg: 12.21)
+  AC: 0.075 -> O05 (avg: 21.39)
+  AD: 0.075 -> O06 (avg: 23.32)
+  AE: 0.075 -> P05 (avg: 26.34)
+  AF: 0.075 -> P06 (avg: 45.98)
+
+[O2_dom_freq] column mapping:
+  B: 9.6 -> A05 (avg: 1.35)
+  C: 9.6 -> A06 (avg: 1.42)
+  D: 9.6 -> B05 (avg: 1.26)
+  E: 9.6 -> B06 (avg: 1.59)
+  F: 4.8 -> C05 (avg: 1.39)
+  G: 4.8 -> C06 (avg: 1.26)
+  H: 4.8 -> D05 (avg: 1.34)
+  I: 4.8 -> D06 (avg: 1.30)
+  J: 2.4 -> E06 (avg: 1.39)
+  K: 2.4 -> F05 (avg: 1.40)
+  L: 2.4 -> F06 (avg: 1.28)
+  M: 1.2 -> G05 (avg: 1.42)
+  N: 1.2 -> G06 (avg: 1.37)
+  O: 1.2 -> H05 (avg: 1.44)
+  P: 1.2 -> H06 (avg: 1.14)
+  Q: 0.6 -> I05 (avg: 1.22)
+  R: 0.6 -> I06 (avg: 1.30)
+  S: 0.6 -> J05 (avg: 1.34)
+  T: 0.6 -> J06 (avg: 1.36)
+  U: 0.3 -> K05 (avg: 1.48)
+  V: 0.3 -> K06 (avg: 1.46)
+  W: 0.3 -> L05 (avg: 1.20)
+  X: 0.3 -> L06 (avg: 1.28)
+  Y: 0.15 -> M05 (avg: 1.35)
+  Z: 0.15 -> M06 (avg: 1.46)
+  AA: 0.15 -> N05 (avg: 1.42)
+  AB: 0.15 -> N06 (avg: 1.36)
+  AC: 0.075 -> O05 (avg: 1.48)
+  AD: 0.075 -> O06 (avg: 1.42)
+  AE: 0.075 -> P05 (avg: 1.37)
+  AF: 0.075 -> P06 (avg: 1.57)
+
+[O2_std] column mapping:
+  B: 9.6 -> A05 (avg: 2.75)
+  C: 9.6 -> A06 (avg: 9.28)
+  D: 9.6 -> B05 (avg: 6.29)
+  E: 9.6 -> B06 (avg: 9.02)
+  F: 4.8 -> C05 (avg: 4.24)
+  G: 4.8 -> C06 (avg: 2.58)
+  H: 4.8 -> D05 (avg: 6.54)
+  I: 4.8 -> D06 (avg: 2.33)
+  J: 2.4 -> E06 (avg: 9.58)
+  K: 2.4 -> F05 (avg: 1.82)
+  L: 2.4 -> F06 (avg: 4.19)
+  M: 1.2 -> G05 (avg: 2.16)
+  N: 1.2 -> G06 (avg: 2.60)
+  O: 1.2 -> H05 (avg: 3.17)
+  P: 1.2 -> H06 (avg: 4.35)
+  Q: 0.6 -> I05 (avg: 4.15)
+  R: 0.6 -> I06 (avg: 2.18)
+  S: 0.6 -> J05 (avg: 3.12)
+  T: 0.6 -> J06 (avg: 2.00)
+  U: 0.3 -> K05 (avg: 1.29)
+  V: 0.3 -> K06 (avg: 3.41)
+  W: 0.3 -> L05 (avg: 1.61)
+  X: 0.3 -> L06 (avg: 4.40)
+  Y: 0.15 -> M05 (avg: 2.93)
+  Z: 0.15 -> M06 (avg: 1.81)
+  AA: 0.15 -> N05 (avg: 2.06)
+  AB: 0.15 -> N06 (avg: 1.47)
+  AC: 0.075 -> O05 (avg: 2.35)
+  AD: 0.075 -> O06 (avg: 1.81)
+  AE: 0.075 -> P05 (avg: 4.52)
+  AF: 0.075 -> P06 (avg: 12.22)
+
+[Amp_std] column mapping:
+  B: 9.6 -> A05 (avg: 0.06)
+  C: 9.6 -> A06 (avg: 0.00)
+  D: 9.6 -> B05 (avg: 0.00)
+  E: 9.6 -> B06 (avg: 0.00)
+  F: 4.8 -> C05 (avg: 0.04)
+  G: 4.8 -> C06 (avg: 0.05)
+  H: 4.8 -> D05 (avg: 0.00)
+  I: 4.8 -> D06 (avg: 0.07)
+  J: 2.4 -> E06 (avg: 0.00)
+  K: 2.4 -> F05 (avg: 0.11)
+  L: 2.4 -> F06 (avg: 0.00)
+  M: 1.2 -> G05 (avg: 0.08)
+  N: 1.2 -> G06 (avg: 0.04)
+  O: 1.2 -> H05 (avg: 0.06)
+  P: 1.2 -> H06 (avg: 0.00)
+  Q: 0.6 -> I05 (avg: 0.04)
+  R: 0.6 -> I06 (avg: 0.11)
+  S: 0.6 -> J05 (avg: 0.04)
+  T: 0.6 -> J06 (avg: 0.08)
+  U: 0.3 -> K05 (avg: 0.19)
+  V: 0.3 -> K06 (avg: 0.03)
+  W: 0.3 -> L05 (avg: 0.12)
+  X: 0.3 -> L06 (avg: 0.00)
+  Y: 0.15 -> M05 (avg: 0.06)
+  Z: 0.15 -> M06 (avg: 0.07)
+  AA: 0.15 -> N05 (avg: 0.07)
+  AB: 0.15 -> N06 (avg: 0.14)
+  AC: 0.075 -> O05 (avg: 0.06)
+  AD: 0.075 -> O06 (avg: 0.09)
+  AE: 0.075 -> P05 (avg: 0.01)
+  AF: 0.075 -> P06 (avg: 0.00)
+
+[Amp_dom_freq] column mapping:
+  B: 9.6 -> A05 (avg: 1.14)
+  C: 9.6 -> A06 (avg: 1.28)
+  D: 9.6 -> B05 (avg: 1.37)
+  E: 9.6 -> B06 (avg: 1.42)
+  F: 4.8 -> C05 (avg: 1.25)
+  G: 4.8 -> C06 (avg: 1.22)
+  H: 4.8 -> D05 (avg: 1.60)
+  I: 4.8 -> D06 (avg: 1.18)
+  J: 2.4 -> E06 (avg: 1.51)
+  K: 2.4 -> F05 (avg: 1.59)
+  L: 2.4 -> F06 (avg: 1.37)
+  M: 1.2 -> G05 (avg: 1.31)
+  N: 1.2 -> G06 (avg: 1.21)
+  O: 1.2 -> H05 (avg: 1.56)
+  P: 1.2 -> H06 (avg: 1.40)
+  Q: 0.6 -> I05 (avg: 1.54)
+  R: 0.6 -> I06 (avg: 1.27)
+  S: 0.6 -> J05 (avg: 1.40)
+  T: 0.6 -> J06 (avg: 1.52)
+  U: 0.3 -> K05 (avg: 1.47)
+  V: 0.3 -> K06 (avg: 1.49)
+  W: 0.3 -> L05 (avg: 1.34)
+  X: 0.3 -> L06 (avg: 1.40)
+  Y: 0.15 -> M05 (avg: 1.37)
+  Z: 0.15 -> M06 (avg: 1.53)
+  AA: 0.15 -> N05 (avg: 1.36)
+  AB: 0.15 -> N06 (avg: 1.34)
+  AC: 0.075 -> O05 (avg: 1.45)
+  AD: 0.075 -> O06 (avg: 1.35)
+  AE: 0.075 -> P05 (avg: 1.61)
+  AF: 0.075 -> P06 (avg: 1.05)
+
+Wells without diameter data (not normalized):
+  O05 - no_diameter_data
+  P06 - no_diameter_data
+  I06 - no_diameter_data
+  I05 - no_diameter_data
+  K05 - no_diameter_data
+  K06 - no_diameter_data
+  P05 - no_diameter_data
+  L05 - no_diameter_data
+  M05 - no_diameter_data
+  N06 - no_diameter_data
+  J05 - no_diameter_data
+  M06 - no_diameter_data
+  O06 - no_diameter_data
+  A06 - no_diameter_data
+  N05 - no_diameter_data
+  J06 - no_diameter_data
+  L06 - no_diameter_data
+  O05 - no_diameter_data
+  P06 - no_diameter_data
+  I06 - no_diameter_data
+  I05 - no_diameter_data
+  K05 - no_diameter_data
+  K06 - no_diameter_data
+  P05 - no_diameter_data
+  L05 - no_diameter_data
+  M05 - no_diameter_data
+  N06 - no_diameter_data
+  J05 - no_diameter_data
+  M06 - no_diameter_data
+  O06 - no_diameter_data
+  A06 - no_diameter_data
+  N05 - no_diameter_data
+  J06 - no_diameter_data
+  L06 - no_diameter_data

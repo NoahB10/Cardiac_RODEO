@@ -23,7 +23,7 @@ FIG2_DIR.mkdir(parents=True, exist_ok=True)
 SAVE_DPI = 600
 
 # Colors: green (low) -> orange (med) -> red (high), bottom to top
-LEVEL_COLORS = {'High': '#d62728', 'Med': '#ff7f0e', 'Low': '#2ca02c'}
+LEVEL_COLORS = {'High': '#9c179e', 'Med': '#cc4778', 'Low': '#fdb42f'}  # plasma cmap, matches contractility 2D plot
 LEVEL_ORDER = ['Low', 'Med', 'High']  # bottom to top
 
 
@@ -62,7 +62,7 @@ def load_and_plot(xlsx_path, option_label, is_main=False):
     T_DURATION = T_END - T_START
 
     # Figure: wide and short
-    fig, ax = plt.subplots(figsize=(10, 4.5))
+    fig, ax = plt.subplots(figsize=(10, 8))
 
     for i, level in enumerate(LEVEL_ORDER):
         if level not in waveforms:
@@ -113,6 +113,23 @@ def load_and_plot(xlsx_path, option_label, is_main=False):
     fig.savefig(out_fig2, dpi=SAVE_DPI, bbox_inches='tight',
                 pad_inches=0.05, facecolor='white')
     print(f'Saved: {out_fig2.name}')
+
+    # Save axisless version — strip decorations, expand axes to fill freed space
+    for a in fig.get_axes():
+        a.set_xlabel('')
+        a.set_ylabel('')
+        a.set_title('')
+        for spine in a.spines.values():
+            spine.set_visible(False)
+        a.tick_params(left=False, bottom=False, top=False, right=False,
+                      labelleft=False, labelbottom=False, labeltop=False, labelright=False)
+        a.grid(False)
+    fig.tight_layout(pad=0.3)
+    axisless_dir = FIG2_DIR / 'Axisless'
+    axisless_dir.mkdir(parents=True, exist_ok=True)
+    out_axisless = axisless_dir / out_fig2.name
+    fig.savefig(out_axisless, dpi=SAVE_DPI, bbox_inches='tight', pad_inches=0.05, facecolor='white')
+    print(f'Saved axisless: {out_axisless.name}')
 
     plt.close(fig)
 

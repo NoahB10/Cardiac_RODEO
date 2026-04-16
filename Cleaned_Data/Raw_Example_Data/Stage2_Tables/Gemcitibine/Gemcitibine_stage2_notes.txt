@@ -1,0 +1,202 @@
+Drug: Gemcitibine
+Interpolation: linear, limit=4 segments
+Columns dropped when >= 50% missing data
+Wells within each concentration sorted by average values (highest to lowest)
+
+Diameter normalization: ENABLED for amp_std and amp_dom_freq metrics
+Total wells analyzed: 32
+  - Wells WITH diameter data: 16 (50.0%)
+  - Wells WITHOUT diameter data: 16 (50.0%)
+  - Excluded plates (no diameter): namedlogs, Plate3, Raw_WellsAH
+
+[O2_mean] column mapping:
+  B: 20 -> A03 (avg: 36.97)
+  C: 20 -> B03 (avg: 40.53)
+  D: 20 -> B04 (avg: 53.66)
+  E: 10 -> C04 (avg: 34.37)
+  F: 10 -> D03 (avg: 31.21)
+  G: 10 -> D04 (avg: 11.49)
+  H: 5 -> E03 (avg: 7.35)
+  I: 5 -> E04 (avg: 10.71)
+  J: 5 -> F03 (avg: 20.35)
+  K: 5 -> F04 (avg: 29.17)
+  L: 2.5 -> G03 (avg: 13.20)
+  M: 2.5 -> G04 (avg: 19.35)
+  N: 2.5 -> H03 (avg: 9.32)
+  O: 2.5 -> H04 (avg: 40.88)
+  P: 1.25 -> I03 (avg: 24.26)
+  Q: 1.25 -> I04 (avg: 26.41)
+  R: 1.25 -> J03 (avg: 30.53)
+  S: 1.25 -> J04 (avg: 24.95)
+  T: 0.625 -> K03 (avg: 30.45)
+  U: 0.625 -> K04 (avg: 26.54)
+  V: 0.625 -> L03 (avg: 34.14)
+  W: 0.625 -> L04 (avg: 12.75)
+  X: 0.313 -> M03 (avg: 13.70)
+  Y: 0.313 -> M04 (avg: 21.52)
+  Z: 0.313 -> N03 (avg: 33.08)
+  AA: 0.313 -> N04 (avg: 31.90)
+  AB: 0.156 -> O03 (avg: 14.23)
+  AC: 0.156 -> O04 (avg: 41.16)
+  AD: 0.156 -> P04 (avg: 61.27)
+  Dropped: 20 -> A04, 10 -> C03, 0.156 -> P03
+
+[O2_dom_freq] column mapping:
+  B: 20 -> A03 (avg: 1.34)
+  C: 20 -> B03 (avg: 1.31)
+  D: 20 -> B04 (avg: 1.33)
+  E: 10 -> C04 (avg: 1.43)
+  F: 10 -> D03 (avg: 1.17)
+  G: 10 -> D04 (avg: 1.41)
+  H: 5 -> E03 (avg: 1.33)
+  I: 5 -> E04 (avg: 1.06)
+  J: 5 -> F03 (avg: 1.53)
+  K: 5 -> F04 (avg: 1.36)
+  L: 2.5 -> G03 (avg: 1.47)
+  M: 2.5 -> G04 (avg: 1.19)
+  N: 2.5 -> H03 (avg: 1.39)
+  O: 2.5 -> H04 (avg: 1.45)
+  P: 1.25 -> I03 (avg: 1.26)
+  Q: 1.25 -> I04 (avg: 1.35)
+  R: 1.25 -> J03 (avg: 1.55)
+  S: 1.25 -> J04 (avg: 1.50)
+  T: 0.625 -> K03 (avg: 1.23)
+  U: 0.625 -> K04 (avg: 1.24)
+  V: 0.625 -> L03 (avg: 1.50)
+  W: 0.625 -> L04 (avg: 1.45)
+  X: 0.313 -> M03 (avg: 1.29)
+  Y: 0.313 -> M04 (avg: 1.31)
+  Z: 0.313 -> N03 (avg: 1.41)
+  AA: 0.313 -> N04 (avg: 1.39)
+  AB: 0.156 -> O03 (avg: 1.45)
+  AC: 0.156 -> O04 (avg: 1.38)
+  AD: 0.156 -> P04 (avg: 1.45)
+  Dropped: 20 -> A04, 10 -> C03, 0.156 -> P03
+
+[O2_std] column mapping:
+  B: 20 -> A03 (avg: 1.26)
+  C: 20 -> B03 (avg: 7.79)
+  D: 20 -> B04 (avg: 5.22)
+  E: 10 -> C04 (avg: 2.84)
+  F: 10 -> D03 (avg: 1.64)
+  G: 10 -> D04 (avg: 1.49)
+  H: 5 -> E03 (avg: 2.53)
+  I: 5 -> E04 (avg: 1.42)
+  J: 5 -> F03 (avg: 2.19)
+  K: 5 -> F04 (avg: 5.11)
+  L: 2.5 -> G03 (avg: 1.20)
+  M: 2.5 -> G04 (avg: 2.76)
+  N: 2.5 -> H03 (avg: 2.04)
+  O: 2.5 -> H04 (avg: 3.54)
+  P: 1.25 -> I03 (avg: 1.45)
+  Q: 1.25 -> I04 (avg: 3.14)
+  R: 1.25 -> J03 (avg: 3.54)
+  S: 1.25 -> J04 (avg: 2.34)
+  T: 0.625 -> K03 (avg: 1.43)
+  U: 0.625 -> K04 (avg: 3.14)
+  V: 0.625 -> L03 (avg: 4.59)
+  W: 0.625 -> L04 (avg: 1.74)
+  X: 0.313 -> M03 (avg: 1.51)
+  Y: 0.313 -> M04 (avg: 3.79)
+  Z: 0.313 -> N03 (avg: 3.40)
+  AA: 0.313 -> N04 (avg: 6.34)
+  AB: 0.156 -> O03 (avg: 2.77)
+  AC: 0.156 -> O04 (avg: 1.55)
+  AD: 0.156 -> P04 (avg: 7.54)
+  Dropped: 20 -> A04, 10 -> C03, 0.156 -> P03
+
+[Amp_std] column mapping:
+  B: 20 -> A03 (avg: 0.19)
+  C: 20 -> B03 (avg: 0.01)
+  D: 20 -> B04 (avg: 0.03)
+  E: 10 -> C04 (avg: 0.05)
+  F: 10 -> D03 (avg: 0.14)
+  G: 10 -> D04 (avg: 0.11)
+  H: 5 -> E03 (avg: 0.04)
+  I: 5 -> E04 (avg: 0.12)
+  J: 5 -> F03 (avg: 0.06)
+  K: 5 -> F04 (avg: 0.00)
+  L: 2.5 -> G03 (avg: 0.15)
+  M: 2.5 -> G04 (avg: 0.04)
+  N: 2.5 -> H03 (avg: 0.05)
+  O: 2.5 -> H04 (avg: 0.03)
+  P: 1.25 -> I03 (avg: 0.17)
+  Q: 1.25 -> I04 (avg: 0.03)
+  R: 1.25 -> J03 (avg: 0.03)
+  S: 1.25 -> J04 (avg: 0.05)
+  T: 0.625 -> K03 (avg: 0.15)
+  U: 0.625 -> K04 (avg: 0.02)
+  V: 0.625 -> L03 (avg: 0.04)
+  W: 0.625 -> L04 (avg: 0.08)
+  X: 0.313 -> M03 (avg: 0.11)
+  Y: 0.313 -> M04 (avg: 0.03)
+  Z: 0.313 -> N03 (avg: 0.03)
+  AA: 0.313 -> N04 (avg: 0.00)
+  AB: 0.156 -> O03 (avg: 0.05)
+  AC: 0.156 -> O04 (avg: 0.17)
+  AD: 0.156 -> P04 (avg: 0.00)
+  Dropped: 20 -> A04, 10 -> C03, 0.156 -> P03
+
+[Amp_dom_freq] column mapping:
+  B: 20 -> A03 (avg: 1.24)
+  C: 20 -> B03 (avg: 1.31)
+  D: 20 -> B04 (avg: 1.38)
+  E: 10 -> C04 (avg: 1.44)
+  F: 10 -> D03 (avg: 1.44)
+  G: 10 -> D04 (avg: 0.77)
+  H: 5 -> E03 (avg: 1.14)
+  I: 5 -> E04 (avg: 1.22)
+  J: 5 -> F03 (avg: 1.53)
+  K: 5 -> F04 (avg: 1.24)
+  L: 2.5 -> G03 (avg: 1.59)
+  M: 2.5 -> G04 (avg: 1.34)
+  N: 2.5 -> H03 (avg: 1.04)
+  O: 2.5 -> H04 (avg: 1.27)
+  P: 1.25 -> I03 (avg: 1.24)
+  Q: 1.25 -> I04 (avg: 1.37)
+  R: 1.25 -> J03 (avg: 1.41)
+  S: 1.25 -> J04 (avg: 1.13)
+  T: 0.625 -> K03 (avg: 1.58)
+  U: 0.625 -> K04 (avg: 1.40)
+  V: 0.625 -> L03 (avg: 1.41)
+  W: 0.625 -> L04 (avg: 1.54)
+  X: 0.313 -> M03 (avg: 1.52)
+  Y: 0.313 -> M04 (avg: 1.36)
+  Z: 0.313 -> N03 (avg: 1.10)
+  AA: 0.313 -> N04 (avg: 1.17)
+  AB: 0.156 -> O03 (avg: 1.52)
+  AC: 0.156 -> O04 (avg: 1.47)
+  AD: 0.156 -> P04 (avg: 1.33)
+  Dropped: 20 -> A04, 10 -> C03, 0.156 -> P03
+
+Wells without diameter data (not normalized):
+  N04 - no_diameter_data
+  I04 - no_diameter_data
+  K03 - no_diameter_data
+  M03 - no_diameter_data
+  L03 - no_diameter_data
+  O03 - no_diameter_data
+  I03 - no_diameter_data
+  P04 - no_diameter_data
+  L04 - no_diameter_data
+  J03 - no_diameter_data
+  K04 - no_diameter_data
+  N03 - no_diameter_data
+  M04 - no_diameter_data
+  J04 - no_diameter_data
+  O04 - no_diameter_data
+  N04 - no_diameter_data
+  I04 - no_diameter_data
+  K03 - no_diameter_data
+  M03 - no_diameter_data
+  L03 - no_diameter_data
+  O03 - no_diameter_data
+  I03 - no_diameter_data
+  P04 - no_diameter_data
+  L04 - no_diameter_data
+  J03 - no_diameter_data
+  K04 - no_diameter_data
+  N03 - no_diameter_data
+  M04 - no_diameter_data
+  J04 - no_diameter_data
+  O04 - no_diameter_data

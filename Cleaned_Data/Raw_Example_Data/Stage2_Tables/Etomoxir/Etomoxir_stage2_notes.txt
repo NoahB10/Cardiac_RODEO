@@ -1,0 +1,149 @@
+Drug: Etomoxir
+Interpolation: linear, limit=4 segments
+Columns dropped when >= 50% missing data
+Wells within each concentration sorted by average values (highest to lowest)
+
+Diameter normalization: ENABLED for amp_std and amp_dom_freq metrics
+Total wells analyzed: 25
+  - Wells WITH diameter data: 13 (52.0%)
+  - Wells WITHOUT diameter data: 12 (48.0%)
+  - Excluded plates (no diameter): namedlogs, Plate3, Raw_WellsAH
+
+[O2_mean] column mapping:
+  B: 20 -> A23 (avg: 58.20)
+  C: 20 -> B23 (avg: 37.65)
+  D: 10 -> D23 (avg: 40.33)
+  E: 5 -> E23 (avg: 18.62)
+  F: 5 -> E24 (avg: 47.07)
+  G: 5 -> F23 (avg: 13.88)
+  H: 5 -> F24 (avg: 26.97)
+  I: 2.5 -> H23 (avg: 41.37)
+  J: 2.5 -> H24 (avg: 61.10)
+  K: 1.25 -> I23 (avg: 30.46)
+  L: 1.25 -> J23 (avg: 34.18)
+  M: 1.25 -> J24 (avg: 59.66)
+  N: 0.625 -> K23 (avg: 42.04)
+  O: 0.625 -> K24 (avg: 27.82)
+  P: 0.625 -> L23 (avg: 21.69)
+  Q: 0.313 -> M23 (avg: 20.34)
+  R: 0.313 -> N24 (avg: 25.37)
+  S: 0.156 -> O23 (avg: 36.87)
+  T: 0.156 -> O24 (avg: 59.35)
+  U: 0.156 -> P24 (avg: 77.57)
+  Dropped: 20 -> B24, 10 -> C23, 2.5 -> G23, 2.5 -> G24, 0.156 -> P23
+
+[O2_dom_freq] column mapping:
+  B: 20 -> A23 (avg: 1.35)
+  C: 20 -> B23 (avg: 1.17)
+  D: 10 -> D23 (avg: 1.26)
+  E: 5 -> E23 (avg: 1.46)
+  F: 5 -> E24 (avg: 1.22)
+  G: 5 -> F23 (avg: 1.33)
+  H: 5 -> F24 (avg: 1.39)
+  I: 2.5 -> H23 (avg: 1.27)
+  J: 2.5 -> H24 (avg: 1.52)
+  K: 1.25 -> I23 (avg: 1.33)
+  L: 1.25 -> J23 (avg: 1.52)
+  M: 1.25 -> J24 (avg: 1.43)
+  N: 0.625 -> K23 (avg: 1.51)
+  O: 0.625 -> K24 (avg: 1.27)
+  P: 0.625 -> L23 (avg: 1.23)
+  Q: 0.313 -> M23 (avg: 1.26)
+  R: 0.313 -> N24 (avg: 1.41)
+  S: 0.156 -> O23 (avg: 1.31)
+  T: 0.156 -> O24 (avg: 1.06)
+  U: 0.156 -> P24 (avg: 1.36)
+  Dropped: 20 -> B24, 10 -> C23, 2.5 -> G23, 2.5 -> G24, 0.156 -> P23
+
+[O2_std] column mapping:
+  B: 20 -> A23 (avg: 2.44)
+  C: 20 -> B23 (avg: 2.19)
+  D: 10 -> D23 (avg: 2.41)
+  E: 5 -> E23 (avg: 5.17)
+  F: 5 -> E24 (avg: 6.92)
+  G: 5 -> F23 (avg: 1.78)
+  H: 5 -> F24 (avg: 2.05)
+  I: 2.5 -> H23 (avg: 3.32)
+  J: 2.5 -> H24 (avg: 13.36)
+  K: 1.25 -> I23 (avg: 3.26)
+  L: 1.25 -> J23 (avg: 3.06)
+  M: 1.25 -> J24 (avg: 7.47)
+  N: 0.625 -> K23 (avg: 13.41)
+  O: 0.625 -> K24 (avg: 3.04)
+  P: 0.625 -> L23 (avg: 1.25)
+  Q: 0.313 -> M23 (avg: 2.43)
+  R: 0.313 -> N24 (avg: 3.92)
+  S: 0.156 -> O23 (avg: 1.84)
+  T: 0.156 -> O24 (avg: 2.31)
+  U: 0.156 -> P24 (avg: 4.19)
+  Dropped: 20 -> B24, 10 -> C23, 2.5 -> G23, 2.5 -> G24, 0.156 -> P23
+
+[Amp_std] column mapping:
+  B: 20 -> A23 (avg: 0.08)
+  C: 20 -> B23 (avg: 0.08)
+  D: 10 -> D23 (avg: 0.06)
+  E: 5 -> E23 (avg: 0.03)
+  F: 5 -> E24 (avg: 0.01)
+  G: 5 -> F23 (avg: 0.09)
+  H: 5 -> F24 (avg: 0.08)
+  I: 2.5 -> H23 (avg: 0.04)
+  J: 2.5 -> H24 (avg: 0.00)
+  K: 1.25 -> I23 (avg: 0.03)
+  L: 1.25 -> J23 (avg: 0.04)
+  M: 1.25 -> J24 (avg: 0.00)
+  N: 0.625 -> K23 (avg: 0.00)
+  O: 0.625 -> K24 (avg: 0.04)
+  P: 0.625 -> L23 (avg: 0.17)
+  Q: 0.313 -> M23 (avg: 0.06)
+  R: 0.313 -> N24 (avg: 0.00)
+  S: 0.156 -> O23 (avg: 0.12)
+  T: 0.156 -> O24 (avg: 0.12)
+  U: 0.156 -> P24 (avg: 0.04)
+  Dropped: 20 -> B24, 10 -> C23, 2.5 -> G23, 2.5 -> G24, 0.156 -> P23
+
+[Amp_dom_freq] column mapping:
+  B: 20 -> A23 (avg: 1.58)
+  C: 20 -> B23 (avg: 1.25)
+  D: 10 -> D23 (avg: 1.41)
+  E: 5 -> E23 (avg: 1.32)
+  F: 5 -> E24 (avg: 1.23)
+  G: 5 -> F23 (avg: 1.46)
+  H: 5 -> F24 (avg: 1.17)
+  I: 2.5 -> H23 (avg: 1.30)
+  J: 2.5 -> H24 (avg: 1.44)
+  K: 1.25 -> I23 (avg: 1.35)
+  L: 1.25 -> J23 (avg: 1.29)
+  M: 1.25 -> J24 (avg: 1.50)
+  N: 0.625 -> K23 (avg: 1.41)
+  O: 0.625 -> K24 (avg: 1.67)
+  P: 0.625 -> L23 (avg: 1.31)
+  Q: 0.313 -> M23 (avg: 1.53)
+  R: 0.313 -> N24 (avg: 1.25)
+  S: 0.156 -> O23 (avg: 1.35)
+  T: 0.156 -> O24 (avg: 1.40)
+  U: 0.156 -> P24 (avg: 1.36)
+  Dropped: 20 -> B24, 10 -> C23, 2.5 -> G23, 2.5 -> G24, 0.156 -> P23
+
+Wells without diameter data (not normalized):
+  K23 - no_diameter_data
+  N24 - no_diameter_data
+  O24 - no_diameter_data
+  K24 - no_diameter_data
+  J24 - no_diameter_data
+  M23 - no_diameter_data
+  L23 - no_diameter_data
+  P24 - no_diameter_data
+  J23 - no_diameter_data
+  O23 - no_diameter_data
+  I23 - no_diameter_data
+  K23 - no_diameter_data
+  N24 - no_diameter_data
+  O24 - no_diameter_data
+  K24 - no_diameter_data
+  J24 - no_diameter_data
+  M23 - no_diameter_data
+  L23 - no_diameter_data
+  P24 - no_diameter_data
+  J23 - no_diameter_data
+  O23 - no_diameter_data
+  I23 - no_diameter_data

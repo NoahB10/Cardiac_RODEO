@@ -634,8 +634,10 @@ def _generate_fig2_epirubicin_o2():
 def _generate_fig2_epirubicin_tc50():
     """Generate Epirubicin TC50 dose-response curve for Figure 2.
 
-    Uses per-well raw O2 data, converts to O2 consumption (80 - O2),
-    averages replicates per concentration, and fits a 4-parameter logistic.
+    Uses per-well raw O2 data at 40h with outlier well exclusions.
+    Excludes 6 mM concentration (anomalous at this timepoint).
+    Averages replicates per concentration, min-max normalizes to 0-100%,
+    and fits a 4-parameter logistic sigmoid.
     """
     from scipy.optimize import curve_fit
 
@@ -643,7 +645,12 @@ def _generate_fig2_epirubicin_tc50():
     fig2_dir.mkdir(parents=True, exist_ok=True)
 
     drug = 'Epirubicin'
-    time_hour = 32  # hours
+    time_hour = 40  # hours
+
+    # Wells to exclude at 40h: outliers + all 6 mM wells
+    # 0 (12mM, -17%), 4 (6mM, 34%), 10 (0.75mM, 0%), 11 (0.75mM, 61%),
+    # 13 (0.38mM, 125%), 15 (0.38mM, 146%), 2 (6mM), 3 (6mM)
+    EXCLUDE_WELL_IDX = {0, 2, 3, 4, 10, 11, 13, 15}
 
     RAW_O2_PATH = PROJECT_ROOT / 'Cleaned_Data' / 'DrugScreen19.11.25_compiled_O2_mean.xlsx'
     if not RAW_O2_PATH.exists():
@@ -660,20 +667,28 @@ def _generate_fig2_epirubicin_tc50():
     idx_t = np.argmin(np.abs(time_points - time_hour))
     o2_at_t = o2_matrix[:, idx_t]
 
-    # Average replicates per concentration first, then scale 0-100
-    df_tp = pd.DataFrame({'Concentration': concentrations, 'O2': o2_at_t})
-    df_avg = df_tp.groupby('Concentration', as_index=False).mean().sort_values('Concentration')
-    df_avg = df_avg[df_avg['Concentration'] > 0]
+    # Build per-well dataframe and apply exclusions
+    df_tp = pd.DataFrame({
+        'Well_idx': range(len(concentrations)),
+        'Concentration': concentrations,
+        'O2': o2_at_t,
+    })
+    df_tp = df_tp[(df_tp['Concentration'] > 0) & (~df_tp['Well_idx'].isin(EXCLUDE_WELL_IDX))]
 
-    # Scale to 0-100%: lowest O2 = 0% consumption, highest O2 = 100% consumption
-    # (low concentration → organoids healthy → high O2 → 100% consumption)
-    # (high concentration → organoids dead → low O2 → 0% consumption)
-    o2_min = df_avg['O2'].min()
-    o2_max = df_avg['O2'].max()
-    df_avg['Consumption'] = (1 - (df_avg['O2'] - o2_min) / (o2_max - o2_min)) * 100
+    # Average and std per concentration, then min-max scale to 0-100%
+    df_agg = df_tp.groupby('Concentration', as_index=False)['O2'].agg(['mean', 'std', 'count'])
+    df_agg = df_agg.reset_index().sort_values('Concentration')
 
-    x_conc = df_avg['Concentration'].values
-    y_cons = df_avg['Consumption'].values
+    o2_min = df_agg['mean'].min()
+    o2_max = df_agg['mean'].max()
+    o2_range = o2_max - o2_min
+    df_agg['Consumption'] = (1 - (df_agg['mean'] - o2_min) / o2_range) * 100
+    # Propagate std into consumption space (inverted scaling)
+    df_agg['Consumption_std'] = df_agg['std'].fillna(0) / o2_range * 100
+
+    x_conc = df_agg['Concentration'].values
+    y_cons = df_agg['Consumption'].values
+    y_err = df_agg['Consumption_std'].values
     x_log = np.log10(x_conc)
 
     # 4-parameter logistic fit in log space
@@ -697,43 +712,64 @@ def _generate_fig2_epirubicin_tc50():
     except Exception as e:
         print(f"  Warning: TC50 sigmoid fit failed: {e}")
 
-    # Plot
+    # Plot — mean with error bars, no grid, no title
     fig, ax = plt.subplots(figsize=(4, 2.8))
-    ax.plot(x_conc, y_cons, 'o', markersize=7, color='#1f77b4', zorder=5, label='Mean consumption')
+    ax.errorbar(x_conc, y_cons, yerr=y_err, fmt='o', markersize=7,
+                color='#1f77b4', ecolor='#1f77b4', elinewidth=1.2,
+                capsize=3, capthick=1.2, zorder=5, label='Mean viability')
 
     if popt is not None:
         x_smooth = np.linspace(x_log.min() - 0.2, x_log.max() + 0.2, 200)
-        ax.plot(10 ** x_smooth, logistic(x_smooth, *popt), '-', color='#1f77b4',
+        ax.plot(10 ** x_smooth, logistic(x_smooth, *popt), '-', color='black',
                 linewidth=2, label='Sigmoid fit')
 
     if tc50 is not None and np.isfinite(tc50):
         ax.axhline(50, color='grey', linestyle='--', linewidth=1, alpha=0.5)
         ax.axvline(tc50, color='red', linestyle='--', linewidth=1.5)
         ax.text(0.05, 0.08, f'TC50={tc50:.3f} mM', transform=ax.transAxes,
-                fontsize=19, fontweight='bold')
+                fontsize=9, fontweight='bold')
 
     ax.set_xscale('log')
-    ax.set_xlabel('Concentration (mM)', fontsize=19)
-    ax.set_ylabel('O2 Consumption (%)', fontsize=19)
-    ax.set_title(f'{drug} TC50 ({time_hour}h)', fontsize=20, fontweight='bold')
-    ax.set_ylim(0, 100)
-    ax.set_xticks(x_conc)
-    ax.set_xticklabels([f'{c:.3g}' for c in x_conc], fontsize=17)
-    ax.tick_params(labelsize=17)
-    ax.legend(fontsize=17, loc='upper right')
-    ax.grid(True, alpha=0.3)
+    ax.set_xlabel('Epirubicin (mM)', fontsize=14)
+    ax.set_ylabel('Viability (%)', fontsize=14)
+    ax.set_ylim(-5, 105)
+    ax.set_xlim(0.05, 20)
+    ax.set_xticks([0.1, 1, 10])
+    ax.set_xticklabels(['0.1', '1', '10'], fontsize=12)
+    ax.tick_params(labelsize=12)
+    ax.legend(fontsize=10, loc='upper right', frameon=False)
     fig.tight_layout()
 
     png_path = fig2_dir / 'Fig_2h_Epirubicin_TC50.png'
     fig.savefig(png_path, dpi=SAVE_DPI, bbox_inches='tight', pad_inches=0.05,
                 facecolor='white')
+
+    # Save native axisless version (not relying on monkey-patch)
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.set_title('')
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.tick_params(left=False, bottom=False, top=False, right=False,
+                   labelleft=False, labelbottom=False, labeltop=False, labelright=False,
+                   which='both')  # 'both' catches minor ticks on log scale
+    ax.xaxis.set_minor_locator(plt.NullLocator())
+    ax.grid(False)
+    fig.tight_layout(pad=0.3)
+    axisless_dir = fig2_dir / 'Axisless'
+    axisless_dir.mkdir(parents=True, exist_ok=True)
+    axisless_path = axisless_dir / 'Fig_2h_Epirubicin_TC50.png'
+    fig.savefig(axisless_path, dpi=SAVE_DPI, facecolor='white')
+    print(f"  Saved axisless: {axisless_path}")
     plt.close(fig)
 
     # Save data
     excel_path = fig2_dir / 'Fig_2h_Epirubicin_TC50_data.xlsx'
-    save_df = df_avg.copy()
+    save_df = df_agg[['Concentration', 'mean', 'std', 'count', 'Consumption', 'Consumption_std']].copy()
+    save_df.rename(columns={'mean': 'O2_mean', 'std': 'O2_std', 'count': 'N_wells'}, inplace=True)
     save_df['Source'] = str(RAW_O2_PATH)
     save_df['Timepoint_h'] = time_hour
+    save_df['Excluded_Wells'] = str(sorted(EXCLUDE_WELL_IDX))
     if tc50 is not None:
         save_df['TC50_mM'] = tc50
     with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
@@ -745,7 +781,8 @@ def _generate_fig2_epirubicin_tc50():
                     png_path.relative_to(PROJECT_ROOT),
                     excel_path.relative_to(PROJECT_ROOT),
                     width=4.0, height=2.8,
-                    notes=f'TC50={tc50_str} mM at {time_hour}h, 4PL sigmoid fit on per-well data')
+                    notes=f'TC50={tc50_str} mM at {time_hour}h, 4PL sigmoid, '
+                          f'excluded wells {sorted(EXCLUDE_WELL_IDX)}, no 6mM')
     print(f"  Fig_2h_Epirubicin_TC50.png (TC50={tc50_str} mM)")
 
 
@@ -2098,7 +2135,7 @@ def generate_prediction_figures(target, fig_num, comparison_type=None):
             if len(fpr) > 1:
                 tpr_interp = np.interp(mean_fpr, fpr, tpr)
                 tprs.append(tpr_interp)
-                aucs.append(np.trapz(tpr, fpr))
+                aucs.append(np.trapezoid(tpr, fpr))
 
     if tprs:
         mean_tpr = np.mean(tprs, axis=0)
@@ -2801,7 +2838,7 @@ def generate_prediction_figures(target, fig_num, comparison_type=None):
                             std_tpr = np.std(tprs, axis=0)
                             tpr_upper = np.minimum(mean_tpr + std_tpr, 1.0)
                             tpr_lower = np.maximum(mean_tpr - std_tpr, 0.0)
-                            org_auc = np.trapz(mean_tpr, mean_fpr)
+                            org_auc = np.trapezoid(mean_tpr, mean_fpr)
 
                             ax.fill_between(mean_fpr, tpr_lower, tpr_upper, color='#2ca02c', alpha=0.2)
                             ax.plot(mean_fpr, mean_tpr, color='#2ca02c', linewidth=2.5,

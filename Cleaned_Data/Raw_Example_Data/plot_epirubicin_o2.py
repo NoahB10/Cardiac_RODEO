@@ -229,7 +229,7 @@ def plot_averaged_offset(time, wells):
         print(f'  Shifted {lowest_conc} mM up by {shift:.1f}% '
               f'(was {lowest_start:.1f}%, now {avg_traces[lowest_conc][0]:.1f}%)')
 
-    fig, ax = plt.subplots(figsize=(10, 7))
+    fig, ax = plt.subplots(figsize=(10, 8))
     for i, conc in enumerate(concs_sorted):
         t_fine = conc_groups[conc][0][0]
         avg = avg_traces[conc]
@@ -247,11 +247,7 @@ def plot_averaged_offset(time, wells):
         spine.set_edgecolor('black')
         spine.set_linewidth(3.0)
 
-    ax.legend(fontsize=28, title='Concentration (mM)', title_fontsize=29,
-              loc='upper left', ncol=2,
-              borderpad=0.4, labelspacing=0.3, handlelength=1.2,
-              columnspacing=1.0,
-              framealpha=0.85, edgecolor='none')
+    ax.set_ylim(0, 75)
 
     # Save to both local and Fig_2 folder
     out_local = OUT_DIR / 'Epirubicin_O2_averaged_offset.png'
@@ -261,6 +257,38 @@ def plot_averaged_offset(time, wells):
     for out in [out_local, out_fig2]:
         fig.savefig(out, dpi=SAVE_DPI, bbox_inches='tight', pad_inches=0.05, facecolor='white')
         print(f'Saved: {out}')
+
+    # Export legend as a standalone figure (clean, no plot content)
+    axisless_dir = fig2_dir / 'Axisless'
+    axisless_dir.mkdir(parents=True, exist_ok=True)
+    legend = ax.get_legend()
+    fig_leg = plt.figure(figsize=(4, 3))
+    handles, labels = ax.get_legend_handles_labels()
+    fig_leg.legend(handles, labels, fontsize=28,
+                   title='Concentration (mM)', title_fontproperties={'size': 29},
+                   ncol=2, borderpad=0.4, labelspacing=0.3,
+                   handlelength=1.2, columnspacing=1.0,
+                   loc='center', frameon=False)
+    legend_path = axisless_dir / 'Fig_2g_Epirubicin_O2_legend.png'
+    fig_leg.savefig(legend_path, dpi=SAVE_DPI, bbox_inches='tight',
+                    pad_inches=0.1, facecolor='white')
+    plt.close(fig_leg)
+    print(f'Saved legend: {legend_path}')
+
+    # Save axisless version — no axes, just data
+    for a in fig.get_axes():
+        a.set_xlabel('')
+        a.set_ylabel('')
+        a.set_title('')
+        for spine in a.spines.values():
+            spine.set_visible(False)
+        a.tick_params(left=False, bottom=False, top=False, right=False,
+                      labelleft=False, labelbottom=False, labeltop=False, labelright=False)
+        a.grid(False)
+    fig.tight_layout(pad=0.3)
+    out_axisless = axisless_dir / 'Fig_2g_Epirubicin_O2.png'
+    fig.savefig(out_axisless, dpi=SAVE_DPI, facecolor='white')
+    print(f'Saved axisless: {out_axisless}')
     plt.close(fig)
     print(f'  ({len(concs_sorted)} concentrations)')
 

@@ -1,0 +1,214 @@
+Drug: Ibrutinib (C10)
+Interpolation: linear, limit=4 segments
+Columns dropped when >= 50% missing data
+Wells within each concentration sorted by average values (highest to lowest)
+
+Diameter normalization: ENABLED for amp_std and amp_dom_freq metrics
+Total wells analyzed: 32
+  - Wells WITH diameter data: 16 (50.0%)
+  - Wells WITHOUT diameter data: 16 (50.0%)
+  - Excluded plates (no diameter): namedlogs, Plate3, Raw_WellsAH
+
+[O2_mean] column mapping:
+  B: 8 -> A15 (avg: 50.33)
+  C: 8 -> A16 (avg: 31.08)
+  D: 8 -> B15 (avg: 45.19)
+  E: 8 -> B16 (avg: 46.81)
+  F: 4 -> C16 (avg: 42.26)
+  G: 4 -> D15 (avg: 21.30)
+  H: 4 -> D16 (avg: 33.21)
+  I: 2 -> E15 (avg: 9.15)
+  J: 2 -> E16 (avg: 30.92)
+  K: 2 -> F15 (avg: 10.37)
+  L: 2 -> F16 (avg: 22.70)
+  M: 1 -> G15 (avg: 38.08)
+  N: 1 -> G16 (avg: 25.56)
+  O: 1 -> H15 (avg: 29.63)
+  P: 1 -> H16 (avg: 9.58)
+  Q: 0.5 -> I15 (avg: 33.54)
+  R: 0.5 -> I16 (avg: 18.31)
+  S: 0.5 -> J15 (avg: 23.62)
+  T: 0.5 -> J16 (avg: 33.73)
+  U: 0.25 -> K15 (avg: 20.89)
+  V: 0.25 -> K16 (avg: 25.83)
+  W: 0.25 -> L15 (avg: 24.60)
+  X: 0.25 -> L16 (avg: 42.96)
+  Y: 0.125 -> M15 (avg: 10.67)
+  Z: 0.125 -> M16 (avg: 26.87)
+  AA: 0.125 -> N15 (avg: 30.94)
+  AB: 0.125 -> N16 (avg: 40.26)
+  AC: 0.062 -> O15 (avg: 29.28)
+  AD: 0.062 -> O16 (avg: 18.48)
+  AE: 0.062 -> P15 (avg: 44.85)
+  AF: 0.062 -> P16 (avg: 34.34)
+  Dropped: 4 -> C15
+
+[O2_dom_freq] column mapping:
+  B: 8 -> A15 (avg: 1.35)
+  C: 8 -> A16 (avg: 1.49)
+  D: 8 -> B15 (avg: 1.24)
+  E: 8 -> B16 (avg: 1.32)
+  F: 4 -> C16 (avg: 1.19)
+  G: 4 -> D15 (avg: 1.39)
+  H: 4 -> D16 (avg: 1.44)
+  I: 2 -> E15 (avg: 1.37)
+  J: 2 -> E16 (avg: 1.47)
+  K: 2 -> F15 (avg: 1.32)
+  L: 2 -> F16 (avg: 1.44)
+  M: 1 -> G15 (avg: 1.44)
+  N: 1 -> G16 (avg: 1.53)
+  O: 1 -> H15 (avg: 1.19)
+  P: 1 -> H16 (avg: 1.23)
+  Q: 0.5 -> I15 (avg: 1.34)
+  R: 0.5 -> I16 (avg: 1.29)
+  S: 0.5 -> J15 (avg: 1.30)
+  T: 0.5 -> J16 (avg: 1.45)
+  U: 0.25 -> K15 (avg: 1.44)
+  V: 0.25 -> K16 (avg: 1.54)
+  W: 0.25 -> L15 (avg: 1.38)
+  X: 0.25 -> L16 (avg: 1.39)
+  Y: 0.125 -> M15 (avg: 1.51)
+  Z: 0.125 -> M16 (avg: 1.27)
+  AA: 0.125 -> N15 (avg: 1.37)
+  AB: 0.125 -> N16 (avg: 1.32)
+  AC: 0.062 -> O15 (avg: 1.41)
+  AD: 0.062 -> O16 (avg: 1.84)
+  AE: 0.062 -> P15 (avg: 1.39)
+  AF: 0.062 -> P16 (avg: 1.39)
+  Dropped: 4 -> C15
+
+[O2_std] column mapping:
+  B: 8 -> A15 (avg: 3.28)
+  C: 8 -> A16 (avg: 1.79)
+  D: 8 -> B15 (avg: 1.59)
+  E: 8 -> B16 (avg: 2.98)
+  F: 4 -> C16 (avg: 4.58)
+  G: 4 -> D15 (avg: 1.49)
+  H: 4 -> D16 (avg: 2.28)
+  I: 2 -> E15 (avg: 1.19)
+  J: 2 -> E16 (avg: 1.65)
+  K: 2 -> F15 (avg: 1.65)
+  L: 2 -> F16 (avg: 1.88)
+  M: 1 -> G15 (avg: 1.76)
+  N: 1 -> G16 (avg: 1.34)
+  O: 1 -> H15 (avg: 1.73)
+  P: 1 -> H16 (avg: 1.20)
+  Q: 0.5 -> I15 (avg: 3.64)
+  R: 0.5 -> I16 (avg: 2.08)
+  S: 0.5 -> J15 (avg: 1.79)
+  T: 0.5 -> J16 (avg: 4.15)
+  U: 0.25 -> K15 (avg: 1.93)
+  V: 0.25 -> K16 (avg: 2.47)
+  W: 0.25 -> L15 (avg: 1.62)
+  X: 0.25 -> L16 (avg: 2.37)
+  Y: 0.125 -> M15 (avg: 1.12)
+  Z: 0.125 -> M16 (avg: 1.53)
+  AA: 0.125 -> N15 (avg: 2.11)
+  AB: 0.125 -> N16 (avg: 2.26)
+  AC: 0.062 -> O15 (avg: 5.29)
+  AD: 0.062 -> O16 (avg: 2.55)
+  AE: 0.062 -> P15 (avg: 2.02)
+  AF: 0.062 -> P16 (avg: 1.23)
+  Dropped: 4 -> C15
+
+[Amp_std] column mapping:
+  B: 8 -> A15 (avg: 0.05)
+  C: 8 -> A16 (avg: 0.15)
+  D: 8 -> B15 (avg: 0.20)
+  E: 8 -> B16 (avg: 0.05)
+  F: 4 -> C16 (avg: 0.02)
+  G: 4 -> D15 (avg: 0.15)
+  H: 4 -> D16 (avg: 0.06)
+  I: 2 -> E15 (avg: 0.20)
+  J: 2 -> E16 (avg: 0.16)
+  K: 2 -> F15 (avg: 0.11)
+  L: 2 -> F16 (avg: 0.09)
+  M: 1 -> G15 (avg: 0.17)
+  N: 1 -> G16 (avg: 0.18)
+  O: 1 -> H15 (avg: 0.14)
+  P: 1 -> H16 (avg: 0.20)
+  Q: 0.5 -> I15 (avg: 0.02)
+  R: 0.5 -> I16 (avg: 0.07)
+  S: 0.5 -> J15 (avg: 0.12)
+  T: 0.5 -> J16 (avg: 0.06)
+  U: 0.25 -> K15 (avg: 0.08)
+  V: 0.25 -> K16 (avg: 0.06)
+  W: 0.25 -> L15 (avg: 0.16)
+  X: 0.25 -> L16 (avg: 0.09)
+  Y: 0.125 -> M15 (avg: 0.15)
+  Z: 0.125 -> M16 (avg: 0.18)
+  AA: 0.125 -> N15 (avg: 0.08)
+  AB: 0.125 -> N16 (avg: 0.08)
+  AC: 0.062 -> O15 (avg: 0.05)
+  AD: 0.062 -> O16 (avg: 0.05)
+  AE: 0.062 -> P15 (avg: 0.11)
+  AF: 0.062 -> P16 (avg: 0.20)
+  Dropped: 4 -> C15
+
+[Amp_dom_freq] column mapping:
+  B: 8 -> A15 (avg: 1.17)
+  C: 8 -> A16 (avg: 1.57)
+  D: 8 -> B15 (avg: 1.38)
+  E: 8 -> B16 (avg: 1.35)
+  F: 4 -> C16 (avg: 1.36)
+  G: 4 -> D15 (avg: 1.16)
+  H: 4 -> D16 (avg: 1.36)
+  I: 2 -> E15 (avg: 1.26)
+  J: 2 -> E16 (avg: 1.49)
+  K: 2 -> F15 (avg: 1.45)
+  L: 2 -> F16 (avg: 1.37)
+  M: 1 -> G15 (avg: 1.23)
+  N: 1 -> G16 (avg: 1.37)
+  O: 1 -> H15 (avg: 1.52)
+  P: 1 -> H16 (avg: 1.38)
+  Q: 0.5 -> I15 (avg: 1.26)
+  R: 0.5 -> I16 (avg: 1.34)
+  S: 0.5 -> J15 (avg: 1.48)
+  T: 0.5 -> J16 (avg: 1.31)
+  U: 0.25 -> K15 (avg: 1.32)
+  V: 0.25 -> K16 (avg: 1.58)
+  W: 0.25 -> L15 (avg: 1.44)
+  X: 0.25 -> L16 (avg: 1.52)
+  Y: 0.125 -> M15 (avg: 1.46)
+  Z: 0.125 -> M16 (avg: 1.15)
+  AA: 0.125 -> N15 (avg: 1.44)
+  AB: 0.125 -> N16 (avg: 1.31)
+  AC: 0.062 -> O15 (avg: 1.47)
+  AD: 0.062 -> O16 (avg: 1.54)
+  AE: 0.062 -> P15 (avg: 1.54)
+  AF: 0.062 -> P16 (avg: 1.66)
+  Dropped: 4 -> C15
+
+Wells without diameter data (not normalized):
+  P16 - no_diameter_data
+  I15 - no_diameter_data
+  P15 - no_diameter_data
+  J16 - no_diameter_data
+  N15 - no_diameter_data
+  J15 - no_diameter_data
+  M15 - no_diameter_data
+  L16 - no_diameter_data
+  O16 - no_diameter_data
+  O15 - no_diameter_data
+  I16 - no_diameter_data
+  K15 - no_diameter_data
+  N16 - no_diameter_data
+  K16 - no_diameter_data
+  M16 - no_diameter_data
+  L15 - no_diameter_data
+  P16 - no_diameter_data
+  I15 - no_diameter_data
+  P15 - no_diameter_data
+  J16 - no_diameter_data
+  N15 - no_diameter_data
+  J15 - no_diameter_data
+  M15 - no_diameter_data
+  L16 - no_diameter_data
+  O16 - no_diameter_data
+  O15 - no_diameter_data
+  I16 - no_diameter_data
+  K15 - no_diameter_data
+  N16 - no_diameter_data
+  K16 - no_diameter_data
+  M16 - no_diameter_data
+  L15 - no_diameter_data

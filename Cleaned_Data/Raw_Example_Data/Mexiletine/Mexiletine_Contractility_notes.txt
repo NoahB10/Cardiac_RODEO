@@ -1,0 +1,177 @@
+===============================================================================
+MEXILETINE CONTRACTILITY DOSE-RESPONSE PLOT — GENERATION NOTES
+===============================================================================
+Created: 2026-03-19
+Script:  Cleaned_Data/Raw_Example_Data/plot_contractility.py
+Output:  Cleaned_Data/Raw_Example_Data/Mexiletine/Mexiletine_Contractility_averaged.png
+         Cleaned_Data/Raw_Example_Data/Mexiletine/Mexiletine_Contractility_individual.png
+
+
+===============================================================================
+1. INPUT DATA
+===============================================================================
+
+File:    Cleaned_Data/Raw_Example_Data/Mexiletine/Amp_std.csv
+Source:  Per-well contractility (amplitude standard deviation) from Dynamix
+Format:
+  - 35 rows (header + 34 timepoints, 0–96 hours in ~3h increments)
+  - 29 columns: 1 time column + 28 well columns
+  - Column headers = concentration in mM (pandas adds .1, .2 suffixes to
+    duplicate headers — these are NOT real, they are cleaned off)
+
+Known concentrations (mM): 20, 10, 5, 2.5, 1.25, 0.625, 0.313, 0.156
+
+Wells per concentration (from CSV headers):
+  20 mM:    3 wells
+  10 mM:    4 wells
+  5 mM:     4 wells
+  2.5 mM:   4 wells
+  1.25 mM:  3 wells
+  0.625 mM: 3 wells
+  0.313 mM: 3 wells
+  0.156 mM: 4 wells
+  Total:    28 wells
+
+
+===============================================================================
+2. WELL EXCLUSIONS
+===============================================================================
+
+6 wells excluded by 0-based column index (from data columns, not time column):
+
+  Index 20: 0.625 mM — anomalous hump (non-monotonic artifact)
+  Index 22: 0.313 mM — drops too low (dead/failing organoid)
+  Index 23: 0.313 mM — drops sharply (dead/failing organoid)
+  Index 24: 0.156 mM — drops too low (dead/failing organoid)
+  Index 25: 0.156 mM — rises anomalously (non-physiological)
+  Index 27: 0.156 mM — drops too low (dead/failing organoid)
+
+These were identified by first running the script with skip_wells=set()
+(no exclusions), inspecting the individual wells plot, and manually
+identifying outlier traces.
+
+After exclusion: 22 wells remain.
+
+
+===============================================================================
+3. PROCESSING PIPELINE (per well)
+===============================================================================
+
+Each well's raw time series goes through 5 steps:
+
+Step 1 — SPIKE REMOVAL (first pass, threshold_mult=5.0)
+  - Compute median absolute step size across the time series
+  - For each interior point, compare deviation from neighbor average
+  - Mark as spike if: deviation > 5x median step AND > 2x neighbor difference
+  - Replace spikes with NaN, then linearly interpolate across them
+
+Step 2 — NaN GAP CHECK (MAX_NAN_GAP=7)
+  - If any consecutive NaN run exceeds 7 timestamps, EXCLUDE the well entirely
+  - Otherwise, linearly interpolate to fill all NaN gaps
+
+Step 3 — SPIKE REMOVAL (second pass, threshold_mult=2.5)
+  - More aggressive — catches smaller spikes missed in step 1
+  - Same algorithm, lower threshold
+
+Step 4 — FINAL NaN FILL
+  - Any remaining NaN filled by linear interpolation
+  - Wells with fewer than 4 valid points excluded entirely
+
+Step 5 — INTENSIVE SMOOTHING
+  a. LOWESS pass 1: frac=0.55 (very broad, captures overall trend)
+  b. LOWESS pass 2: frac=0.45 (moderate)
+  c. LOWESS pass 3: frac=0.35 (narrower, refines shape)
+  d. Gaussian filter: sigma=3.0 (removes residual jitter)
+  e. CubicSpline: bc_type=((1, 0.0), (2, 0.0))
+     - Left boundary: clamped (zero slope at t=0, flat baseline start)
+     - Right boundary: natural (free curvature)
+  f. Evaluate on 1000-point fine grid for smooth output curves
+
+This is very heavy smoothing — it removes all measurement noise and produces
+publication-quality curves showing only the overall trend.
+
+
+===============================================================================
+4. BASELINE OFFSET (averaged plot)
+===============================================================================
+
+The averaged plot uses a compressed-offset approach so that all concentration
+traces start at approximately the same point:
+
+  1. Process all wells through the smoothing pipeline
+  2. For each concentration, compute the average smoothed start value
+     (mean of v_fine[0] across all wells at that concentration)
+  3. Compute the global average start across all concentrations
+  4. Apply compression factor COMPRESS=0.3:
+       adjusted_start[c] = global_avg + 0.3 * (conc_avg_start[c] - global_avg)
+     This pulls each concentration's start toward the global mean while
+     preserving 30% of the original spread (fully collapsed would be 0.0,
+     no change would be 1.0)
+  5. Offset each individual trace before averaging:
+       v_offset = v - (v[0] - adjusted_start[conc])
+  6. Average the offset traces per concentration
+
+This removes the confounding effect of different wells/concentrations starting
+at different baselines, making the dose-dependent divergence clearly visible.
+
+
+===============================================================================
+5. PLOT APPEARANCE
+===============================================================================
+
+Averaged plot:
+  - Figure size: 4.5 x 3.0 inches, saved at 600 DPI
+  - One line per concentration (averaged across wells)
+  - Colormap: 'plasma' (8 colors, high conc = dark blue, low = yellow)
+  - Line width: 1.5
+  - Legend: concentration + well count, e.g. "20 mM (n=3)"
+  - X-axis: Time (h), range matches data (0–96h)
+  - Y-axis: Contractility (Amp std)
+  - Title: "Mexiletine — Averaged by Concentration"
+  - Font: Helvetica (via figure_config.py)
+  - Background: white
+
+Individual wells plot:
+  - Same as above but each well plotted as its own line
+  - Line width: 0.8, alpha: 0.7
+  - Legend shows concentration only (no well count)
+
+
+===============================================================================
+6. HIGH-BASELINE OFFSET
+===============================================================================
+
+n_high_baseline = 0 for Mexiletine (disabled).
+
+This feature shifts the N highest-baseline wells down to match the average
+of the remaining wells. It was not needed for Mexiletine because the
+compressed-offset approach (Section 4) handled baseline variation adequately.
+
+
+===============================================================================
+7. DEPENDENCIES
+===============================================================================
+
+Python packages:
+  numpy, pandas, matplotlib, scipy (gaussian_filter1d, CubicSpline),
+  statsmodels (sm.nonparametric.lowess), pathlib, collections
+
+Font config:
+  figure_config.py (project root, 2 levels up from script)
+  Sets Helvetica font, title=10pt, axis labels=9pt, ticks=8pt
+
+
+===============================================================================
+8. REPRODUCTION
+===============================================================================
+
+To regenerate:
+  cd Cleaned_Data/Raw_Example_Data
+  python plot_contractility.py
+
+Outputs saved to:
+  Cleaned_Data/Raw_Example_Data/Mexiletine/Mexiletine_Contractility_individual.png
+  Cleaned_Data/Raw_Example_Data/Mexiletine/Mexiletine_Contractility_averaged.png
+
+Note: The script also generates Amiodarone plots (configured in the same
+DRUGS dictionary). To run only Mexiletine, comment out the Amiodarone entry.

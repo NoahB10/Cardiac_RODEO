@@ -1,0 +1,93 @@
+Mexiletine Contractility Heatmap — Production Notes
+=====================================================
+
+File: Mexiletine_Contractility_heatmap_LOWESS16.png
+Also copied to: Output/PowerPoint_Figures/Fig_2/Fig_2_Mexiletine_Contractility_heatmap.png
+
+Source Data
+-----------
+  Cleaned_Data/Raw_Example_Data/Mexiletine/Amp_std.csv
+  28 wells x 34 timepoints (0-96h)
+  Per-well contractility (Amp_std) from Dynamix oxygen sensors
+
+Known Concentrations (mM)
+--------------------------
+  {20, 10, 5, 2.5, 1.25, 0.625, 0.313, 0.156}
+
+Excluded Wells — by original 1-based row index
+------------------------------------------------
+  Round 1 (user-specified rows):
+    Row 4:  10.0 mM (col '10')
+    Row 5:  10.0 mM (col '10.1')
+    Row 6:  10.0 mM (col '10.2')
+    Row 7:  10.0 mM (col '10.3')    — entire 10 mM group removed
+    Row 14: 2.5 mM  (col '2.5.2')
+    Row 15: 2.5 mM  (col '2.5.3')
+    Row 17: 1.25 mM (col '1.25.1')
+    Row 21: 0.625 mM (col '0.625.2')
+    Row 22: 0.313 mM (col '0.313.1')
+    Row 24: 0.313 mM (col '0.313.2')  — note: was labeled 0.313.3 in sorted view
+    Row 26: 0.156 mM (col '0.156.1')
+
+  Round 2 (after sorting, by position in sorted view):
+    Sorted row 3:  20 mM    (CSV col '20')
+    Sorted row 8:  2.5 mM   (CSV col '2.5.1')  — entire 2.5 mM group removed
+    Sorted row 9:  2.5 mM   (CSV col '2.5')
+
+  Total excluded: 14 wells
+  Remaining: 14 wells
+
+  CSV columns to drop (for code reproduction):
+    By original index (1-based): {4, 5, 6, 7, 14, 15, 17, 21, 22, 24, 26}
+    By column name: {'20', '2.5.1', '2.5'}
+
+Processing Pipeline
+-------------------
+  1. Load CSV (rows=time, columns=wells)
+  2. Drop excluded wells (by index and by column name)
+  3. Interpolate NaN gaps (linear, limit=10, both directions)
+  4. LOWESS w=16 per-well along time — FULL smoothing (including first point)
+     - statsmodels.nonparametric.smoothers_lowess.lowess
+     - frac = min(1.0, max(16, 1) / len(valid))
+     - ALL points smoothed (first point NOT preserved)
+     - Each well smoothed independently (no cross-concentration smoothing)
+  5. Transpose for heatmap (rows=wells, cols=time)
+  6. Sort within each concentration group by average value descending
+     (highest avg at top, lowest at bottom = ascending bottom-up)
+  7. Scale contractility by 100 (display as x10^-2)
+
+  NOTE: The key difference from earlier heatmap versions is step 4 —
+  the first timepoint is smoothed along with all others, not preserved
+  as a raw value. This eliminates the abrupt baseline color jump that
+  appeared in earlier versions.
+
+Plot Settings
+-------------
+  Colormap: Blue (#123BFF) -> White -> Red (#FF2908)
+  Square cells, no borders (linewidths=0)
+  Y-axis: One centered tick per concentration group
+  Concentrations shown: 20, 5, 1.25, 0.625, 0.313, 0.156
+  (10 mM and 2.5 mM groups entirely removed)
+  X-axis: Time (h), every ~8th tick
+  Colorbar: Contractility (x10^-2), ticks at 0, 5, 10, 15, 19.3
+  Figure size: 3.1x1.6 * 3.1x0.55 inches
+  DPI: 600
+
+To Reproduce
+------------
+  Required drops:
+    REMOVE_ORIGINAL = {4, 5, 6, 7, 14, 15, 17, 21, 22, 24, 26}  # 1-based indices
+    REMOVE_COLS_EXTRA = {'20', '2.5.1', '2.5'}                    # CSV column names
+
+  Pipeline:
+    df = pd.read_csv('Cleaned_Data/Raw_Example_Data/Mexiletine/Amp_std.csv', index_col=0)
+    # Drop by index
+    keep_cols = [col for i, col in enumerate(df.columns) if (i+1) not in REMOVE_ORIGINAL]
+    keep_cols = [col for col in keep_cols if col not in REMOVE_COLS_EXTRA]
+    df = df[keep_cols]
+    # Interpolate
+    for col in df.columns:
+        df[col] = df[col].interpolate(method='linear', limit=10, limit_direction='both')
+    # LOWESS full (no first-point preservation)
+    apply_lowess_full(df, window=16)
+    # Transpose, sort within groups, scale x100, plot

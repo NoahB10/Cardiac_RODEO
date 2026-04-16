@@ -1,0 +1,202 @@
+===============================================================================
+EPIRUBICIN O2 DOSE-RESPONSE PLOT — GENERATION NOTES
+===============================================================================
+Created: 2026-03-19
+Script:  Cleaned_Data/Raw_Example_Data/plot_epirubicin_o2.py
+Output:  Cleaned_Data/Raw_Example_Data/Epirubicin/Epirubicin_O2_averaged_offset.png
+         Cleaned_Data/Raw_Example_Data/Epirubicin/Epirubicin_O2_individual.png
+
+
+===============================================================================
+1. INPUT DATA
+===============================================================================
+
+File:    Cleaned_Data/Raw_Example_Data/Epirubicin/O2_mean.csv
+Source:  Per-well O2 percentage from Dynamix oxygen sensors
+Format:
+  - 38 rows (header + 37 timepoints, 0–96 hours in ~3h increments)
+  - 24 columns: 1 time column + 23 well columns
+  - Column headers = concentration in mM (pandas adds .1, .2 suffixes to
+    duplicate headers — these are NOT real, they are cleaned off)
+
+Known concentrations (mM): 12, 6, 3, 1.5, 0.75, 0.38, 0.19, 0.094
+
+Wells per concentration (from CSV headers):
+  12 mM:     3 wells
+  6 mM:      4 wells
+  3 mM:      3 wells
+  1.5 mM:    3 wells
+  0.75 mM:   4 wells
+  0.38 mM:   4 wells
+  0.19 mM:   1 well
+  0.094 mM:  1 well
+  Total:     23 wells
+
+
+===============================================================================
+2. WELL EXCLUSIONS
+===============================================================================
+
+1 well excluded by 0-based column index (from data columns, not time column):
+
+  Index 1: 12 mM — starts at 85% O2, far above all others (sensor/well error)
+           Sat flat near 80–85% for the entire experiment while other 12 mM
+           wells started at 13–41%. Identified by visual inspection of the
+           individual wells plot.
+
+After exclusion: 22 wells remain (2 at 12 mM).
+
+
+===============================================================================
+3. PROCESSING PIPELINE (per well)
+===============================================================================
+
+Each well's raw time series goes through 5 steps:
+
+Step 1 — SPIKE REMOVAL (first pass, threshold_mult=5.0)
+  - Compute median absolute step size across the time series
+  - For each interior point, compare deviation from neighbor average
+  - Mark as spike if: deviation > 5x median step AND > 2x neighbor difference
+  - Replace spikes with NaN, then linearly interpolate across them
+
+Step 2 — NaN GAP CHECK (MAX_NAN_GAP=7)
+  - If any consecutive NaN run exceeds 7 timestamps, EXCLUDE the well entirely
+  - Otherwise, linearly interpolate to fill all NaN gaps
+
+Step 3 — SPIKE REMOVAL (second pass, threshold_mult=2.5)
+  - More aggressive — catches smaller spikes missed in step 1
+  - Same algorithm, lower threshold
+
+Step 4 — FINAL NaN FILL
+  - Any remaining NaN filled by linear interpolation
+  - Wells with fewer than 4 valid points excluded entirely
+
+Step 5 — INTENSIVE SMOOTHING
+  a. LOWESS pass 1: frac=0.55 (very broad, captures overall trend)
+  b. LOWESS pass 2: frac=0.45 (moderate)
+  c. LOWESS pass 3: frac=0.35 (narrower, refines shape)
+  d. Gaussian filter: sigma=3.0 (removes residual jitter)
+  e. CubicSpline: bc_type=((1, 0.0), (2, 0.0))
+     - Left boundary: clamped (zero slope at t=0, flat baseline start)
+     - Right boundary: natural (free curvature)
+  f. Evaluate on 1000-point fine grid for smooth output curves
+
+
+===============================================================================
+4. AVERAGING AND OUTLIER BASELINE SHIFT (averaged plot)
+===============================================================================
+
+The averaged plot uses raw averaging with a targeted shift for the two
+most extreme baselines:
+
+  1. Process all 22 wells through the smoothing pipeline
+  2. Average the smoothed traces per concentration (no per-well offset)
+  3. Identify the concentration with the HIGHEST average start value
+     and the concentration with the LOWEST average start value
+  4. Shift only those two traces (uniform vertical shift of the entire
+     trace, not just the starting point):
+
+     HIGHEST (12 mM):
+       - Raw average start: 27.2% O2
+       - Second-highest start: 18.5% (1.5 mM)
+       - Shifted DOWN by 7.2% so it starts at 20.0%
+         (1.5% margin above the second-highest)
+
+     LOWEST (0.094 mM):
+       - Raw average start: 5.7% O2
+       - Second-lowest start: 11.5% (6 mM)
+       - Shifted UP by 4.3% so it starts at 10.0%
+         (1.5% margin below the second-lowest)
+
+  5. All other concentrations (6, 3, 1.5, 0.75, 0.38, 0.19 mM) are
+     plotted at their raw averaged values with no adjustment
+
+     MARGIN parameter = 1.5% (gap preserved between shifted trace and
+     its nearest neighbor)
+
+  WHY this approach:
+  - The 12 mM group's high baseline was driven by one remaining well
+    (well 0) starting at 41% O2, pulling the 2-well average up
+  - The 0.094 mM group has only 1 well starting at 5.7%, creating
+    an artificially large gap from the pack (11–19%)
+  - A uniform shift preserves the shape and magnitude of the response
+    while closing the gap — the relative change over time is unchanged
+  - Unlike full offset/normalization, this keeps the middle 6
+    concentrations at their true measured values
+
+
+===============================================================================
+5. PLOT APPEARANCE
+===============================================================================
+
+Averaged plot:
+  - Figure size: 4.5 x 3.0 inches, saved at 600 DPI
+  - One line per concentration (averaged across wells)
+  - Colormap: 'plasma' (8 colors, high conc = dark blue, low = yellow)
+  - Line width: 1.5
+  - Legend: concentration + well count, e.g. "12 mM (n=2)"
+  - X-axis: Time (h), range 0–96h
+  - Y-axis: O2 (%), mathtext subscript
+  - Title: "Epirubicin O2 — Averaged (Offset)"
+  - Font: Helvetica (via figure_config.py)
+  - Background: white
+
+Individual wells plot:
+  - Same styling but each well plotted as its own line
+  - Line width: 0.8, alpha: 0.7
+  - No offset applied — raw smoothed traces
+  - Legend shows concentration only (no well count)
+
+
+===============================================================================
+6. DEPENDENCIES
+===============================================================================
+
+Python packages:
+  numpy, pandas, matplotlib, scipy (gaussian_filter1d, CubicSpline),
+  statsmodels (sm.nonparametric.lowess), pathlib, collections
+
+Font config:
+  figure_config.py (project root, 2 levels up from script)
+  Sets Helvetica font, title=10pt, axis labels=9pt, ticks=8pt
+
+
+===============================================================================
+7. REPRODUCTION
+===============================================================================
+
+To regenerate:
+  cd Cleaned_Data/Raw_Example_Data
+  python plot_epirubicin_o2.py
+
+Outputs saved to:
+  Cleaned_Data/Raw_Example_Data/Epirubicin/Epirubicin_O2_individual.png
+  Cleaned_Data/Raw_Example_Data/Epirubicin/Epirubicin_O2_averaged_offset.png
+
+
+===============================================================================
+8. DESIGN DECISIONS AND ALTERNATIVES CONSIDERED
+===============================================================================
+
+Three baseline-handling approaches were tested before settling on this one:
+
+  a. COMPRESS=0.0 (all traces start at identical point)
+     - Clean fan-out but looks artificial — all lines converge to one dot
+     - Rejected: user preferred some natural spread
+
+  b. No offset at all (raw averages)
+     - Natural but 12 mM starts at 27% while 6 mM starts at 11%
+     - The 12 mM baseline is misleadingly high due to one high-baseline well
+     - 0.094 mM is isolated far below the pack at 5.7%
+     - Rejected: too much visual gap between outliers and the main group
+
+  c. COMPRESS=0.3 (30% of original spread preserved)
+     - Intermediate approach, tested first
+     - Rejected: baselines still too bunched together for this dataset
+
+  d. Targeted shift of only the two extreme traces (CHOSEN)
+     - Preserves all middle concentrations at true values
+     - Only adjusts the two traces whose baselines were dominated by
+       well-level artifacts (high-baseline well in 12 mM, single low
+       well in 0.094 mM)
+     - Uniform shift keeps response shape intact

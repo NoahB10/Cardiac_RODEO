@@ -1,0 +1,212 @@
+Drug: Dactinomycin
+Interpolation: linear, limit=4 segments
+Columns dropped when >= 50% missing data
+Wells within each concentration sorted by average values (highest to lowest)
+
+Diameter normalization: ENABLED for amp_std and amp_dom_freq metrics
+Total wells analyzed: 32
+  - Wells WITH diameter data: 16 (50.0%)
+  - Wells WITHOUT diameter data: 16 (50.0%)
+  - Excluded plates (no diameter): namedlogs, Plate3, Raw_WellsAH
+
+[O2_mean] column mapping:
+  B: 1.5 -> A07 (avg: 65.74)
+  C: 1.5 -> A08 (avg: 74.07)
+  D: 1.5 -> B07 (avg: 67.78)
+  E: 1.5 -> B08 (avg: 68.98)
+  F: 0.75 -> C07 (avg: 57.73)
+  G: 0.75 -> C08 (avg: 56.48)
+  H: 0.75 -> D07 (avg: 58.31)
+  I: 0.75 -> D08 (avg: 61.98)
+  J: 0.375 -> E07 (avg: 55.41)
+  K: 0.375 -> E08 (avg: 61.05)
+  L: 0.375 -> F07 (avg: 56.67)
+  M: 0.375 -> F08 (avg: 59.97)
+  N: 0.1875 -> G07 (avg: 55.85)
+  O: 0.1875 -> G08 (avg: 57.23)
+  P: 0.1875 -> H07 (avg: 61.71)
+  Q: 0.1875 -> H08 (avg: 64.70)
+  R: 0.0938 -> I07 (avg: 57.93)
+  S: 0.0938 -> I08 (avg: 47.90)
+  T: 0.0938 -> J07 (avg: 51.28)
+  U: 0.0938 -> J08 (avg: 63.24)
+  V: 0.0469 -> K07 (avg: 42.19)
+  W: 0.0469 -> K08 (avg: 62.31)
+  X: 0.0469 -> L07 (avg: 49.56)
+  Y: 0.0469 -> L08 (avg: 44.43)
+  Z: 0.0234 -> M07 (avg: 43.27)
+  AA: 0.0234 -> M08 (avg: 47.56)
+  AB: 0.0234 -> N07 (avg: 32.52)
+  AC: 0.0234 -> N08 (avg: 52.80)
+  AD: 0.0117 -> O07 (avg: 38.25)
+  AE: 0.0117 -> O08 (avg: 41.76)
+  AF: 0.0117 -> P07 (avg: 40.76)
+  Dropped: 0.0117 -> P08
+
+[O2_dom_freq] column mapping:
+  B: 1.5 -> A07 (avg: 1.43)
+  C: 1.5 -> A08 (avg: 1.25)
+  D: 1.5 -> B07 (avg: 1.27)
+  E: 1.5 -> B08 (avg: 1.38)
+  F: 0.75 -> C07 (avg: 1.47)
+  G: 0.75 -> C08 (avg: 1.45)
+  H: 0.75 -> D07 (avg: 1.45)
+  I: 0.75 -> D08 (avg: 1.40)
+  J: 0.375 -> E07 (avg: 1.31)
+  K: 0.375 -> E08 (avg: 1.38)
+  L: 0.375 -> F07 (avg: 1.35)
+  M: 0.375 -> F08 (avg: 1.30)
+  N: 0.1875 -> G07 (avg: 1.50)
+  O: 0.1875 -> G08 (avg: 1.26)
+  P: 0.1875 -> H07 (avg: 1.43)
+  Q: 0.1875 -> H08 (avg: 1.22)
+  R: 0.0938 -> I07 (avg: 1.35)
+  S: 0.0938 -> I08 (avg: 1.40)
+  T: 0.0938 -> J07 (avg: 1.48)
+  U: 0.0938 -> J08 (avg: 1.50)
+  V: 0.0469 -> K07 (avg: 1.37)
+  W: 0.0469 -> K08 (avg: 1.37)
+  X: 0.0469 -> L07 (avg: 1.40)
+  Y: 0.0469 -> L08 (avg: 1.35)
+  Z: 0.0234 -> M07 (avg: 1.54)
+  AA: 0.0234 -> M08 (avg: 1.57)
+  AB: 0.0234 -> N07 (avg: 1.11)
+  AC: 0.0234 -> N08 (avg: 1.29)
+  AD: 0.0117 -> O07 (avg: 1.27)
+  AE: 0.0117 -> O08 (avg: 1.41)
+  AF: 0.0117 -> P07 (avg: 1.45)
+  Dropped: 0.0117 -> P08
+
+[O2_std] column mapping:
+  B: 1.5 -> A07 (avg: 2.23)
+  C: 1.5 -> A08 (avg: 5.28)
+  D: 1.5 -> B07 (avg: 3.93)
+  E: 1.5 -> B08 (avg: 3.36)
+  F: 0.75 -> C07 (avg: 1.62)
+  G: 0.75 -> C08 (avg: 2.37)
+  H: 0.75 -> D07 (avg: 3.34)
+  I: 0.75 -> D08 (avg: 2.23)
+  J: 0.375 -> E07 (avg: 1.10)
+  K: 0.375 -> E08 (avg: 14.09)
+  L: 0.375 -> F07 (avg: 1.79)
+  M: 0.375 -> F08 (avg: 3.13)
+  N: 0.1875 -> G07 (avg: 2.75)
+  O: 0.1875 -> G08 (avg: 3.76)
+  P: 0.1875 -> H07 (avg: 4.71)
+  Q: 0.1875 -> H08 (avg: 8.19)
+  R: 0.0938 -> I07 (avg: 3.57)
+  S: 0.0938 -> I08 (avg: 3.05)
+  T: 0.0938 -> J07 (avg: 1.83)
+  U: 0.0938 -> J08 (avg: 4.11)
+  V: 0.0469 -> K07 (avg: 2.55)
+  W: 0.0469 -> K08 (avg: 5.14)
+  X: 0.0469 -> L07 (avg: 5.12)
+  Y: 0.0469 -> L08 (avg: 2.40)
+  Z: 0.0234 -> M07 (avg: 5.62)
+  AA: 0.0234 -> M08 (avg: 1.24)
+  AB: 0.0234 -> N07 (avg: 1.99)
+  AC: 0.0234 -> N08 (avg: 2.66)
+  AD: 0.0117 -> O07 (avg: 2.48)
+  AE: 0.0117 -> O08 (avg: 2.09)
+  AF: 0.0117 -> P07 (avg: 3.38)
+  Dropped: 0.0117 -> P08
+
+[Amp_std] column mapping:
+  B: 1.5 -> A07 (avg: 0.13)
+  C: 1.5 -> A08 (avg: 0.02)
+  D: 1.5 -> B07 (avg: 0.04)
+  E: 1.5 -> B08 (avg: 0.05)
+  F: 0.75 -> C07 (avg: 0.19)
+  G: 0.75 -> C08 (avg: 0.09)
+  H: 0.75 -> D07 (avg: 0.06)
+  I: 0.75 -> D08 (avg: 0.11)
+  J: 0.375 -> E07 (avg: 0.20)
+  K: 0.375 -> E08 (avg: 0.00)
+  L: 0.375 -> F07 (avg: 0.17)
+  M: 0.375 -> F08 (avg: 0.06)
+  N: 0.1875 -> G07 (avg: 0.07)
+  O: 0.1875 -> G08 (avg: 0.05)
+  P: 0.1875 -> H07 (avg: 0.04)
+  Q: 0.1875 -> H08 (avg: 0.01)
+  R: 0.0938 -> I07 (avg: 0.04)
+  S: 0.0938 -> I08 (avg: 0.08)
+  T: 0.0938 -> J07 (avg: 0.14)
+  U: 0.0938 -> J08 (avg: 0.03)
+  V: 0.0469 -> K07 (avg: 0.06)
+  W: 0.0469 -> K08 (avg: 0.00)
+  X: 0.0469 -> L07 (avg: 0.02)
+  Y: 0.0469 -> L08 (avg: 0.07)
+  Z: 0.0234 -> M07 (avg: 0.04)
+  AA: 0.0234 -> M08 (avg: 0.18)
+  AB: 0.0234 -> N07 (avg: 0.10)
+  AC: 0.0234 -> N08 (avg: 0.07)
+  AD: 0.0117 -> O07 (avg: 0.08)
+  AE: 0.0117 -> O08 (avg: 0.10)
+  AF: 0.0117 -> P07 (avg: 0.03)
+  Dropped: 0.0117 -> P08
+
+[Amp_dom_freq] column mapping:
+  B: 1.5 -> A07 (avg: 1.39)
+  C: 1.5 -> A08 (avg: 1.42)
+  D: 1.5 -> B07 (avg: 1.48)
+  E: 1.5 -> B08 (avg: 1.49)
+  F: 0.75 -> C07 (avg: 1.37)
+  G: 0.75 -> C08 (avg: 1.22)
+  H: 0.75 -> D07 (avg: 1.53)
+  I: 0.75 -> D08 (avg: 1.48)
+  J: 0.375 -> E07 (avg: 1.29)
+  K: 0.375 -> E08 (avg: 1.45)
+  L: 0.375 -> F07 (avg: 1.42)
+  M: 0.375 -> F08 (avg: 1.44)
+  N: 0.1875 -> G07 (avg: 1.66)
+  O: 0.1875 -> G08 (avg: 1.33)
+  P: 0.1875 -> H07 (avg: 1.44)
+  Q: 0.1875 -> H08 (avg: 1.34)
+  R: 0.0938 -> I07 (avg: 1.47)
+  S: 0.0938 -> I08 (avg: 1.34)
+  T: 0.0938 -> J07 (avg: 1.36)
+  U: 0.0938 -> J08 (avg: 1.33)
+  V: 0.0469 -> K07 (avg: 1.48)
+  W: 0.0469 -> K08 (avg: 1.51)
+  X: 0.0469 -> L07 (avg: 1.28)
+  Y: 0.0469 -> L08 (avg: 1.46)
+  Z: 0.0234 -> M07 (avg: 1.50)
+  AA: 0.0234 -> M08 (avg: 1.47)
+  AB: 0.0234 -> N07 (avg: 1.62)
+  AC: 0.0234 -> N08 (avg: 1.29)
+  AD: 0.0117 -> O07 (avg: 1.40)
+  AE: 0.0117 -> O08 (avg: 1.01)
+  AF: 0.0117 -> P07 (avg: 1.33)
+  Dropped: 0.0117 -> P08
+
+Wells without diameter data (not normalized):
+  O08 - no_diameter_data
+  O07 - no_diameter_data
+  N08 - no_diameter_data
+  P07 - no_diameter_data
+  J08 - no_diameter_data
+  J07 - no_diameter_data
+  M08 - no_diameter_data
+  K07 - no_diameter_data
+  M07 - no_diameter_data
+  I08 - no_diameter_data
+  N07 - no_diameter_data
+  K08 - no_diameter_data
+  L08 - no_diameter_data
+  L07 - no_diameter_data
+  I07 - no_diameter_data
+  O08 - no_diameter_data
+  O07 - no_diameter_data
+  N08 - no_diameter_data
+  P07 - no_diameter_data
+  J08 - no_diameter_data
+  J07 - no_diameter_data
+  M08 - no_diameter_data
+  K07 - no_diameter_data
+  M07 - no_diameter_data
+  I08 - no_diameter_data
+  N07 - no_diameter_data
+  K08 - no_diameter_data
+  L08 - no_diameter_data
+  L07 - no_diameter_data
+  I07 - no_diameter_data

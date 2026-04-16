@@ -242,7 +242,7 @@ def plot_averaged(drug_name, time, wells, out_dir):
                     for c, traces in conc_groups.items()}
     global_avg = np.mean(list(conc_avg_raw.values()))
 
-    fig, ax = plt.subplots(figsize=(12, 8))
+    fig, ax = plt.subplots(figsize=(10, 8))
     for i, conc in enumerate(concs_sorted):
         traces = conc_groups[conc]
         t_fine = traces[0][0]
@@ -263,13 +263,12 @@ def plot_averaged(drug_name, time, wells, out_dir):
         spine.set_edgecolor('black')
         spine.set_linewidth(3.0)
 
+    # Save locally (with legend for standalone use)
     ax.legend(fontsize=32, title='Concentration (mM)', title_fontsize=33,
               loc='lower left', ncol=2,
               borderpad=0.4, labelspacing=0.3, handlelength=1.2,
               columnspacing=1.0,
               framealpha=0.85, edgecolor='none')
-
-    # Save locally
     out_local = out_dir / f'{drug_name}_Contractility_offset_averaged.png'
     fig.savefig(out_local, dpi=SAVE_DPI, bbox_inches='tight', pad_inches=0.05, facecolor='white')
     print(f'  Saved: {out_local}')
@@ -277,9 +276,43 @@ def plot_averaged(drug_name, time, wells, out_dir):
     # Only Mexiletine goes to Fig_2
     if drug_name == 'Mexiletine':
         fig2_dir = Path(__file__).resolve().parents[2] / 'Output' / 'PowerPoint_Figures' / 'Fig_2'
+        axisless_dir = fig2_dir / 'Axisless'
+        axisless_dir.mkdir(parents=True, exist_ok=True)
+
+        # Export legend as standalone image
+        handles, labels = ax.get_legend_handles_labels()
+        fig_leg = plt.figure(figsize=(4, 3))
+        fig_leg.legend(handles, labels, fontsize=32,
+                       title='Concentration (mM)', title_fontproperties={'size': 33},
+                       ncol=2, borderpad=0.4, labelspacing=0.3,
+                       handlelength=1.2, columnspacing=1.0,
+                       loc='center', frameon=False)
+        legend_path = axisless_dir / 'Fig_2j_Mexiletine_Contractility_legend.png'
+        fig_leg.savefig(legend_path, dpi=SAVE_DPI, bbox_inches='tight',
+                        pad_inches=0.1, facecolor='white')
+        plt.close(fig_leg)
+        print(f'  Saved legend: {legend_path}')
+
+        # Remove legend from main figure, save original (no legend)
+        ax.get_legend().remove()
         out_fig2 = fig2_dir / 'Fig_2j_Mexiletine_Contractility.png'
         fig.savefig(out_fig2, dpi=SAVE_DPI, bbox_inches='tight', pad_inches=0.05, facecolor='white')
         print(f'  Saved: {out_fig2}')
+
+        # Save axisless version — no axes, no legend, just data
+        for a in fig.get_axes():
+            a.set_xlabel('')
+            a.set_ylabel('')
+            a.set_title('')
+            for spine in a.spines.values():
+                spine.set_visible(False)
+            a.tick_params(left=False, bottom=False, top=False, right=False,
+                          labelleft=False, labelbottom=False, labeltop=False, labelright=False)
+            a.grid(False)
+        fig.tight_layout(pad=0.3)
+        out_axisless = axisless_dir / 'Fig_2j_Mexiletine_Contractility.png'
+        fig.savefig(out_axisless, dpi=SAVE_DPI, facecolor='white')
+        print(f'  Saved axisless: {out_axisless}')
     plt.close(fig)
     print(f'  ({len(concs_sorted)} concentrations)')
 

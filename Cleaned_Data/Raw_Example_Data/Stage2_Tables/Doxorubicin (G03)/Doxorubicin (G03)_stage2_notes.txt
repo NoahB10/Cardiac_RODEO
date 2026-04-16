@@ -1,0 +1,158 @@
+Drug: Doxorubicin (G03)
+Interpolation: linear, limit=4 segments
+Columns dropped when >= 50% missing data
+Wells within each concentration sorted by average values (highest to lowest)
+
+Diameter normalization: ENABLED for amp_std and amp_dom_freq metrics
+Total wells analyzed: 32
+  - Wells WITH diameter data: 16 (50.0%)
+  - Wells WITHOUT diameter data: 16 (50.0%)
+  - Excluded plates (no diameter): namedlogs, Plate3, Raw_WellsAH
+
+[O2_mean] column mapping:
+  B: 10 -> D21 (avg: 55.73)
+  C: 5 -> E21 (avg: 41.01)
+  D: 5 -> E22 (avg: 35.00)
+  E: 5 -> F21 (avg: 35.15)
+  F: 5 -> F22 (avg: 53.67)
+  G: 2.5 -> G21 (avg: 32.89)
+  H: 2.5 -> G22 (avg: 29.30)
+  I: 2.5 -> H22 (avg: 31.46)
+  J: 1.25 -> I21 (avg: 23.37)
+  K: 1.25 -> I22 (avg: 38.47)
+  L: 1.25 -> J21 (avg: 37.77)
+  M: 0.63 -> K21 (avg: 48.56)
+  N: 0.63 -> K22 (avg: 48.06)
+  O: 0.63 -> L21 (avg: 21.46)
+  P: 0.31 -> M21 (avg: 6.62)
+  Q: 0.31 -> M22 (avg: 25.42)
+  R: 0.31 -> N21 (avg: 17.88)
+  S: 0.31 -> N22 (avg: 27.76)
+  T: 0.16 -> O21 (avg: 38.37)
+  U: 0.16 -> O22 (avg: 12.15)
+  V: 0.16 -> P22 (avg: 52.15)
+  Dropped: 20 -> A22, 20 -> B21, 20 -> B22, 10 -> C21, 10 -> C22, 10 -> D22, 2.5 -> H21, 1.25 -> J22, 0.63 -> L22, 0.16 -> P21
+
+[O2_dom_freq] column mapping:
+  B: 10 -> D21 (avg: 1.37)
+  C: 5 -> E21 (avg: 1.29)
+  D: 5 -> E22 (avg: 1.33)
+  E: 5 -> F21 (avg: 1.68)
+  F: 5 -> F22 (avg: 1.47)
+  G: 2.5 -> G21 (avg: 1.21)
+  H: 2.5 -> G22 (avg: 1.34)
+  I: 2.5 -> H22 (avg: 1.29)
+  J: 1.25 -> I21 (avg: 1.30)
+  K: 1.25 -> I22 (avg: 1.37)
+  L: 1.25 -> J21 (avg: 1.23)
+  M: 0.63 -> K21 (avg: 1.57)
+  N: 0.63 -> K22 (avg: 1.39)
+  O: 0.63 -> L21 (avg: 1.51)
+  P: 0.31 -> M21 (avg: 1.20)
+  Q: 0.31 -> M22 (avg: 1.36)
+  R: 0.31 -> N21 (avg: 1.51)
+  S: 0.31 -> N22 (avg: 1.43)
+  T: 0.16 -> O21 (avg: 1.18)
+  U: 0.16 -> O22 (avg: 1.21)
+  V: 0.16 -> P22 (avg: 1.49)
+  Dropped: 20 -> A22, 20 -> B21, 20 -> B22, 10 -> C21, 10 -> C22, 10 -> D22, 2.5 -> H21, 1.25 -> J22, 0.63 -> L22, 0.16 -> P21
+
+[O2_std] column mapping:
+  B: 10 -> D21 (avg: 3.39)
+  C: 5 -> E21 (avg: 2.73)
+  D: 5 -> E22 (avg: 2.41)
+  E: 5 -> F21 (avg: 3.40)
+  F: 5 -> F22 (avg: 4.39)
+  G: 2.5 -> G21 (avg: 3.36)
+  H: 2.5 -> G22 (avg: 4.11)
+  I: 2.5 -> H22 (avg: 4.47)
+  J: 1.25 -> I21 (avg: 1.63)
+  K: 1.25 -> I22 (avg: 2.53)
+  L: 1.25 -> J21 (avg: 3.91)
+  M: 0.63 -> K21 (avg: 2.13)
+  N: 0.63 -> K22 (avg: 3.46)
+  O: 0.63 -> L21 (avg: 2.66)
+  P: 0.31 -> M21 (avg: 1.82)
+  Q: 0.31 -> M22 (avg: 3.94)
+  R: 0.31 -> N21 (avg: 2.28)
+  S: 0.31 -> N22 (avg: 3.36)
+  T: 0.16 -> O21 (avg: 4.63)
+  U: 0.16 -> O22 (avg: 1.49)
+  V: 0.16 -> P22 (avg: 2.24)
+  Dropped: 20 -> A22, 20 -> B21, 20 -> B22, 10 -> C21, 10 -> C22, 10 -> D22, 2.5 -> H21, 1.25 -> J22, 0.63 -> L22, 0.16 -> P21
+
+[Amp_std] column mapping:
+  B: 10 -> D21 (avg: 0.17)
+  C: 5 -> E21 (avg: 0.14)
+  D: 5 -> E22 (avg: 0.19)
+  E: 5 -> F21 (avg: 0.11)
+  F: 5 -> F22 (avg: 0.15)
+  G: 2.5 -> G21 (avg: 0.06)
+  H: 2.5 -> G22 (avg: 0.05)
+  I: 2.5 -> H22 (avg: 0.04)
+  J: 1.25 -> I21 (avg: 0.20)
+  K: 1.25 -> I22 (avg: 0.15)
+  L: 1.25 -> J21 (avg: 0.08)
+  M: 0.63 -> K21 (avg: 0.14)
+  N: 0.63 -> K22 (avg: 0.06)
+  O: 0.63 -> L21 (avg: 0.06)
+  P: 0.31 -> M21 (avg: 0.07)
+  Q: 0.31 -> M22 (avg: 0.03)
+  R: 0.31 -> N21 (avg: 0.07)
+  S: 0.31 -> N22 (avg: 0.06)
+  T: 0.16 -> O21 (avg: 0.00)
+  U: 0.16 -> O22 (avg: 0.12)
+  V: 0.16 -> P22 (avg: 0.10)
+  Dropped: 20 -> A22, 20 -> B21, 20 -> B22, 10 -> C21, 10 -> C22, 10 -> D22, 2.5 -> H21, 1.25 -> J22, 0.63 -> L22, 0.16 -> P21
+
+[Amp_dom_freq] column mapping:
+  B: 10 -> D21 (avg: 1.32)
+  C: 5 -> E21 (avg: 1.14)
+  D: 5 -> E22 (avg: 1.46)
+  E: 5 -> F21 (avg: 1.53)
+  F: 5 -> F22 (avg: 1.41)
+  G: 2.5 -> G21 (avg: 1.33)
+  H: 2.5 -> G22 (avg: 1.57)
+  I: 2.5 -> H22 (avg: 1.20)
+  J: 1.25 -> I21 (avg: 1.32)
+  K: 1.25 -> I22 (avg: 1.19)
+  L: 1.25 -> J21 (avg: 1.25)
+  M: 0.63 -> K21 (avg: 1.44)
+  N: 0.63 -> K22 (avg: 1.69)
+  O: 0.63 -> L21 (avg: 1.38)
+  P: 0.31 -> M21 (avg: 1.24)
+  Q: 0.31 -> M22 (avg: 1.39)
+  R: 0.31 -> N21 (avg: 1.26)
+  S: 0.31 -> N22 (avg: 1.43)
+  T: 0.16 -> O21 (avg: 1.52)
+  U: 0.16 -> O22 (avg: 1.07)
+  V: 0.16 -> P22 (avg: 1.43)
+  Dropped: 20 -> A22, 20 -> B21, 20 -> B22, 10 -> C21, 10 -> C22, 10 -> D22, 2.5 -> H21, 1.25 -> J22, 0.63 -> L22, 0.16 -> P21
+
+Wells without diameter data (not normalized):
+  O21 - no_diameter_data
+  L21 - no_diameter_data
+  K22 - no_diameter_data
+  N21 - no_diameter_data
+  I21 - no_diameter_data
+  M21 - no_diameter_data
+  P22 - no_diameter_data
+  K21 - no_diameter_data
+  I22 - no_diameter_data
+  N22 - no_diameter_data
+  J21 - no_diameter_data
+  M22 - no_diameter_data
+  O22 - no_diameter_data
+  O21 - no_diameter_data
+  L21 - no_diameter_data
+  K22 - no_diameter_data
+  N21 - no_diameter_data
+  I21 - no_diameter_data
+  M21 - no_diameter_data
+  P22 - no_diameter_data
+  K21 - no_diameter_data
+  I22 - no_diameter_data
+  N22 - no_diameter_data
+  J21 - no_diameter_data
+  M22 - no_diameter_data
+  O22 - no_diameter_data

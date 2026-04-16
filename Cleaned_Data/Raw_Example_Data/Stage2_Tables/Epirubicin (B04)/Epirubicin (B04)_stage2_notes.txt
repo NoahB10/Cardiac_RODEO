@@ -1,0 +1,162 @@
+Drug: Epirubicin (B04)
+Interpolation: linear, limit=4 segments
+Columns dropped when >= 50% missing data
+Wells within each concentration sorted by average values (highest to lowest)
+
+Diameter normalization: ENABLED for amp_std and amp_dom_freq metrics
+Total wells analyzed: 29
+  - Wells WITH diameter data: 15 (51.7%)
+  - Wells WITHOUT diameter data: 14 (48.3%)
+  - Excluded plates (no diameter): namedlogs, Plate3, Raw_WellsAH
+
+[O2_mean] column mapping:
+  B: 12 -> A23 (avg: 65.51)
+  C: 12 -> A24 (avg: 82.50)
+  D: 12 -> B23 (avg: 55.45)
+  E: 6 -> C23 (avg: 46.59)
+  F: 6 -> C24 (avg: 50.13)
+  G: 6 -> D23 (avg: 49.09)
+  H: 6 -> D24 (avg: 58.87)
+  I: 3 -> E23 (avg: 28.34)
+  J: 3 -> E24 (avg: 39.62)
+  K: 3 -> F23 (avg: 44.28)
+  L: 1.5 -> G23 (avg: 28.02)
+  M: 1.5 -> G24 (avg: 35.24)
+  N: 1.5 -> H23 (avg: 35.77)
+  O: 0.75 -> I23 (avg: 30.98)
+  P: 0.75 -> I24 (avg: 44.87)
+  Q: 0.75 -> J23 (avg: 25.58)
+  R: 0.75 -> J24 (avg: 42.69)
+  S: 0.38 -> K23 (avg: 19.30)
+  T: 0.38 -> K24 (avg: 39.77)
+  U: 0.38 -> L23 (avg: 13.84)
+  V: 0.38 -> L24 (avg: 26.70)
+  W: 0.19 -> M23 (avg: 28.94)
+  X: 0.094 -> O23 (avg: 17.08)
+  Dropped: 3 -> F24, 1.5 -> H24, 0.19 -> M24, 0.19 -> N23, 0.19 -> N24, 0.094 -> P23
+
+[O2_dom_freq] column mapping:
+  B: 12 -> A23 (avg: 1.30)
+  C: 12 -> A24 (avg: 1.25)
+  D: 12 -> B23 (avg: 1.43)
+  E: 6 -> C23 (avg: 1.34)
+  F: 6 -> C24 (avg: 1.35)
+  G: 6 -> D23 (avg: 1.70)
+  H: 6 -> D24 (avg: 1.48)
+  I: 3 -> E23 (avg: 1.55)
+  J: 3 -> E24 (avg: 1.29)
+  K: 3 -> F23 (avg: 1.23)
+  L: 1.5 -> G23 (avg: 1.40)
+  M: 1.5 -> G24 (avg: 1.31)
+  N: 1.5 -> H23 (avg: 1.31)
+  O: 0.75 -> I23 (avg: 1.22)
+  P: 0.75 -> I24 (avg: 1.46)
+  Q: 0.75 -> J23 (avg: 1.32)
+  R: 0.75 -> J24 (avg: 1.42)
+  S: 0.38 -> K23 (avg: 1.33)
+  T: 0.38 -> K24 (avg: 1.34)
+  U: 0.38 -> L23 (avg: 1.65)
+  V: 0.38 -> L24 (avg: 1.49)
+  W: 0.19 -> M23 (avg: 1.39)
+  X: 0.094 -> O23 (avg: 1.38)
+  Dropped: 3 -> F24, 1.5 -> H24, 0.19 -> M24, 0.19 -> N23, 0.19 -> N24, 0.094 -> P23
+
+[O2_std] column mapping:
+  B: 12 -> A23 (avg: 2.58)
+  C: 12 -> A24 (avg: 12.38)
+  D: 12 -> B23 (avg: 2.95)
+  E: 6 -> C23 (avg: 1.86)
+  F: 6 -> C24 (avg: 1.99)
+  G: 6 -> D23 (avg: 3.97)
+  H: 6 -> D24 (avg: 7.21)
+  I: 3 -> E23 (avg: 2.26)
+  J: 3 -> E24 (avg: 1.70)
+  K: 3 -> F23 (avg: 2.59)
+  L: 1.5 -> G23 (avg: 1.90)
+  M: 1.5 -> G24 (avg: 2.53)
+  N: 1.5 -> H23 (avg: 2.85)
+  O: 0.75 -> I23 (avg: 1.70)
+  P: 0.75 -> I24 (avg: 7.26)
+  Q: 0.75 -> J23 (avg: 1.45)
+  R: 0.75 -> J24 (avg: 3.94)
+  S: 0.38 -> K23 (avg: 2.02)
+  T: 0.38 -> K24 (avg: 3.01)
+  U: 0.38 -> L23 (avg: 1.47)
+  V: 0.38 -> L24 (avg: 4.49)
+  W: 0.19 -> M23 (avg: 1.92)
+  X: 0.094 -> O23 (avg: 5.12)
+  Dropped: 3 -> F24, 1.5 -> H24, 0.19 -> M24, 0.19 -> N23, 0.19 -> N24, 0.094 -> P23
+
+[Amp_std] column mapping:
+  B: 12 -> A23 (avg: 0.16)
+  C: 12 -> A24 (avg: 0.01)
+  D: 12 -> B23 (avg: 0.18)
+  E: 6 -> C23 (avg: 0.21)
+  F: 6 -> C24 (avg: 0.18)
+  G: 6 -> D23 (avg: 0.12)
+  H: 6 -> D24 (avg: 0.06)
+  I: 3 -> E23 (avg: 0.10)
+  J: 3 -> E24 (avg: 0.20)
+  K: 3 -> F23 (avg: 0.10)
+  L: 1.5 -> G23 (avg: 0.11)
+  M: 1.5 -> G24 (avg: 0.07)
+  N: 1.5 -> H23 (avg: 0.08)
+  O: 0.75 -> I23 (avg: 0.07)
+  P: 0.75 -> I24 (avg: 0.00)
+  Q: 0.75 -> J23 (avg: 0.19)
+  R: 0.75 -> J24 (avg: 0.03)
+  S: 0.38 -> K23 (avg: 0.08)
+  T: 0.38 -> K24 (avg: 0.07)
+  U: 0.38 -> L23 (avg: 0.18)
+  V: 0.38 -> L24 (avg: 0.00)
+  W: 0.19 -> M23 (avg: 0.12)
+  X: 0.094 -> O23 (avg: 0.03)
+  Dropped: 3 -> F24, 1.5 -> H24, 0.19 -> M24, 0.19 -> N23, 0.19 -> N24, 0.094 -> P23
+
+[Amp_dom_freq] column mapping:
+  B: 12 -> A23 (avg: 1.16)
+  C: 12 -> A24 (avg: 1.23)
+  D: 12 -> B23 (avg: 1.32)
+  E: 6 -> C23 (avg: 1.54)
+  F: 6 -> C24 (avg: 1.16)
+  G: 6 -> D23 (avg: 1.45)
+  H: 6 -> D24 (avg: 1.16)
+  I: 3 -> E23 (avg: 1.35)
+  J: 3 -> E24 (avg: 1.31)
+  K: 3 -> F23 (avg: 1.45)
+  L: 1.5 -> G23 (avg: 1.34)
+  M: 1.5 -> G24 (avg: 1.52)
+  N: 1.5 -> H23 (avg: 1.14)
+  O: 0.75 -> I23 (avg: 1.44)
+  P: 0.75 -> I24 (avg: 1.18)
+  Q: 0.75 -> J23 (avg: 1.44)
+  R: 0.75 -> J24 (avg: 1.39)
+  S: 0.38 -> K23 (avg: 1.27)
+  T: 0.38 -> K24 (avg: 1.35)
+  U: 0.38 -> L23 (avg: 1.71)
+  V: 0.38 -> L24 (avg: 1.41)
+  W: 0.19 -> M23 (avg: 1.41)
+  X: 0.094 -> O23 (avg: 1.17)
+  Dropped: 3 -> F24, 1.5 -> H24, 0.19 -> M24, 0.19 -> N23, 0.19 -> N24, 0.094 -> P23
+
+Wells without diameter data (not normalized):
+  K23 - no_diameter_data
+  K24 - no_diameter_data
+  I24 - no_diameter_data
+  J24 - no_diameter_data
+  M23 - no_diameter_data
+  L24 - no_diameter_data
+  L23 - no_diameter_data
+  J23 - no_diameter_data
+  O23 - no_diameter_data
+  I23 - no_diameter_data
+  K23 - no_diameter_data
+  K24 - no_diameter_data
+  I24 - no_diameter_data
+  J24 - no_diameter_data
+  M23 - no_diameter_data
+  L24 - no_diameter_data
+  L23 - no_diameter_data
+  J23 - no_diameter_data
+  O23 - no_diameter_data
+  I23 - no_diameter_data

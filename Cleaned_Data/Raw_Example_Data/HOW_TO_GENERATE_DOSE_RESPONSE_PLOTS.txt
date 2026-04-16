@@ -1,0 +1,248 @@
+===============================================================================
+HOW TO GENERATE PER-WELL DOSE-RESPONSE PLOTS (Individual + Averaged)
+===============================================================================
+Reference: Cobimetinib O2 plots as the worked example.
+Created: 2026-03-19
+
+This document explains the process for generating smoothed per-well
+dose-response time-series plots (individual wells + averaged by concentration).
+
+
+===============================================================================
+STEP 1: PROVIDE THE PER-WELL CSV DATA
+===============================================================================
+
+Each drug needs a CSV file placed in its own subfolder under Raw_Example_Data/.
+
+CSV Format:
+  - First column: time in hours (0, 4, 8, 12, ..., 96)
+  - Remaining columns: one per well, header = concentration (mM)
+  - Pandas adds .1, .2 suffixes to duplicate headers (e.g., 4, 4.1, 4.2, 4.3
+    are all 4 mM wells). These suffixes are NOT real -- they get cleaned later.
+  - O2 data uses: O2_mean.csv
+  - Contractility data uses: Amp_std.csv
+
+These CSVs are provided directly. They may come from:
+  - Cleaned_Data/Heatmaps/{DrugName}/  (pre-existing sorted/unsorted CSVs)
+  - The CDAP Stage 2 pipeline output
+  - Direct export from compiled Excel files
+
+Existing data locations (already provided):
+  Cleaned_Data/Raw_Example_Data/Cobimetinib (E03)/O2_mean.csv
+  Cleaned_Data/Raw_Example_Data/Cobimetinib (E03)/Amp_std.csv
+  Cleaned_Data/Raw_Example_Data/Amiodarone/Amp_std.csv
+  Cleaned_Data/Raw_Example_Data/Mexiletine/Amp_std.csv
+
+
+===============================================================================
+STEP 2: FOLDER STRUCTURE
+===============================================================================
+
+  Cleaned_Data/Raw_Example_Data/
+    {DrugName}/
+      O2_mean.csv  and/or  Amp_std.csv    <-- input data (provided by user)
+      {Drug}_stage2_notes.txt              <-- optional provenance notes
+      {Drug}_O2_individual.png             <-- output
+      {Drug}_O2_averaged.png               <-- output
+      {Drug}_Contractility_individual.png  <-- output
+      {Drug}_Contractility_averaged.png    <-- output
+
+
+===============================================================================
+STEP 3: THE PLOTTING SCRIPTS
+===============================================================================
+
+All scripts live in Cleaned_Data/Raw_Example_Data/:
+
+  A) plot_cobimetinib_o2.py
+     - Single-drug script for Cobimetinib O2
+     - Per-drug parameters hardcoded at top of file:
+       * SKIP_WELL_INDICES = {13, 23, 26}  (outlier wells to exclude)
+       * N_HIGH_BASELINE = 6               (wells to offset down)
+     - These were determined by inspecting the individual wells plot and
+       identifying outliers (very low wells, outlier baselines, massive outliers)
+
+  B) plot_cobimetinib_contractility.py
+     - Single-drug script for Cobimetinib contractility (Amp_std)
+     - Same smoothing pipeline as O2 script
+     - Per-drug parameters set at top, adjusted after inspecting plots
+
+  C) plot_contractility.py
+     - Multi-drug template (Amiodarone + Mexiletine contractility)
+     - Uses a DRUGS dictionary for per-drug configuration:
+
+       DRUGS = {
+           'Amiodarone': {
+               'folder': 'Amiodarone',
+               'csv': 'Amp_std.csv',
+               'known_concs': [10, 5, 2.5, 1.25, 0.782, 0.625, 0.313, 0.156],
+               'skip_wells': set(),       # no wells excluded
+               'n_high_baseline': 0,      # no baseline offset
+           },
+           'Mexiletine': {
+               'folder': 'Mexiletine',
+               'csv': 'Amp_std.csv',
+               'known_concs': [20, 10, 5, 2.5, 1.25, 0.625, 0.313, 0.156],
+               'skip_wells': set(),
+               'n_high_baseline': 0,
+           },
+       }
+
+     - Best template for adding new drugs -- just add an entry to DRUGS dict
+
+
+===============================================================================
+STEP 4: PER-DRUG PARAMETERS (determined iteratively)
+===============================================================================
+
+Each drug requires these parameters, determined by inspecting the data:
+
+A) KNOWN CONCENTRATIONS (known_concs)
+   - List of actual concentration values in mM for this drug
+   - Used by clean_conc_label() to strip pandas duplicate suffixes
+   - Example: column header "0.5.2" matches known conc 0.5 -> cleaned to 0.5
+   - MUST be specified per drug (different drugs have different concentration sets)
+
+B) SKIP WELLS (skip_wells / SKIP_WELL_INDICES)
+   - 0-based column indices (from data columns, not including time column) to exclude
+   - Determined by running the script FIRST with skip_wells=set(), then inspecting
+     the individual wells plot to identify:
+     * Wells that drop to ~0 (dead organoids)
+     * Wells with extreme outlier baselines
+     * Wells with anomalous behavior
+   - The user reviews the individual plot and specifies which to remove
+   - Example: Cobimetinib O2 excludes {13, 23, 26}
+
+C) HIGH BASELINE OFFSET (n_high_baseline / N_HIGH_BASELINE)
+   - Number of highest-baseline wells to shift down to align with the rest
+   - The script finds the N wells with highest initial values, computes the
+     average baseline of all OTHER wells, and subtracts the difference
+   - Set to 0 to disable
+   - Example: Cobimetinib O2 uses N_HIGH_BASELINE=6
+
+WORKFLOW:
+  1. Set skip_wells=set() and n_high_baseline=0 initially
+  2. Run the script to generate the individual wells plot
+  3. Show the plot to the user
+  4. User identifies which wells to exclude and whether baseline offset is needed
+  5. Update skip_wells and n_high_baseline accordingly
+  6. Re-run to generate final plots
+
+
+===============================================================================
+STEP 5: THE SMOOTHING PIPELINE (what happens inside)
+===============================================================================
+
+Each well goes through this processing chain:
+
+  1. SPIKE REMOVAL (remove_spikes, threshold_mult=5.0)
+     - Detects isolated sharp spikes by comparing each point to its neighbors
+     - If deviation > 5x median step AND > 2x neighbor difference -> spike
+     - Spikes replaced with NaN, then linearly interpolated
+
+  2. NaN GAP CHECK (interpolate_limited, MAX_NAN_GAP=7)
+     - If any consecutive NaN run exceeds 7 timestamps, the well is EXCLUDED
+     - Otherwise, linear interpolation fills gaps
+
+  3. SECOND SPIKE REMOVAL (threshold_mult=2.5, more aggressive)
+     - Catches smaller spikes missed in step 1
+
+  4. FINAL NaN FILL
+     - Any remaining NaN filled by linear interpolation
+     - Wells with < 4 valid points are excluded entirely
+
+  5. INTENSIVE SMOOTHING (intensive_smooth)
+     a. LOWESS pass 1: frac=0.55 (very broad)
+     b. LOWESS pass 2: frac=0.45
+     c. LOWESS pass 3: frac=0.35 (narrower)
+     d. Gaussian filter: sigma=3.0
+     e. CubicSpline: bc_type=((1, 0.0), (2, 0.0))
+        - Clamped start (zero slope at baseline)
+        - Natural end condition
+     f. Evaluate on 1000-point fine grid for smooth curves
+
+  This is VERY heavy smoothing -- it removes all noise and produces
+  publication-quality smooth curves showing the overall trend.
+
+
+===============================================================================
+STEP 6: PLOT APPEARANCE
+===============================================================================
+
+Both scripts produce two plots per drug:
+
+  A) Individual Wells Plot
+     - Every well plotted as its own smoothed line
+     - Colored by concentration using 'plasma' colormap
+     - Legend shows concentration (mM), sorted high to low
+     - figsize=(4.5, 3.0), saved at 600 DPI
+     - Also prints well index, concentration, baseline, and final values
+       so user can identify which wells to exclude
+
+  B) Averaged Plot
+     - Wells grouped by concentration, traces averaged
+     - Legend shows concentration + well count: "4 mM (n=4)"
+     - Same size and DPI
+
+Font configuration comes from figure_config.py (imported at top of each script).
+It sets Helvetica font, consistent sizes (title=10pt, axis=9pt, ticks=8pt),
+and 600 DPI output. The import path is:
+
+  sys.path.insert(0, str(__import__('pathlib').Path(__file__).resolve().parents[2]))
+  import figure_config
+
+This adds the project root (2 levels up) to sys.path so figure_config.py
+can be found.
+
+
+===============================================================================
+QUICK START: ADDING A NEW DRUG
+===============================================================================
+
+1. Place the CSV in a new subfolder:
+   Cleaned_Data/Raw_Example_Data/{DrugName}/O2_mean.csv  (or Amp_std.csv)
+
+2. Add a new entry to the DRUGS dict in plot_contractility.py (or create a
+   new single-drug script based on plot_cobimetinib_o2.py):
+   - Set known_concs to the drug's actual concentration list
+   - Set skip_wells = set()  (empty -- will fill in after inspection)
+   - Set n_high_baseline = 0  (disabled -- will adjust after inspection)
+   - Update ylabel if switching between O2 and Contractility
+
+3. Run the script:
+   cd Cleaned_Data/Raw_Example_Data
+   python plot_contractility.py
+
+4. Inspect the individual wells plot:
+   - Identify outlier wells to exclude (dead wells dropping to ~0, extreme baselines)
+   - Decide if high-baseline offset is needed
+
+5. Update skip_wells and n_high_baseline with the identified values
+
+6. Re-run to generate final clean plots
+
+
+===============================================================================
+FILE REFERENCE
+===============================================================================
+
+Scripts (all in Cleaned_Data/Raw_Example_Data/):
+  plot_cobimetinib_o2.py              -- Cobimetinib O2 (single-drug)
+  plot_cobimetinib_contractility.py   -- Cobimetinib Contractility (single-drug)
+  plot_contractility.py               -- Multi-drug contractility template (Amiodarone, Mexiletine)
+  figure_config.py                    -- Shared font/style config (project root)
+
+Input data (provided directly in subfolders):
+  Cobimetinib (E03)/O2_mean.csv       -- Cobimetinib O2 per-well time-series
+  Cobimetinib (E03)/Amp_std.csv       -- Cobimetinib contractility per-well
+  Amiodarone/Amp_std.csv              -- Amiodarone contractility per-well
+  Mexiletine/Amp_std.csv              -- Mexiletine contractility per-well
+
+Dependencies:
+  numpy, pandas, matplotlib, scipy (gaussian_filter1d, CubicSpline),
+  statsmodels (sm.nonparametric.lowess), pathlib
+
+Outputs (saved in each drug's subfolder):
+  {DrugName}_O2_individual.png / {DrugName}_O2_averaged.png
+  {DrugName}_Contractility_individual.png / {DrugName}_Contractility_averaged.png
+  All at 600 DPI, white background, tight bbox

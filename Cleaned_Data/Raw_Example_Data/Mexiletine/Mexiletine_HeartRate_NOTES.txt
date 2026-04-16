@@ -1,0 +1,65 @@
+Mexiletine Heart Rate Stacked Waveform Plots — Production Notes
+================================================================
+
+Purpose: Show dose-dependent heart rate at a single timepoint (48h)
+         with 3 concentrations: High (fast), Med (standard), Low (standard).
+
+Data Source
+-----------
+  Raw per-well CSV files from:
+    Cleaned_Data/Stage1_Raw_Relaxed/Mexiletine/{conc}mM/{Well}_{hour}h_{timestamp}.csv
+  Each CSV has columns: time_s, amp1_vpp (cardiac contraction signal, ~200ms sampling)
+
+Signal Processing Pipeline (per well)
+--------------------------------------
+  1. Load CSV, skip first 5 rows + last 1 row (startup/shutdown artifacts)
+  2. Detect dominant frequency via Welch PSD (nperseg=min(256, N), band 0.5-2.0 Hz)
+  3. Harmonic doubling check: if half-freq has >=70% power of peak, use half-freq
+  4. Compute half-power bandwidth (-3dB points around peak, clamped 0.05-0.3 Hz)
+  5. Apply narrow FFT bandpass: dominant_freq +/- bandwidth
+     This is the "Level 2" filter — produces very clean sinusoidal waveforms
+  6. BPM = dominant_freq * 60
+
+Plot Construction
+-----------------
+  - 3 traces stacked vertically (High at top, Med middle, Low bottom)
+  - Each trace normalized: amplitude / max(abs) * 0.3, then offset by [2.0, 1.0, 0.0]
+  - BPM annotation at right end of each trace
+  - Y-axis: Contractility (mV), no tick values, axis line visible
+  - X-axis: Time (s)
+  - Figure size: 3.5 x 4.5 inches, 600 DPI
+  - Colors: High=#d62728 (red), Med=#ff7f0e (orange), Low=#2ca02c (green)
+
+Fixed Wells
+-----------
+  High: 5mM F16 at 48h — 119 BPM (dom_freq=1.985 Hz, bw=0.100 Hz)
+  Low:  0.625mM L15 at 48h — 59 BPM (dom_freq=0.985 Hz, bw=0.050 Hz)
+
+Med Options (user to choose)
+-----------------------------
+  Option 2: 2.5mM H15 at 48h — 73 BPM
+  Option 4: 1.25mM I16 at 48h — 81 BPM
+
+  Other Med candidates considered:
+    G16 (2.5mM, 65 BPM) — too close to Low
+    H16 (2.5mM, 73 BPM) — same BPM as H15
+
+Output Files
+------------
+  Mexiletine_Stacked_48h_option2.png  — plot with Med=H15 2.5mM 73BPM
+  Mexiletine_Stacked_48h_option4.png  — plot with Med=I16 1.25mM 81BPM
+  Mexiletine_DoseResponse_48h_Option2.xlsx — data (3 sheets + Summary)
+  Mexiletine_DoseResponse_48h_Option4.xlsx — data (3 sheets + Summary)
+  Each Excel sheet has: time_s, amp1_vpp_filtered
+
+How Wells Were Selected
+-----------------------
+  1. Extracted BPM for all Mexiletine wells at all timepoints (28 wells total)
+  2. Searched for single-timepoint combos where:
+     - High conc >= 90 BPM (very fast)
+     - Med conc 50-70 BPM (standard)
+     - Low conc 50-70 BPM (standard)
+  3. 48h chosen as best timepoint
+  4. High=F16 5mM (119 BPM) selected — strongest signal
+  5. Low=L15 0.625mM (59 BPM) selected — cleanest oscillation from options grid
+  6. Med: 4 candidates shown to user, options 2 and 4 selected for comparison
