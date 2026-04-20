@@ -1456,7 +1456,7 @@ def generate_fig_3():
     # ----- Save combined data Excel files (one per drug) -----
     print("  Saving Panel 3a/3b data files...")
     for drug in heatmap_drugs:
-        excel_filename = f'Fig_3b_{drug}_data.xlsx'
+        excel_filename = f'Fig_3_{drug}_data.xlsx'
         excel_path = fig3_dir / excel_filename
 
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
@@ -1758,11 +1758,16 @@ def generate_fig_3():
     # Config: (drug, resp_type, folder, concs_to_keep, outlier_filter)
     _FIG3E_PANELS = [
         ('Vandetanib', 'O2', 'Vandetanib (G11)', [0.5, 0.125, 0.062],
-         lambda conc, v_norm, t_fine: v_norm.min() > 0),
-        ('Daunorubicin', 'Contractility', 'Daunorubicin (F03)', [0.5, 0.25, 0.125],
          lambda conc, v_norm, t_fine: (
-             v_norm.max() < 3.0 and
-             not (conc == 0.25 and (v_norm.max() - v_norm.min()) > 1.0)
+             v_norm.min() > 0
+             and v_norm.max() < 4.5       # drop outlier peaking ~6
+             and v_norm.max() > 1.5        # drop dead-well trace hovering near 1.0
+         )),
+        ('Sotalol', 'Contractility', 'Sotalol', [5.0, 2.5, 0.313],
+         lambda conc, v_norm, t_fine: not (
+             v_norm[np.argmin(np.abs(t_fine - 95))] > 1.03 or
+             v_norm[np.argmin(np.abs(t_fine - 50))] > 1.10 or
+             (conc == 0.313 and v_norm[np.argmin(np.abs(t_fine - 40))] < 0.75)
          )),
     ]
 
