@@ -63,6 +63,15 @@ FIGURES_DIR = PROJECT_ROOT / 'Output' / 'PowerPoint_Figures'
 REGISTRY_PATH = FIGURES_DIR / 'figure_registry.csv'
 QUICK_MODE = False  # Set via --quick flag; skips reprocessing if data already exists
 
+# Bypass matplotlib's name-based font lookup — point directly at the bundled
+# Helvetica TTF so no silent fallback to Arial/DejaVu can occur on any machine.
+from matplotlib import font_manager as _fm
+_HELVETICA_TTF = PROJECT_ROOT / 'fonts' / 'helvetica.ttf'
+if not _HELVETICA_TTF.exists():
+    raise FileNotFoundError(f'Bundled Helvetica TTF missing: {_HELVETICA_TTF}')
+def _helvetica(size):
+    return _fm.FontProperties(fname=str(_HELVETICA_TTF), size=size)
+
 # Standard figure sizes from skill (inches)
 SQUARE_SIZE = 1.7           # Standard square for bar charts, scatter, ROC, CM
 HEATMAP_WIDTH = 3.1         # Heatmap width (2x height) - sized so 2 fit side-by-side on slide
@@ -1434,11 +1443,14 @@ def generate_fig_3():
         ax_surf.yaxis.set_major_formatter(NullFormatter())
         ax_surf.zaxis.set_major_formatter(NullFormatter())
 
-        # Axis labels via set_xlabel/set_ylabel and text2D for Z
-        ax_surf.set_xlabel('Time (h)', fontsize=LABEL_SIZE_3B, labelpad=-10)
-        ax_surf.set_ylabel('Dose Ratio', fontsize=LABEL_SIZE_3B, labelpad=-10)
+        # Axis labels via set_xlabel/set_ylabel and text2D for Z.
+        # Use fontproperties=_helvetica(...) to point at the bundled TTF directly
+        # — guarantees Helvetica on any machine, no silent Arial/DejaVu fallback.
+        ax_surf.set_xlabel('Time (h)', fontproperties=_helvetica(LABEL_SIZE_3B), labelpad=2)
+        ax_surf.set_ylabel('Dose Ratio', fontproperties=_helvetica(LABEL_SIZE_3B), labelpad=2)
         ax_surf.text2D(0.05, 0.5, r'$O_2$ (%)', transform=ax_surf.transAxes,
-                       fontsize=LABEL_SIZE_3B, rotation=90, va='center', ha='right')
+                       fontproperties=_helvetica(LABEL_SIZE_3B),
+                       rotation=90, va='center', ha='right')
 
         surf_filename = f'{drug}_{eq_filename_map[eq_name]}.png'
         surf_path = fig3_dir / surf_filename
