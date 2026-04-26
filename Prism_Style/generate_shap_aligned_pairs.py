@@ -37,6 +37,7 @@ sys.path.insert(0, str(HERE))
 
 import figure_config  # noqa: F401
 from prism_style import apply_prism_style, render_at_scale, helvetica
+from _paths import panel_png, panel_data
 
 SHAP_DIR = PROJECT_ROOT / "Output" / "SHAP_Data"
 CLEANED_DIR = PROJECT_ROOT / "Cleaned_Data"
@@ -240,6 +241,55 @@ def _plot_fn(shap_df, label_map, n_pos, n_neg, spec):
     return _fn
 
 
+def _save_data(fig_num, shap_df, label_map, n_pos, n_neg, spec, src):
+    """Save the SHAP values for the top-5 features (what's plotted in the
+    butterfly) plus the full source matrix and drug class map.
+
+    Slot is 'e' in the new Remake layout (was historically 'f').
+    """
+    out = panel_data(fig_num, "e")
+    feature_cols = [c for c in shap_df.columns if c != "Drug"]
+    mean_abs = shap_df[feature_cols].mean().abs()
+    top = mean_abs.nlargest(TOP_K).index.tolist()
+
+    # Plotted: top-5 features × per-drug SHAP × class label
+    plotted_rows = []
+    for feature in top:
+        for _, row in shap_df.iterrows():
+            drug = row["Drug"]
+            plotted_rows.append({
+                "Feature": feature,
+                "Drug": drug,
+                "SHAP_value": float(row[feature]),
+                "Class": (spec["pos_label"] if label_map.get(drug, False)
+                          else spec["neg_label"]),
+            })
+    plotted = pd.DataFrame(plotted_rows)
+    feature_summary = pd.DataFrame({
+        "Feature": top,
+        "Mean_SHAP": [shap_df[f].mean() for f in top],
+        "MeanAbs_SHAP": [mean_abs[f] for f in top],
+    })
+    metadata = pd.DataFrame([{
+        "Panel": f"Fig_{fig_num}e (Prism, SHAP aligned pairs)",
+        "Description": "Aligned positive/negative SHAP value pairs for top-5 features",
+        "Source_Script": "Prism_Style/generate_shap_aligned_pairs.py",
+        "Source_SHAP": str(src.relative_to(PROJECT_ROOT)),
+        "Source_Labels": "Cleaned_Data/drug_classification.csv",
+        "Top_K_Features": TOP_K,
+        "n_positive": n_pos,
+        "n_negative": n_neg,
+        "positive_label": spec["pos_label"],
+        "negative_label": spec["neg_label"],
+    }])
+    with pd.ExcelWriter(out, engine="openpyxl") as w:
+        plotted.to_excel(w, sheet_name="Plotted", index=False)
+        feature_summary.to_excel(w, sheet_name="Top5_Features", index=False)
+        shap_df.to_excel(w, sheet_name="RawSHAP_AllFeatures", index=False)
+        metadata.to_excel(w, sheet_name="Metadata", index=False)
+    return out
+
+
 def main():
     from PIL import Image
     for fig_num in (6, 7, 8):
@@ -248,26 +298,22 @@ def main():
         except FileNotFoundError as e:
             print(f"[SKIP] {fig_num}f: {e}")
             continue
-        out = HERE / f"Fig_{fig_num}f_prism.png"
+        out = panel_png(fig_num, "e")   # slot 'e' content = SHAP
         render_at_scale(
             _plot_fn(shap_df, label_map, n_pos, n_neg, spec),
             (FIG_W, FIG_H), out,
             scale=SCALE, dpi=600, transparent=True,
             axes_rect=AXES_RECT,
         )
+        data_xlsx = _save_data(fig_num, shap_df, label_map, n_pos, n_neg, spec, src)
         im = Image.open(out)
         dpi = im.info.get("dpi", (600, 600))[0]
-        # Compute top features for the report line
         feature_cols = [c for c in shap_df.columns if c != "Drug"]
         top = shap_df[feature_cols].mean().abs().nlargest(TOP_K).index.tolist()
-        print(f"[{fig_num}f] -> {out.name}")
+        print(f"[{fig_num}f] -> {out.relative_to(PROJECT_ROOT)}")
         print(f"    image  : {im.size} px = "
               f"{im.size[0]/dpi:.3f}\" x {im.size[1]/dpi:.3f}\"")
-        print(f"    plot   : {PLOT_W:.3f}\" x {PLOT_H:.3f}\"  "
-              f"({PLOT_W*CM_PER_IN:.2f} x {PLOT_H*CM_PER_IN:.2f} cm)")
-        print(f"    source : {src.name} + drug_classification.csv")
-        print(f"    classes: {n_pos} {spec['pos_label']} / "
-              f"{n_neg} {spec['neg_label']}")
+        print(f"    data   : {data_xlsx.relative_to(PROJECT_ROOT)}")
         print(f"    top {TOP_K}: {top}")
 
 

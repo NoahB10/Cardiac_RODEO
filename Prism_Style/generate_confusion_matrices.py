@@ -27,6 +27,7 @@ sys.path.insert(0, str(HERE))
 
 import figure_config  # noqa: F401
 from prism_style import render_at_scale, helvetica
+from _paths import panel_png, panel_data
 
 FIG_DIR = PROJECT_ROOT / "Output" / "PowerPoint_Figures"
 SCALE = 4
@@ -132,26 +133,50 @@ def _plot_cm(cm):
     return _fn
 
 
+def _save_data(fig_num: int, cm: np.ndarray, src: Path) -> Path:
+    out = panel_data(fig_num, "b")
+    df_cm = pd.DataFrame(
+        cm, index=["Actual_Neg", "Actual_Pos"], columns=["Pred_Neg", "Pred_Pos"]
+    )
+    metrics = {
+        "TN": int(cm[0, 0]), "FP": int(cm[0, 1]),
+        "FN": int(cm[1, 0]), "TP": int(cm[1, 1]),
+    }
+    metrics["Accuracy"] = (metrics["TN"] + metrics["TP"]) / cm.sum()
+    metrics["Sensitivity"] = metrics["TP"] / max(1, metrics["TP"] + metrics["FN"])
+    metrics["Specificity"] = metrics["TN"] / max(1, metrics["TN"] + metrics["FP"])
+    metadata = pd.DataFrame([{
+        "Panel": f"Fig_{fig_num}b (Prism)",
+        "Description": "Confusion matrix for the Organoid classifier",
+        "Source_Script": "Prism_Style/generate_confusion_matrices.py",
+        "Source_Data": str(src.relative_to(PROJECT_ROOT)),
+    }])
+    with pd.ExcelWriter(out, engine="openpyxl") as w:
+        df_cm.to_excel(w, sheet_name="Plotted")
+        pd.DataFrame([metrics]).to_excel(w, sheet_name="Metrics", index=False)
+        metadata.to_excel(w, sheet_name="Metadata", index=False)
+    return out
+
+
 def main():
     from PIL import Image
     for fig_num in (6, 7, 8):
         cm, src = load_cm(fig_num)
-        out = HERE / f"Fig_{fig_num}b_prism.png"
+        out = panel_png(fig_num, "b")
         render_at_scale(
             _plot_cm(cm), (FIG_W, FIG_H), out,
             scale=SCALE, dpi=600, transparent=True,
             axes_rect=AXES_RECT,
         )
+        data_xlsx = _save_data(fig_num, cm, src)
         im = Image.open(out)
         dpi = im.info.get("dpi", (600, 600))[0]
-        print(f"[{fig_num}b] -> {out.name}")
+        print(f"[{fig_num}b] -> {out.relative_to(PROJECT_ROOT)}")
         print(f"    image : {im.size} px = "
               f"{im.size[0]/dpi:.3f}\" x {im.size[1]/dpi:.3f}\"")
-        print(f"    plot  : {PLOT_SIZE:.3f}\" x {PLOT_SIZE:.3f}\"  "
-              f"({PLOT_SIZE*2.54:.2f} x {PLOT_SIZE*2.54:.2f} cm)")
-        print(f"    data  : {src.name} -> CM")
-        print(f"            [[{cm[0,0]:4d}, {cm[0,1]:4d}], "
-              f"[{cm[1,0]:4d}, {cm[1,1]:4d}]]  (vmax={cm.max()})")
+        print(f"    data  : {data_xlsx.relative_to(PROJECT_ROOT)}")
+        print(f"    cm    : [[{cm[0,0]:4d}, {cm[0,1]:4d}], "
+              f"[{cm[1,0]:4d}, {cm[1,1]:4d}]]")
 
 
 if __name__ == "__main__":

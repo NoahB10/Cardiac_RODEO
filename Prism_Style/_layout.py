@@ -81,11 +81,10 @@ LEGEND_STASH_T_BY_LETTER = {
 }
 
 
-# Per-letter legend filename suffix.  E.g. f panel uses Fig_N + 'g_prism_legend.png'
-# because the f slot's CONTENT is the old g-letter Prism PNG (after the swap).
+# Per-letter legend filename suffix.  PNG basename = slot letter directly.
 LEGEND_FILE_BY_LETTER = {
-    "f": "g_prism_legend.png",   # Fig_Ng_prism_legend.png
-    "g": "h_prism_legend.png",   # Fig_Nh_prism_legend.png
+    "f": "f_prism_legend.png",   # Fig_Nf_prism_legend.png  (ROC compare)
+    "g": "g_prism_legend.png",   # Fig_Ng_prism_legend.png  (Acc/F1/MCC key)
 }
 
 # Which row each panel belongs to.
@@ -101,31 +100,35 @@ PANEL_ROW = {
 #   slot e = SHAP                (Fig_Nf_prism.png)
 #   slot f = ROC compare (square) (Fig_Ng_prism.png)
 #   slot g = perf compare bars   (Fig_Nh_prism.png)
+# NEW Remake-folder convention:
+# - Generators save PNGs straight to Output/PowerPoint_Figures_Remake/sources/Fig_N/
+# - PNG basenames now use the SLOT letter (a/b/c/d/e/f/g), not the historical
+#   panel letter — so Fig_Ne_prism.png IS the SHAP image, etc.
 CONTENT = {
     6: {
         "Panel_6a": "Fig_6a_prism.png",
         "Panel_6b": "Fig_6b_prism.png",
         "Panel_6c": "Fig_6c_prism.png",
         "Panel_6d": "Fig_6d_prism.png",
-        "Panel_6e": "Fig_6f_prism.png",   # SHAP
-        "Panel_6f": "Fig_6g_prism.png",   # ROC compare (was 6g content)
-        "Panel_6g": "Fig_6h_prism.png",   # perf compare bars (was 6h content)
+        "Panel_6e": "Fig_6e_prism.png",   # SHAP
+        "Panel_6f": "Fig_6f_prism.png",   # ROC compare
+        "Panel_6g": "Fig_6g_prism.png",   # perf compare bars
     },
     7: {
         "Panel_7a": "Fig_7a_prism.png",
         "Panel_7b": "Fig_7b_prism.png",
         "Panel_7c": "Fig_7c_prism.png",
         "Panel_7d": "Fig_7d_prism.png",
-        "Panel_7e": "Fig_7f_prism.png",
-        "Panel_7f": "Fig_7g_prism.png",
-        "Panel_7g": "Fig_7h_prism.png",
+        "Panel_7e": "Fig_7e_prism.png",
+        "Panel_7f": "Fig_7f_prism.png",
+        "Panel_7g": "Fig_7g_prism.png",
     },
     8: {
         "Panel_8a": "Fig_8a_prism.png",
         "Panel_8b": "Fig_8b_prism.png",
         "Panel_8c": "Fig_8c_prism.png",
         "Panel_8d": "Fig_8d_prism.png",
-        "Panel_8e": "Fig_8f_prism.png",
+        "Panel_8e": "Fig_8e_prism.png",
     },
 }
 

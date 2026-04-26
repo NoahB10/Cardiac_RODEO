@@ -28,6 +28,7 @@ sys.path.insert(0, str(HERE))
 import figure_config  # noqa: F401
 from prism_style import apply_prism_style, render_at_scale, helvetica
 from _legend_export import render_legend_image
+from _paths import panel_png, panel_data, panel_legend_png
 from matplotlib.patches import Patch
 
 FIG_DIR = PROJECT_ROOT / "Output" / "PowerPoint_Figures"
@@ -199,9 +200,10 @@ def _c_panel_descriptor(fig_num: int):
     plot_w, plot_h = 1.526, 1.422
     margin_l, margin_b = 0.667, 0.44
     rect = _axes_rect(plot_w, plot_h, fig_w, fig_h, margin_l, margin_b)
-    out = HERE / f"Fig_{fig_num}c_prism.png"
+    out = panel_png(fig_num, "c")
     return dict(plot_fn=_c_plot_fn(means, stds), figsize=(fig_w, fig_h),
-                axes_rect=rect, out=out, src=xlsx, means=means, stds=stds)
+                axes_rect=rect, out=out, src=xlsx, means=means, stds=stds,
+                kind="c", fig_num=fig_num)
 
 
 def _h_panel_descriptor(fig_num: int):
@@ -223,9 +225,10 @@ def _h_panel_descriptor(fig_num: int):
     fig_w = plot_w + margin_l + margin_r
     fig_h = plot_h + margin_b + margin_t
     rect = _axes_rect(plot_w, plot_h, fig_w, fig_h, margin_l, margin_b)
-    out = HERE / f"Fig_{fig_num}h_prism.png"
+    out = panel_png(fig_num, "g")   # slot 'g' content = perf-compare bars
     return dict(plot_fn=_h_plot_fn(df), figsize=(fig_w, fig_h),
-                axes_rect=rect, out=out, src=xlsx, df=df, kind="h")
+                axes_rect=rect, out=out, src=xlsx, df=df, kind="h",
+                fig_num=fig_num)
 
 
 # --------------------------------------------------------------------------- #
@@ -241,6 +244,43 @@ PANELS = [
 ]
 
 
+def _save_data_c(fig_num, means, stds, src):
+    out = panel_data(fig_num, "c")
+    plotted = pd.DataFrame({
+        "Metric": ["Accuracy", "AUC", "F1", "MCC"],
+        "Mean": means,
+        "Std": stds,
+    })
+    metadata = pd.DataFrame([{
+        "Panel": f"Fig_{fig_num}c (Prism)",
+        "Description": "4-metric (Accuracy, AUC, F1, MCC) bar plot with error bars",
+        "Source_Script": "Prism_Style/generate_bar_plots.py",
+        "Source_Data": str(src.relative_to(PROJECT_ROOT)),
+    }])
+    with pd.ExcelWriter(out, engine="openpyxl") as w:
+        plotted.to_excel(w, sheet_name="Plotted", index=False)
+        metadata.to_excel(w, sheet_name="Metadata", index=False)
+    return out
+
+
+def _save_data_h(fig_num, df, src):
+    """Save the per-model Acc/F1/MCC means and stds for the perf-compare bars
+    panel (which lives in slot 'g' in the new Remake layout)."""
+    out = panel_data(fig_num, "g")   # slot 'g' content = h-panel bars
+    plotted = df[["Model", "Accuracy", "Accuracy_Std", "F1", "F1_Std",
+                  "MCC", "MCC_Std"]].copy() if "Accuracy_Std" in df.columns else df.copy()
+    metadata = pd.DataFrame([{
+        "Panel": f"Fig_{fig_num}g (Prism, perf compare bars)",
+        "Description": "Acc/F1/MCC bars across multiple models for performance comparison",
+        "Source_Script": "Prism_Style/generate_bar_plots.py",
+        "Source_Data": str(src.relative_to(PROJECT_ROOT)),
+    }])
+    with pd.ExcelWriter(out, engine="openpyxl") as w:
+        plotted.to_excel(w, sheet_name="Plotted", index=False)
+        metadata.to_excel(w, sheet_name="Metadata", index=False)
+    return out
+
+
 def main():
     from PIL import Image
     for name, maker, n in PANELS:
@@ -254,22 +294,28 @@ def main():
             scale=SCALE, dpi=600, transparent=True,
             axes_rect=d["axes_rect"],
         )
+        if d.get("kind") == "c":
+            data_xlsx = _save_data_c(d["fig_num"], d["means"], d["stds"], d["src"])
+        elif d.get("kind") == "h":
+            data_xlsx = _save_data_h(d["fig_num"], d["df"], d["src"])
+        else:
+            data_xlsx = None
         im = Image.open(out)
         dpi = im.info.get("dpi", (600, 600))[0]
         fig_w, fig_h = d["figsize"]
         plot_w = d["axes_rect"][2] * fig_w
         plot_h = d["axes_rect"][3] * fig_h
-        print(f"[{name}] -> {out.name}")
+        print(f"[{name}] -> {out.relative_to(PROJECT_ROOT)}")
         print(f"    image  : {im.size} px = {im.size[0]/dpi:.3f}\" × {im.size[1]/dpi:.3f}\"")
-        print(f"    plot   : {plot_w:.3f}\" × {plot_h:.3f}\"  ({plot_w*2.54:.2f} × {plot_h*2.54:.2f} cm)")
-        print(f"    source : {d['src'].name}")
+        if data_xlsx:
+            print(f"    data   : {data_xlsx.relative_to(PROJECT_ROOT)}")
 
         # h panels: also write a standalone Acc/F1/MCC color-key legend.
         if d.get("kind") == "h":
             handles = [Patch(facecolor=BAR_COLORS_3[i], edgecolor="black",
                              linewidth=BAR_EDGE_PT * SCALE, label=lbl)
                        for i, lbl in enumerate(["Accuracy", "F1", "MCC"])]
-            legend_out = d["out"].with_name(d["out"].stem + "_legend.png")
+            legend_out = panel_legend_png(d["fig_num"], "g")
             render_legend_image(
                 handles,
                 prop=helvetica(VALUE_LABEL_PT_H * SCALE),
@@ -281,18 +327,9 @@ def main():
                 borderpad=0.0,
             )
             leg_im = Image.open(legend_out)
-            print(f"    legend : {legend_out.name}  {leg_im.size} px = "
+            print(f"    legend : {legend_out.relative_to(PROJECT_ROOT)}  "
+                  f"{leg_im.size} px = "
                   f"{leg_im.size[0]/dpi:.3f}\" × {leg_im.size[1]/dpi:.3f}\"")
-
-        if "means" in d:
-            for m, μ, σ in zip(["Acc", "AUC", "F1", "MCC"], d["means"], d["stds"]):
-                print(f"      {m:4s} = {μ:.3f} ± {σ:.3f}")
-        else:
-            for _, r in d["df"].iterrows():
-                print(f"      {r['Model']:25s} "
-                      f"Acc={r['Accuracy']:.3f}±{r.get('Accuracy_Std', 0):.3f}  "
-                      f"F1={r['F1']:.3f}±{r.get('F1_Std', 0):.3f}  "
-                      f"MCC={r['MCC']:.3f}±{r.get('MCC_Std', 0):.3f}")
 
 
 if __name__ == "__main__":

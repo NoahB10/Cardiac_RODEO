@@ -24,6 +24,7 @@ sys.path.insert(0, str(HERE))
 
 import figure_config  # noqa: F401
 from prism_style import apply_prism_style, render_at_scale, helvetica
+from _paths import panel_png, panel_data
 
 FIG_DIR = PROJECT_ROOT / "Output" / "PowerPoint_Figures"
 
@@ -155,6 +156,26 @@ def _plot_fn(df, threshold, prob_col):
     return _fn
 
 
+def _save_data(fig_num, df, threshold, prob_col, src):
+    out = panel_data(fig_num, "d")
+    plotted = df[["Drug", prob_col, "is_positive"]].rename(
+        columns={prob_col: "Predicted_pct"}
+    )
+    plotted["Threshold_pct"] = threshold
+    metadata = pd.DataFrame([{
+        "Panel": f"Fig_{fig_num}d (Prism)",
+        "Description": "Per-drug predicted probability dot plot with decision threshold",
+        "Source_Script": "Prism_Style/generate_dot_plots.py",
+        "Source_Data": str(src.relative_to(PROJECT_ROOT)),
+        "Probability_Column": prob_col,
+        "Threshold_pct": threshold,
+    }])
+    with pd.ExcelWriter(out, engine="openpyxl") as w:
+        plotted.to_excel(w, sheet_name="Plotted", index=False)
+        metadata.to_excel(w, sheet_name="Metadata", index=False)
+    return out
+
+
 def main():
     from PIL import Image
     for fig_num, prob_col in PANEL_SPECS.items():
@@ -166,21 +187,20 @@ def main():
         except KeyError as e:
             print(f"[SKIP] {fig_num}d: {e}")
             continue
-        out = HERE / f"Fig_{fig_num}d_prism.png"
+        out = panel_png(fig_num, "d")
         render_at_scale(
             _plot_fn(df, threshold, prob_col), (FIG_W, FIG_H), out,
             scale=SCALE, dpi=600, transparent=True,
             axes_rect=AXES_RECT,
         )
+        data_xlsx = _save_data(fig_num, df, threshold, prob_col, src)
         im = Image.open(out)
         dpi = im.info.get("dpi", (600, 600))[0]
         n_pos = int(df["is_positive"].sum())
-        print(f"[{fig_num}d] -> {out.name}")
+        print(f"[{fig_num}d] -> {out.relative_to(PROJECT_ROOT)}")
         print(f"    image  : {im.size} px = "
               f"{im.size[0]/dpi:.3f}\" x {im.size[1]/dpi:.3f}\"")
-        print(f"    plot   : {PLOT_W:.3f}\" x {PLOT_H:.3f}\"  "
-              f"({PLOT_W*2.54:.2f} x {PLOT_H*2.54:.2f} cm)")
-        print(f"    source : {src.name} -> Predictions ({prob_col})")
+        print(f"    data   : {data_xlsx.relative_to(PROJECT_ROOT)}")
         print(f"    rows   : {len(df)} drugs  ({n_pos} pos, "
               f"{len(df)-n_pos} neg), threshold = {threshold:.1f}%")
 

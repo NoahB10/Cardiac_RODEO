@@ -36,6 +36,7 @@ sys.path.insert(0, str(HERE))
 from _layout import (ROW_LAYOUT, PANEL_ROW, MARGIN_B, CONTENT,
                      LEGEND_STASH_X, LEGEND_STASH_T_BY_LETTER,
                      LEGEND_FILE_BY_LETTER)  # noqa: E402
+from _paths import panel_dir  # noqa: E402
 from PIL import Image as _PILImage  # noqa: E402
 
 EMU_PER_INCH = 914400
@@ -182,7 +183,7 @@ def update_slide_loose(slide, fig_num: int):
     for name in sorted(CONTENT[fig_num].keys()):
         letter = name[-1]
         png_name = CONTENT[fig_num][name]
-        png = HERE / png_name
+        png = panel_dir(fig_num) / png_name
         if not png.exists():
             print(f"  [WARN] missing source {png.name} for {name}")
             continue
@@ -205,7 +206,7 @@ def update_slide_loose(slide, fig_num: int):
     for legend_letter, suffix in LEGEND_FILE_BY_LETTER.items():
         if legend_letter not in panel_positions:
             continue
-        legend_png = HERE / f"Fig_{fig_num}{suffix}"
+        legend_png = panel_dir(fig_num) / f"Fig_{fig_num}{suffix}"
         if not legend_png.exists():
             print(f"  [SKIP legend] missing {legend_png.name}")
             continue

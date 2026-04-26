@@ -47,6 +47,7 @@ from _roc_bootstrap import (cached_bootstrap, cv_fold_band_from_a_panel,
                              cv_fold_band_for_7g_organoid,
                              roc_from_predictions)
 from _legend_export import render_legend_image
+from _paths import panel_png, panel_data, panel_legend_png
 import matplotlib.ticker as mticker
 
 FIG_DIR = PROJECT_ROOT / "Output" / "PowerPoint_Figures"
@@ -231,6 +232,32 @@ def load_curves(fig_num: int):
     return out, src
 
 
+def _save_data_f(fig_num, curves, src):
+    """One sheet per model with FPR, TPR, lower, upper, AUC."""
+    out = panel_data(fig_num, "f")
+    metadata = pd.DataFrame([{
+        "Panel": f"Fig_{fig_num}f (Prism, ROC comparison)",
+        "Description": "Mean ROC + bootstrap/CV bands across models",
+        "Source_Script": "Prism_Style/generate_roc_comparison.py",
+        "Source_Data": str(src.relative_to(PROJECT_ROOT)),
+        "Bootstrap_n": 300,
+        "Bootstrap_seed": 42,
+    }])
+    with pd.ExcelWriter(out, engine="openpyxl") as w:
+        for c in curves:
+            sheet = c["label"][:31]   # Excel sheet name limit
+            df = pd.DataFrame({
+                "FPR": c["fpr"],
+                "TPR": c["tpr"],
+                "TPR_lower": c["lower"] if c["lower"] is not None else [None] * len(c["fpr"]),
+                "TPR_upper": c["upper"] if c["upper"] is not None else [None] * len(c["fpr"]),
+            })
+            df["AUC"] = c["auc"]
+            df.to_excel(w, sheet_name=sheet, index=False)
+        metadata.to_excel(w, sheet_name="Metadata", index=False)
+    return out
+
+
 def _build_legend_handles(curves, scale):
     """Same handles the panel would have used internally — exported to the
     standalone legend PNG."""
@@ -304,14 +331,14 @@ def main():
             print(f"[SKIP] {fig_num}g: {e}")
             continue
         fig_w, fig_h, rect = _layout()
-        out = HERE / f"Fig_{fig_num}g_prism.png"
+        out = panel_png(fig_num, "f")    # slot 'f' content = ROC compare
         render_at_scale(
             _plot_fn(curves), (fig_w, fig_h), out,
             scale=SCALE, dpi=600, transparent=True,
             axes_rect=rect,
         )
-        # Standalone legend PNG.
-        legend_out = HERE / f"Fig_{fig_num}g_prism_legend.png"
+        # Standalone legend PNG (lives next to the panel image).
+        legend_out = panel_legend_png(fig_num, "f")
         render_legend_image(
             _build_legend_handles(curves, scale=SCALE),
             prop=helvetica(LEGEND_FONT_PT * SCALE),
@@ -322,6 +349,8 @@ def main():
             labelspacing=0.35,
             borderpad=0.0,
         )
+        # Save plotted curves + bands as Fig_Nf_prism_data.xlsx
+        _save_data_f(fig_num, curves, src)
         im = Image.open(out)
         dpi = im.info.get("dpi", (600, 600))[0]
         leg_im = Image.open(legend_out)
