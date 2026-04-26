@@ -17,7 +17,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import matplotlib.cm as mcm
 
 HERE = Path(__file__).resolve().parent
 PROJECT_ROOT = HERE.parent
@@ -27,16 +26,17 @@ sys.path.insert(0, str(HERE))
 import figure_config  # noqa: F401
 from prism_style import apply_prism_style, render_at_scale, helvetica
 from _paths import panel_named_png, panel_named_data
+from _equations import color_for_pretty
 
 SRC = PROJECT_ROOT / "Output" / "PowerPoint_Figures" / "Fig_3" / "Fig_3c_data.xlsx"
 
-# Plot tuning
+# Plot tuning — generous margins so equation names and value labels never clip.
 PLOT_W = 2.50    # in
 PLOT_H = 2.40
-MARGIN_L = 1.20  # equation names go here (rotate-free)
-MARGIN_R = 0.50  # value labels at bar tip
+MARGIN_L = 1.55  # equation names ("Gaussian-Hill Hybrid" is the longest at 13 pt)
+MARGIN_R = 0.65  # value labels at bar tip (with negative sign + sign space)
 MARGIN_T = 0.05
-MARGIN_B = 0.45  # X label "R² (O2)"
+MARGIN_B = 0.50  # X label "R² (O2)" + tick labels
 FIG_W = PLOT_W + MARGIN_L + MARGIN_R
 FIG_H = PLOT_H + MARGIN_T + MARGIN_B
 AXES_RECT = (MARGIN_L / FIG_W, MARGIN_B / FIG_H,
@@ -63,9 +63,8 @@ def _plot_fn(df: pd.DataFrame):
     n = len(df)
     values = df[WHICH_COL].to_numpy()
     labels = df["Equation"].tolist()
-    cmap = mcm.get_cmap("turbo")
-    # Top bar = warm color, bottom bar = cool.
-    colors = [cmap(0.05 + 0.90 * (i / max(1, n - 1))) for i in range(n)]
+    # Per-equation color (shared with Fig 3 LOOCV scatter via _equations.py).
+    colors = [color_for_pretty(name) for name in labels]
 
     def _fn(fig, ax, scale):
         y = np.arange(n)

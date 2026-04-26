@@ -20,7 +20,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import matplotlib.cm as mcm
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from matplotlib.transforms import Bbox
@@ -33,6 +32,7 @@ sys.path.insert(0, str(HERE))
 import figure_config  # noqa: F401
 from prism_style import apply_prism_style, helvetica, clean_decimal_formatter
 from _paths import panel_named_png, panel_named_data
+from _equations import equation_color_map
 
 SRC = PROJECT_ROOT / "Output" / "PowerPoint_Figures" / "Fig_3" / "Fig_3d_data.xlsx"
 
@@ -42,13 +42,14 @@ TARGETS = [
     ("Concern_Binary", "Concern"),
 ]
 
-# Sizing — 3 sub-panels of 1.5" × 1.5" plot area, side by side
+# Sizing — 3 sub-panels of 1.5" × 1.5" plot area, side by side.
+# Margins generous so the title, axis labels, and tick labels never clip.
 SUB_PLOT = 1.50
-MARGIN_L = 0.55     # left of leftmost sub-panel (Y label)
-MARGIN_R = 0.10
-MARGIN_T = 0.18     # title above each sub-panel
-MARGIN_B = 0.45     # X label
-GAP = 0.45          # gap between sub-panels (room for inner Y axes)
+MARGIN_L = 0.70     # left of leftmost sub-panel (Y label "AUC ROC" at 13 pt)
+MARGIN_R = 0.20     # rightmost x-tick label "1" overshoot
+MARGIN_T = 0.30     # title at 11 pt bold + small gap
+MARGIN_B = 0.55     # X label + ticks (at 13 pt / 9 pt)
+GAP = 0.50          # gap between sub-panels (room for inner Y axes)
 
 PLOT_W = 3 * SUB_PLOT + 2 * GAP
 PLOT_H = SUB_PLOT
@@ -71,18 +72,10 @@ def load() -> pd.DataFrame:
     return df
 
 
-def _equation_color_map(equations) -> dict[str, tuple]:
-    cmap = mcm.get_cmap("turbo")
-    n = len(equations)
-    return {eq: cmap(0.05 + 0.90 * (i / max(1, n - 1)))
-            for i, eq in enumerate(equations)}
-
-
 def _draw(df: pd.DataFrame, out_path: Path):
     fig = plt.figure(figsize=(FIG_W * SCALE, FIG_H * SCALE), dpi=DPI)
 
-    eq_order = sorted(df["Equation"].unique())
-    colors = _equation_color_map(eq_order)
+    colors = equation_color_map()  # canonical name -> color (shared with R² bar)
 
     for i, (target_key, title) in enumerate(TARGETS):
         sub_left_in = MARGIN_L + i * (SUB_PLOT + GAP)
