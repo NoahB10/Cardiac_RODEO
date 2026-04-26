@@ -34,3 +34,15 @@ def panel_data(fig_num: int, letter: str) -> Path:
 
 def panel_legend_png(fig_num: int, letter: str) -> Path:
     return panel_dir(fig_num) / f"Fig_{fig_num}{letter}_prism_legend.png"
+
+
+def panel_named_png(fig_num: int, name: str) -> Path:
+    """For panels keyed by content name rather than slot letter — e.g.
+    `Fig_3_R2_bar_prism.png` — used when slot letters are contested between
+    parallel sessions (heatmaps already claimed letter slots a/c/e on slide 3).
+    """
+    return panel_dir(fig_num) / f"Fig_{fig_num}_{name}_prism.png"
+
+
+def panel_named_data(fig_num: int, name: str) -> Path:
+    return panel_dir(fig_num) / f"Fig_{fig_num}_{name}_prism_data.xlsx"

@@ -211,3 +211,115 @@ Each Prism panel now has a paired `Fig_{N}{letter}_prism_data.xlsx` with sheets:
 - Legend export: `Prism_Style/_legend_export.py`
 - Cache: `Prism_Style/bands_cache/`
 - Outputs: `Output/PowerPoint_Figures_Remake/sources/Fig_{6,7,8}/Fig_*_prism.{png,xlsx}`
+
+---
+
+## 2026-04-27 — Session D: Fig 3 R² bar + LOOCV scatter (Prism re-render)
+
+Two new Prism-styled panels for Figure 3:
+
+- **R² horizontal bar** (`Fig_3_R2_bar_prism.png`): 12 PK-PD equations sorted
+  descending by R² (O2 fit), one colored bar per equation (turbo palette,
+  warm at top), value annotated at bar tip. From
+  `Output/PowerPoint_Figures/Fig_3/Fig_3c_data.xlsx` sheet `R2_Data`.
+- **LOOCV Accuracy vs AUC ROC scatter strip** (`Fig_3_LOOCV_scatter_prism.png`):
+  3 sub-panels (Arrhythmia / Heart Damage / Concern) each with 12 colored
+  dots (one per equation, turbo palette). x = Accuracy, y = AUC ROC, both
+  0–1 with reference y=x diagonal. From
+  `Output/PowerPoint_Figures/Fig_3/Fig_3d_data.xlsx` sheet `LOOCV_Strip_Data`.
+
+### Naming
+Files use **descriptive names** (`Fig_3_R2_bar_prism.png`,
+`Fig_3_LOOCV_scatter_prism.png`) instead of slot letters because slot
+assignments on slide 3 are now contested between the heatmap session
+(claims a/c/e for top-row heatmaps) and historical Tracked content
+(Fig 3c = R² bar). Path helpers: `Prism_Style/_paths.panel_named_png` /
+`panel_named_data`.
+
+### Files
+- Generators: `Prism_Style/generate_r2_bar.py`, `Prism_Style/generate_loocv_scatter.py`
+- Outputs:
+  - `Output/PowerPoint_Figures_Remake/sources/Fig_3/Fig_3_R2_bar_prism.png` + paired data XLSX
+  - `Output/PowerPoint_Figures_Remake/sources/Fig_3/Fig_3_LOOCV_scatter_prism.png` + paired data XLSX
+- Registry: 2 rows added with `Letter` = `R2_bar` / `LOOCV_scatter`; `Left_In`/`Top_In` blank pending placement.
+
+### Style
+Same Prism conventions as Fig 6/7/8: Helvetica, L-spines, tick 9 pt,
+axis label 13 pt, value label 7 pt, render at scale=4 then LANCZOS-downscale
+at 600 DPI.
+
+---
+
+## 2026-04-27 — Prism re-render: Fig 2/3 heatmaps
+
+Added `Prism_Style/generate_heatmaps.py` to re-render the per-well LOWESS
+heatmaps in the Prism look (Helvetica, no top/right spine, blue→white→red
+diverging colormap) at the locked PPTX box sizes. Existing heatmap PNGs in
+`Output/PowerPoint_Figures/` were rendered at 8–12" and scaled down by PPT,
+which let unstripped pandas suffixes leak into the Y-axis tick labels.
+
+### Panels
+| Panel | Drug | Response | Image (in)  | Source CSV |
+|-------|------|----------|-------------|------------|
+| 2c    | Epirubicin   | O2            | 2.60 × 1.78 | `Cleaned_Data/Heatmaps/Epirubicin/O2_mean_sorted.csv` |
+| 2f    | Mexiletine   | Contractility | 2.60 × 1.74 | `Cleaned_Data/Raw_Example_Data/Mexiletine/Amp_std.csv` |
+| 3a    | Dactinomycin | O2            | 1.31 × 1.03 | `Cleaned_Data/Heatmaps/Dactinomycin/O2_mean_sorted.csv` |
+| 3c    | Nifedipine   | O2            | 1.33 × 1.10 | `Cleaned_Data/Heatmaps/Nifedipine/O2_mean_sorted.csv` |
+| 3e    | Mexiletine   | O2            | 1.31 × 1.08 | `Cleaned_Data/Heatmaps/Mexiletine/O2_mean_sorted.csv` |
+
+### Pipeline
+1. Load sorted CSV (rows=time, cols=wells with pandas `.x` suffixes).
+2. Drug-specific drops: `drop_wells` (column-name list) for 2c, 1-based
+   `drop_indices` + `drop_cols_extra` for 2f, post-sort `remove_rows` for
+   3a/c/e (preceded by the `0 ≤ O2 ≤ 80` outlier filter from the original
+   Fig 3 generator).
+3. Linear interpolate NaN gaps within each well (limit=10, both directions).
+4. LOWESS w=16 per-well along time. First-point preservation for O2 panels
+   (matches the Fig 3a generator); first-point smoothed for the contractility
+   panel (matches `Mexiletine_Contractility_Heatmap_NOTES.txt`).
+5. Transpose to (rows=wells, cols=time).
+6. O2: clip at 100 + per-row baseline compression toward ~20% air.
+   Contractility: scale by 100, sort within each conc group ascending.
+
+### Pandas-suffix dedup
+The Y-axis tick labels are deduplicated using a context-aware function
+(`_build_conc_map`). Naïve regex stripping (`X.N → X`) misclassifies
+literal floats like `1.5` as `1` + suffix `.5`. The fix builds the dedup
+map from the **original** CSV columns: `X.N` is only stripped if `X` is
+already a column in the same DataFrame (pandas only emits a `.N` suffix
+when an existing column is duplicated). The map is constructed BEFORE
+the outlier filter so it survives downstream column drops (otherwise
+e.g. Nifedipine's outlier-filtered `4.0.1` would not collapse to `4.0`).
+
+### Visual spec
+- Helvetica throughout (bundled `fonts/helvetica.ttf`).
+- Slide-2 large panels: 13 pt axis labels / 9 pt ticks (Prism standard).
+- Slide-3 small panels: 7 pt axis labels / 6 pt ticks; Y-axis title shortened
+  to just the drug name and X-axis title to `"Time (h)"` to fit 1.31" boxes
+  (matches the small-panel font convention from `prism_panel_final_sizes.md`).
+- Y-tick cap: 8 labels (large) / 5 (small), evenly spaced.
+- X-ticks: 5 (large) / 4 (small) integer hour values.
+- Spines: `bottom + left` only, 1 pt, black.
+- Colormap: `#123BFF` → `white` → `#FF2908`; vmin=0, vmax=100 for O2 panels,
+  auto-scaled to data max for the contractility panel.
+
+### Wiring
+`Prism_Style/_layout.py` gained `HEATMAP_PANELS` mapping `(slide, letter) →
+(left_in, top_in, png_filename)` for the 5 panels. `apply_layout_to_remake.py`
+gained Phase 3 (`update_heatmap_panels`) that walks slide-2 / slide-3 picture
+shapes and swaps the embedded image bytes when a frame matches the expected
+position (±0.05"). The user's manually-placed picture frames stay where they
+are — only the source bytes change.
+
+### Data files
+Each panel emits `Fig_{N}{letter}_prism_data.xlsx` with three sheets:
+- **Plotted**: smoothed wells × time matrix actually drawn on the panel.
+- **Raw**: untouched DataFrame as loaded from the source CSV.
+- **Metadata**: panel name, drug, response, source CSV path, source script,
+  smoothing params, drop / remove-row config, image size, vmin/vmax.
+
+### Files
+- Generator: `Prism_Style/generate_heatmaps.py`
+- Layout: `Prism_Style/_layout.py` (`HEATMAP_PANELS`, `HEATMAP_FIG_NUM`)
+- Applier: `Prism_Style/apply_layout_to_remake.py` (`update_heatmap_panels`)
+- Outputs: `Output/PowerPoint_Figures_Remake/sources/Fig_{2,3}/Fig_{2c,2f,3a,3c,3e}_prism.{png,xlsx}`
