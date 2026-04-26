@@ -214,6 +214,61 @@ Each Prism panel now has a paired `Fig_{N}{letter}_prism_data.xlsx` with sheets:
 
 ---
 
+## 2026-04-27 — Session C: Fig 3 surfaces (b, f) + multi-line dose-response (j, k)
+
+Four new Prism-styled panels for Figure 3, completing the remaining
+small panels on slide 3 (panels d/h were left untouched per scope; g/i
+were done by Session D — see entry below).
+
+### Panels
+
+| Panel | Content                                | Box (W×H) | Source                                                              |
+|-------|----------------------------------------|-----------|---------------------------------------------------------------------|
+| 3b    | Dactinomycin O₂ surface (Eq3)         | 1.19×1.18 | `EQN_Coefficients/all_equations_coefficients.xlsx` `gaussian_hill_hybrid` |
+| 3f    | Mexiletine O₂ surface (Eq7)           | 1.19×1.18 | same xlsx, sheet `biphasic_response`                               |
+| 3j    | Vandetanib O₂ multi-line dose-response | 2.59×1.75 | `Output/PowerPoint_Figures/Fig_3/Fig_3e_data.xlsx` sheet `Vandetanib_O2` |
+| 3k    | Sotalol Contractility multi-line       | 2.59×1.75 | same xlsx, sheets `Sotalol_Contractility` + `Sotalol_Coefficients` |
+
+### Surfaces (b, f)
+- view `elev=25, azim=-158` per CLAUDE.md
+- turbo colormap, `text2D()` axis labels (Helvetica 7 pt) — `set_*label`
+  is unreliable on 3D under tight bbox
+- equation function applied to a 60×60 (Time × Dose Ratio) mesh; coefficients
+  loaded with `header=1` and `.str.strip()`, O₂ uses `.1` suffix
+- native render exactly matches PPT box → fonts stay crisp, no PPT scale-down
+
+### Multi-line (j, k)
+- 3 concentrations per panel, low→high gradient (dark blue → yellow → red),
+  log-spaced in concentration
+- per concentration: solid thin line per replicate well (Data) +
+  dashed thicker line for Model fit
+- replicate blocks detected by Time_h reset within `(conc, Type=Data)`
+- Y-axis: O₂ rises (1→4 fold) for Vandetanib, Contractility falls (1→0.6) for Sotalol;
+  legend placement chosen per panel to avoid curve overlap
+
+### PPT swap
+Added 4 entries to `Prism_Style/_layout.py:INPLACE_PANELS` so
+`apply_layout_to_remake.py` swaps the picture bytes in place:
+- (3, b): (1.25, 0.79)
+- (3, f): (5.85, 0.79)
+- (3, j): (0.10, 3.88)  — background of slide-3 Group 42
+- (3, k): (2.74, 3.87)  — background of slide-3 Group 41
+
+Frames stay where the user placed them; only the image bytes change.
+
+### Files
+- Generators: `Prism_Style/generate_fig3_surfaces.py`, `Prism_Style/generate_fig3_multiline.py`
+- Outputs (4 PNG + 4 XLSX): `Output/PowerPoint_Figures_Remake/sources/Fig_3/Fig_3{b,f,j,k}_prism.{png,xlsx}`
+- Registry: 4 new rows (b, f, j, k)
+
+### Untouched on slide 3
+Panels a/c/e (heatmaps, Session D), d (Nifedipine surface, kept as
+original `Nifedipine_Eq10_modified_hill_simple.png` per user instruction),
+h (NN diagram, schematic — kept as original `image27.png`), g (R² bar,
+Session D), i (LOOCV scatter, Session D).
+
+---
+
 ## 2026-04-27 — Session D: Fig 3 R² bar + LOOCV scatter (Prism re-render)
 
 Two new Prism-styled panels for Figure 3:

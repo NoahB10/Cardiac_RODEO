@@ -166,6 +166,16 @@ INPLACE_PANELS = {
     (3, "a"): (0.04, 0.93, "Fig_3a_prism.png"),
     (3, "c"): (2.34, 0.94, "Fig_3c_prism.png"),
     (3, "e"): (4.65, 0.94, "Fig_3e_prism.png"),
+    # Row 1 surfaces (paired with the heatmaps above):
+    (3, "b"): (1.25, 0.79, "Fig_3b_prism.png"),   # Dactinomycin O2 (Eq3)
+    (3, "f"): (5.85, 0.79, "Fig_3f_prism.png"),   # Mexiletine   O2 (Eq7)
+    # Row 3 multi-line dose responses (background of Group 42 / Group 41):
+    (3, "j"): (0.10, 3.88, "Fig_3j_prism.png"),   # Vandetanib O2
+    (3, "k"): (2.74, 3.87, "Fig_3k_prism.png"),   # Sotalol Contractility
+    # Panels g (R² bar) and i (LOOCV scatter) are intentionally NOT in this
+    # map — Session D rendered them at sizes larger than their PPT boxes
+    # under descriptive names (Fig_3_R2_bar_prism.png /
+    # Fig_3_LOOCV_scatter_prism.png) and noted manual placement.
 }
 
 # fig_num for each in-place slide (slide 2 -> Figure 2 file dir, slide 3 ->
