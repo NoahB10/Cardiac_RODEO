@@ -142,6 +142,28 @@ REMOVE = {
 }
 
 
+# Heatmap panels on slides 2 and 3 — picture frames are NOT in named groups,
+# so we identify them by their stored (left_in, top_in) tuple and swap the
+# image bytes in place. The frames stay where the user manually placed them;
+# we only update the source PNG. Tolerance for position match is ±0.05".
+#
+# Slide 2 (Figure 2): the right column is heatmaps; panels c (top) and f
+# (bottom) get re-rendered. Slide 3 (Figure 3): the top row alternates
+# heatmap + surface plot (a/c/e = heatmaps).
+HEATMAP_PANELS = {
+    # (slide_index_1based, panel_letter): (left_in, top_in, png_filename)
+    (2, "c"): (4.50, 4.90, "Fig_2c_prism.png"),
+    (2, "f"): (4.51, 6.69, "Fig_2f_prism.png"),
+    (3, "a"): (0.04, 0.93, "Fig_3a_prism.png"),
+    (3, "c"): (2.34, 0.94, "Fig_3c_prism.png"),
+    (3, "e"): (4.65, 0.94, "Fig_3e_prism.png"),
+}
+
+# fig_num for each heatmap slide (slide 2 -> Figure 2 file dir, slide 3 ->
+# Figure 3 file dir).
+HEATMAP_FIG_NUM = {2: 2, 3: 3}
+
+
 # When re-rendering: target image size in inches (matches box exactly).
 # Single source of truth used by each generator's overrides.
 def target_size(slide: int, panel: str) -> tuple[float, float]:

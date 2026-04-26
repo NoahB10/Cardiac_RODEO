@@ -35,7 +35,8 @@ sys.path.insert(0, str(HERE))
 
 from _layout import (ROW_LAYOUT, PANEL_ROW, MARGIN_B, CONTENT,
                      LEGEND_STASH_X, LEGEND_STASH_T_BY_LETTER,
-                     LEGEND_FILE_BY_LETTER)  # noqa: E402
+                     LEGEND_FILE_BY_LETTER,
+                     HEATMAP_PANELS, HEATMAP_FIG_NUM)  # noqa: E402
 from _paths import panel_dir  # noqa: E402
 from PIL import Image as _PILImage  # noqa: E402
 
@@ -226,6 +227,55 @@ def _delete_slide(prs, slide_idx_zero_based: int):
     del prs.slides._sldIdLst[slide_idx_zero_based]
 
 
+def _walk_pictures(shapes):
+    """Yield every picture shape, descending into groups."""
+    for sp in shapes:
+        if sp.shape_type == MSO_SHAPE_TYPE.GROUP:
+            yield from _walk_pictures(sp.shapes)
+        elif sp.shape_type == MSO_SHAPE_TYPE.PICTURE:
+            yield sp
+
+
+def update_heatmap_panels(prs, *, position_tol_in: float = 0.05):
+    """Swap source bytes for heatmap pictures on slides 2 and 3.
+
+    The picture frames are identified by their (left_in, top_in) position;
+    we don't move or resize them. If a frame at the expected position isn't
+    found, we log a warning and skip — the user may have repositioned it,
+    in which case the swap should be redone manually.
+    """
+    for (slide_1based, letter), (exp_L, exp_T, png_name) in HEATMAP_PANELS.items():
+        if slide_1based - 1 >= len(prs.slides):
+            print(f"  [SKIP] slide {slide_1based} out of range "
+                  f"(deck has {len(prs.slides)})")
+            continue
+        slide = prs.slides[slide_1based - 1]
+        fig_num = HEATMAP_FIG_NUM[slide_1based]
+        png_path = panel_dir(fig_num) / png_name
+        if not png_path.exists():
+            print(f"  [SKIP] {png_name} not found at {png_path}")
+            continue
+
+        match = None
+        for sp in _walk_pictures(slide.shapes):
+            L = sp.left / EMU_PER_INCH
+            T = sp.top / EMU_PER_INCH
+            if abs(L - exp_L) <= position_tol_in and abs(T - exp_T) <= position_tol_in:
+                match = sp
+                break
+
+        if match is None:
+            print(f"  [WARN] slide {slide_1based} panel {letter}: no picture "
+                  f"frame at ({exp_L:.2f}, {exp_T:.2f})")
+            continue
+
+        _swap_picture_source(match, png_path)
+        w_in = match.width / EMU_PER_INCH
+        h_in = match.height / EMU_PER_INCH
+        print(f"  swap slide {slide_1based} panel {letter:s} <- {png_name}  "
+              f"frame=({exp_L:.2f},{exp_T:.2f}) {w_in:.2f}x{h_in:.2f}\"")
+
+
 def main():
     PPTX_OUT.parent.mkdir(parents=True, exist_ok=True)
     if PPTX_IN != PPTX_OUT:
@@ -255,6 +305,11 @@ def main():
         for idx in sorted(duplicates, reverse=True):
             _delete_slide(prs, idx)
             print(f"  removed slide {idx + 1}")
+
+    # Phase 3: swap heatmap picture bytes on slides 2 and 3 (Figures 2 and 3)
+    # in place. Frames stay where the user placed them.
+    print("\n=== Heatmap panels (slides 2, 3) ===")
+    update_heatmap_panels(prs)
 
     prs.save(str(PPTX_OUT))
     print(f"\n[done] -> {PPTX_OUT}")
