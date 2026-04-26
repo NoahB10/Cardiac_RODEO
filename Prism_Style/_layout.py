@@ -142,26 +142,39 @@ REMOVE = {
 }
 
 
-# Heatmap panels on slides 2 and 3 — picture frames are NOT in named groups,
-# so we identify them by their stored (left_in, top_in) tuple and swap the
-# image bytes in place. The frames stay where the user manually placed them;
-# we only update the source PNG. Tolerance for position match is ±0.05".
+# In-place panel swaps on slides 2 and 3 — picture frames stay where the
+# user placed them (position-match by stored (left_in, top_in) tuple, ±0.05"
+# tolerance). We only swap the image bytes. Works for free-standing pictures
+# AND for the BACKGROUND picture inside a manually-built group (the picture
+# whose L/T sits at the group origin).
 #
-# Slide 2 (Figure 2): the right column is heatmaps; panels c (top) and f
-# (bottom) get re-rendered. Slide 3 (Figure 3): the top row alternates
-# heatmap + surface plot (a/c/e = heatmaps).
-HEATMAP_PANELS = {
+# Slide 2 (Figure 2):
+#   a, b: line / sigmoid (Session B) — backgrounds inside Group 94 / Group 65
+#   d:    empty Contractility axis frame (Session B) — Group 101 background
+#   e:    Mexiletine multi-line (Session B) — Group 18 background
+#   c, f: heatmaps (Session A) — free-standing pictures
+#
+# Slide 3 (Figure 3): top row alternates heatmap + surface plot (a/c/e = heatmaps).
+INPLACE_PANELS = {
     # (slide_index_1based, panel_letter): (left_in, top_in, png_filename)
+    (2, "a"): (0.13, 4.92, "Fig_2a_prism.png"),
+    (2, "b"): (2.28, 4.88, "Fig_2b_prism.png"),
     (2, "c"): (4.50, 4.90, "Fig_2c_prism.png"),
+    (2, "d"): (0.16, 6.72, "Fig_2d_prism.png"),
+    (2, "e"): (2.51, 6.68, "Fig_2e_prism.png"),
     (2, "f"): (4.51, 6.69, "Fig_2f_prism.png"),
     (3, "a"): (0.04, 0.93, "Fig_3a_prism.png"),
     (3, "c"): (2.34, 0.94, "Fig_3c_prism.png"),
     (3, "e"): (4.65, 0.94, "Fig_3e_prism.png"),
 }
 
-# fig_num for each heatmap slide (slide 2 -> Figure 2 file dir, slide 3 ->
+# fig_num for each in-place slide (slide 2 -> Figure 2 file dir, slide 3 ->
 # Figure 3 file dir).
-HEATMAP_FIG_NUM = {2: 2, 3: 3}
+INPLACE_FIG_NUM = {2: 2, 3: 3}
+
+# Backward-compat aliases (older imports may still use the heatmap names).
+HEATMAP_PANELS = INPLACE_PANELS
+HEATMAP_FIG_NUM = INPLACE_FIG_NUM
 
 
 # When re-rendering: target image size in inches (matches box exactly).

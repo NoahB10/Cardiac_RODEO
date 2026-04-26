@@ -36,7 +36,7 @@ sys.path.insert(0, str(HERE))
 from _layout import (ROW_LAYOUT, PANEL_ROW, MARGIN_B, CONTENT,
                      LEGEND_STASH_X, LEGEND_STASH_T_BY_LETTER,
                      LEGEND_FILE_BY_LETTER,
-                     HEATMAP_PANELS, HEATMAP_FIG_NUM)  # noqa: E402
+                     INPLACE_PANELS, INPLACE_FIG_NUM)  # noqa: E402
 from _paths import panel_dir  # noqa: E402
 from PIL import Image as _PILImage  # noqa: E402
 
@@ -236,21 +236,26 @@ def _walk_pictures(shapes):
             yield sp
 
 
-def update_heatmap_panels(prs, *, position_tol_in: float = 0.05):
-    """Swap source bytes for heatmap pictures on slides 2 and 3.
+def update_inplace_panels(prs, *, position_tol_in: float = 0.05):
+    """Swap source bytes for in-place panel pictures on slides 2 and 3.
 
-    The picture frames are identified by their (left_in, top_in) position;
-    we don't move or resize them. If a frame at the expected position isn't
-    found, we log a warning and skip — the user may have repositioned it,
-    in which case the swap should be redone manually.
+    Covers heatmaps AND line/sigmoid background panels — anything where the
+    user has already placed the picture frame manually. The picture frames
+    are identified by their (left_in, top_in) position; we don't move or
+    resize them. Works for free-standing pictures AND for the BACKGROUND
+    picture inside a group (whose left/top sits at the group origin).
+
+    If a frame at the expected position isn't found, we log a warning and
+    skip — the user may have repositioned it, in which case the swap should
+    be redone manually.
     """
-    for (slide_1based, letter), (exp_L, exp_T, png_name) in HEATMAP_PANELS.items():
+    for (slide_1based, letter), (exp_L, exp_T, png_name) in INPLACE_PANELS.items():
         if slide_1based - 1 >= len(prs.slides):
             print(f"  [SKIP] slide {slide_1based} out of range "
                   f"(deck has {len(prs.slides)})")
             continue
         slide = prs.slides[slide_1based - 1]
-        fig_num = HEATMAP_FIG_NUM[slide_1based]
+        fig_num = INPLACE_FIG_NUM[slide_1based]
         png_path = panel_dir(fig_num) / png_name
         if not png_path.exists():
             print(f"  [SKIP] {png_name} not found at {png_path}")
@@ -306,10 +311,11 @@ def main():
             _delete_slide(prs, idx)
             print(f"  removed slide {idx + 1}")
 
-    # Phase 3: swap heatmap picture bytes on slides 2 and 3 (Figures 2 and 3)
-    # in place. Frames stay where the user placed them.
-    print("\n=== Heatmap panels (slides 2, 3) ===")
-    update_heatmap_panels(prs)
+    # Phase 3: swap in-place panel picture bytes on slides 2 and 3
+    # (Figures 2 and 3). Frames stay where the user placed them; the picture
+    # bytes get refreshed from the latest Prism PNG.
+    print("\n=== In-place panels (slides 2, 3) ===")
+    update_inplace_panels(prs)
 
     prs.save(str(PPTX_OUT))
     print(f"\n[done] -> {PPTX_OUT}")

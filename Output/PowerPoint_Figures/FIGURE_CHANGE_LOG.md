@@ -2,7 +2,7 @@
 
 This document tracks all changes to figures, their data sources, and generating scripts.
 
-## Last Updated: 2026-02-04
+## Last Updated: 2026-04-27
 
 ---
 
@@ -323,3 +323,78 @@ Each panel emits `Fig_{N}{letter}_prism_data.xlsx` with three sheets:
 - Layout: `Prism_Style/_layout.py` (`HEATMAP_PANELS`, `HEATMAP_FIG_NUM`)
 - Applier: `Prism_Style/apply_layout_to_remake.py` (`update_heatmap_panels`)
 - Outputs: `Output/PowerPoint_Figures_Remake/sources/Fig_{2,3}/Fig_{2c,2f,3a,3c,3e}_prism.{png,xlsx}`
+
+---
+
+## 2026-04-27 — Prism re-render: Fig 2 line plots and sigmoid
+
+Added `Prism_Style/generate_fig2_panels.py` to render the four non-heatmap
+panels on slide 2 (Figure 2) at the locked PPTX box sizes. These replace
+the prior axis-frame backgrounds that depended on a separate axisless data
+overlay; each Prism PNG now ships axes + data integrated in a single image
+(except 2d which is a deliberately empty axis frame).
+
+### Panels
+| Panel | Description                                             | Image (in)  | Source data |
+|-------|---------------------------------------------------------|-------------|-------------|
+| 2a    | Epirubicin O2 multi-line (8 doses, 0–96 h)              | 2.31 × 1.82 | `Output/PowerPoint_Figures/Fig_2/Fig_2g_Epirubicin_O2_data.xlsx` (Plotted_Data) |
+| 2b    | Epirubicin TC50 sigmoid (Hill 4PL, log-x)               | 2.33 × 1.82 | `Output/PowerPoint_Figures/Fig_2/Fig_2h_Epirubicin_TC50_data.xlsx` (TC50) |
+| 2d    | Empty Contractility axis frame (overlay base)           | 2.25 × 1.74 | (axis-only — no data) |
+| 2e    | Mexiletine Contractility multi-line (3 doses)           | 2.06 × 1.76 | `Output/PowerPoint_Figures/Fig_2/Fig_2j_Mexiletine_Contractility_data.xlsx` (Plotted_Data) |
+
+### Visual spec
+- Helvetica throughout (bundled `fonts/helvetica.ttf`).
+- L-spine (top + right hidden), 1.2 pt spine width, outward Y ticks.
+- Axis labels 13 pt, tick labels 9 pt — Prism project standard.
+- 2a multi-line palette: 8-stop sequential (dark blue → yellow), matches
+  the existing `Fig_2g_Epirubicin_O2.png` legend so the slide stays
+  visually coherent.
+- 2b style: black sigmoid fit, Pos blue (#6C92ED) markers with error bars,
+  red dashed TC50 vertical, grey dashed 50% horizontal, "TC50 = 0.45 mM"
+  annotation top-right inside plot.
+- 2e doses: 5 mM (purple), 1.25 mM (pink-red), 0.625 mM (amber) — matches
+  the 3-dose waveform legend on the same slide.
+
+### Data + Model legend on 2e
+The user spec asked for a "Data + Model" legend. The Plotted_Data sheet IS
+the model fit (1000 interpolated points); the Raw_Data sheet has per-well
+amplitudes in fractional units (0–0.3 range) that don't map 1:1 to the
+% baseline used by Plotted_Data without re-running the normalization
+pipeline. Rather than overlay raw points at the wrong scale, the panel
+renders MODEL lines plus marker dots sampled from those same lines every
+~12 h, which conveys the visual "data + model" pairing while staying
+faithful to a single data source. If true raw overlay is needed later,
+the normalization step from `Picking Equations/equation_fitting/` would
+have to be applied to the Raw_Data sheet first.
+
+### Slide-2 wiring
+Slide 2 already had four manually-positioned groups containing axis-frame
+backgrounds + axisless data overlays — `do NOT change positions` per the
+user. The Prism PNGs are swapped in by **position match** (±0.05" tolerance
+on the BACKGROUND picture's left/top inside each group):
+
+| Slot | Group         | BG picture position | New PNG |
+|------|---------------|---------------------|---------|
+| 2a   | Group 94      | (0.13, 4.92)        | `Fig_2a_prism.png` |
+| 2b   | Group 65      | (2.28, 4.88)        | `Fig_2b_prism.png` |
+| 2d   | Group 101     | (0.16, 6.72)        | `Fig_2d_prism.png` |
+| 2e   | Group 18      | (2.51, 6.68)        | `Fig_2e_prism.png` |
+
+The pre-existing axisless-overlay pictures inside each group are left
+untouched — the user can manually delete or hide them in PowerPoint now
+that the new background panels are self-contained.
+
+### Renames
+The generic in-place picture-swap mechanism on slides 2–3 was generalized:
+`HEATMAP_PANELS` / `HEATMAP_FIG_NUM` / `update_heatmap_panels` are now
+`INPLACE_PANELS` / `INPLACE_FIG_NUM` / `update_inplace_panels`. The old
+names remain as backward-compat aliases. Adding the four 2a/b/d/e entries
+to the single dict was enough to wire them in — no new applier function.
+
+### Files
+- Generator: `Prism_Style/generate_fig2_panels.py`
+- Layout: `Prism_Style/_layout.py` (`INPLACE_PANELS`)
+- Applier: `Prism_Style/apply_layout_to_remake.py` (`update_inplace_panels`)
+- Outputs: `Output/PowerPoint_Figures_Remake/sources/Fig_2/Fig_{2a,2b,2d,2e}_prism.{png,xlsx}`
+- Symlink `sources/Fig_2` was broken to a real folder (was symlink to the
+  Tracked Fig_2 tree). Tracked Fig_2 still has its original PNGs intact.
