@@ -62,8 +62,8 @@ LOWESS_W = 16
 
 AXIS_LABEL_PT_LARGE = 13   # slide-2 box (≥2.5" wide) — Prism standard
 TICK_LABEL_PT_LARGE = 9
-AXIS_LABEL_PT_SMALL = 5    # slide-3 box — 5pt; fits axis-centered in ~1.05" width
-TICK_LABEL_PT_SMALL = 6    #   convention from prism_panel_final_sizes.md
+AXIS_LABEL_PT_SMALL = 7    # slide-3 box — 7pt labels
+TICK_LABEL_PT_SMALL = 7    #   tick labels match axis labels
 SPINE_LW_PT = 1.0
 SPINE_COLOR = "black"
 MAX_Y_TICK_LABELS_LARGE = 8   # slide-2 panels can fit more dose ticks
@@ -112,8 +112,8 @@ PANEL_SPECS = {
         "csv": CLEANED / "Heatmaps" / "Dactinomycin" / "O2_mean_sorted.csv",
         "remove_rows": {1, 8, 12, 16, 20, 24, 27},
         "drop_wells": None,
-        "fig_size": (1.05, 3.44 / 2.54),   # 1.05" × 1.354" (~2.67×3.44 cm)
-        "margins": dict(left=0.30, right=0.04, top=0.15, bottom=0.495),
+        "fig_size": (1.30, 3.44 / 2.54),   # 1.30" x 1.354" (3.30x3.44 cm)
+        "margins": dict(left=0.40, right=0.19, top=0.15, bottom=0.495),
         "y_axis_label": "Dactinomycin Dose",
         "x_axis_label": "Time from Exposure (h)",
         "y_tick_decimals": 2,
@@ -127,8 +127,8 @@ PANEL_SPECS = {
         "csv": CLEANED / "Heatmaps" / "Nifedipine" / "O2_mean_sorted.csv",
         "remove_rows": {5, 6},
         "drop_wells": None,
-        "fig_size": (1.05, 3.44 / 2.54),   # 1.05" x 1.354" (~2.67x3.44 cm)
-        "margins": dict(left=0.30, right=0.04, top=0.15, bottom=0.495),
+        "fig_size": (1.30, 3.44 / 2.54),   # 1.30" x 1.354" (3.30x3.44 cm)
+        "margins": dict(left=0.40, right=0.19, top=0.15, bottom=0.495),
         "y_axis_label": "Nifedipine Dose",
         "x_axis_label": "Time from Exposure (h)",
         "y_tick_decimals": 2,
@@ -142,8 +142,8 @@ PANEL_SPECS = {
         "csv": CLEANED / "Heatmaps" / "Mexiletine" / "O2_mean_sorted.csv",
         "remove_rows": {2, 3, 9, 13, 20},
         "drop_wells": None,
-        "fig_size": (1.05, 3.44 / 2.54),   # 1.05" x 1.354" (~2.67x3.44 cm)
-        "margins": dict(left=0.30, right=0.04, top=0.15, bottom=0.495),
+        "fig_size": (1.30, 3.44 / 2.54),   # 1.30" x 1.354" (3.30x3.44 cm)
+        "margins": dict(left=0.40, right=0.19, top=0.15, bottom=0.495),
         "y_axis_label": "Mexiletine Dose",
         "x_axis_label": "Time from Exposure (h)",
         "y_tick_decimals": 2,
