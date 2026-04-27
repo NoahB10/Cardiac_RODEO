@@ -168,6 +168,7 @@ INPLACE_PANELS = {
     (3, "e"): (4.65, 0.94, "Fig_3e_prism.png"),
     # Row 1 surfaces (paired with the heatmaps above):
     (3, "b"): (1.25, 0.79, "Fig_3b_prism.png"),   # Dactinomycin O2 (Eq3)
+    (3, "d"): (3.56, 0.79, "Fig_3d_prism.png"),   # Nifedipine   O2 (Eq10)
     (3, "f"): (5.85, 0.79, "Fig_3f_prism.png"),   # Mexiletine   O2 (Eq7)
     # Row 3 multi-line dose responses (background of Group 42 / Group 41):
     (3, "j"): (0.10, 3.88, "Fig_3j_prism.png"),   # Vandetanib O2

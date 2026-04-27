@@ -1,7 +1,8 @@
-"""Prism-style 3D surface plots for Fig 3 panels b and f.
+"""Prism-style 3D surface plots for Fig 3 panels b, d, and f.
 
 Panel b: Dactinomycin O2, equation 3 (gaussian_hill_hybrid).
-Panel f: Mexiletine O2, equation 7 (biphasic_response).
+Panel d: Nifedipine  O2, equation 10 (modified_hill_simple).
+Panel f: Mexiletine  O2, equation 7  (biphasic_response).
 
 Each surface is rendered at the slide-3 PPT box size (1.19" x 1.18") so
 fonts stay crisp when the picture lands in PowerPoint with no further
@@ -78,6 +79,12 @@ PANELS = {
         equation_label="Eq3 (gaussian_hill_hybrid)",
         response="O2",
     ),
+    "d": dict(
+        drug="Nifedipine",
+        sheet="modified_hill_simple",
+        equation_label="Eq10 (modified_hill_simple)",
+        response="O2",
+    ),
     "f": dict(
         drug="Mexiletine",
         sheet="biphasic_response",
@@ -105,6 +112,15 @@ def _gaussian_hill_hybrid(C_norm, t, R0, Emax, mu_c, sigma_c, tau, m,
     toxic = E_tox * toxic_conc * toxic_time
 
     return R0 + benefit - toxic
+
+
+def _modified_hill_simple(C_norm, t, R0, Emax, kappa, tau, n, m):
+    """R = R0 + Emax*(1-exp(-kappa*C^n*(t/tau)^m))."""
+    t = np.maximum(t, 1e-9)
+    kappa = max(kappa, 1e-9)
+    tau = max(tau, 1e-9)
+    driving = kappa * (C_norm ** n) * ((t / tau) ** m)
+    return R0 + Emax * (1 - np.exp(-driving))
 
 
 def _biphasic_response(C_norm, t, R0, E_stim, E_inhib, EC50_stim_norm,
@@ -139,6 +155,10 @@ EQUATION_COLS = {
         ["R0", "E_stim", "E_inhib", "EC50_stim_norm", "IC50_norm",
          "n1", "n2", "tau_stim", "tau_inhib"],
         _biphasic_response,
+    ),
+    "modified_hill_simple": (
+        ["R0", "Emax", "kappa", "tau", "n", "m"],
+        _modified_hill_simple,
     ),
 }
 
