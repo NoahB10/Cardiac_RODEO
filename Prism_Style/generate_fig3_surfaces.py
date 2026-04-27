@@ -190,10 +190,10 @@ def _draw(letter: str, spec: dict, out_path: Path):
     big_h = PANEL_H * SCALE
 
     fig = plt.figure(figsize=(big_w, big_h), dpi=DPI)
-    # Tight axes box: leave a small margin so the wireframe back walls and
-    # axis labels both fit.  Anchor the 3D axes manually because mpl's 3D
-    # auto-layout adds unpredictable padding.
-    ax = fig.add_axes([0.02, 0.02, 0.96, 0.96], projection="3d")
+    # Pull the axes inset a bit so each set_*label has room without
+    # clipping the figure edges (Z label on the left, X label bottom-right,
+    # Y label bottom-left).
+    ax = fig.add_axes([0.10, 0.08, 0.85, 0.88], projection="3d")
 
     # Color normalization on Response itself (some equations have negatives;
     # turbo handles either).
@@ -211,41 +211,41 @@ def _draw(letter: str, spec: dict, out_path: Path):
 
     ax.view_init(elev=VIEW_ELEV, azim=VIEW_AZIM)
 
-    # Strip every default tick + label — we use text2D below for clean labels.
+    # Strip default ticks (no numeric tick labels — would clutter at this
+    # tiny size) but keep the axis lines so set_*label can position itself
+    # along each axis direction with the correct rotation.
     for axis in (ax.xaxis, ax.yaxis, ax.zaxis):
         axis.set_ticks([])
-        # Hide the default axis label too (we draw via text2D).
-        axis.label.set_visible(False)
-    # Spines / pane edges: keep the wireframe-grid look subtle.
+    # Wireframe-style back walls: transparent face, thin black edges.
     for axis in (ax.xaxis, ax.yaxis, ax.zaxis):
         axis.pane.set_facecolor((1, 1, 1, 0))
         axis.pane.set_edgecolor("black")
         axis.pane.set_linewidth(0.5 * SCALE)
-    # Hide the axis lines (the bold corner edges) — wireframe panes already
-    # convey the axes orientation.
+    # Hide the bold corner axis lines — the wireframe panes already mark
+    # the box.
     ax.xaxis.line.set_color((0, 0, 0, 0))
     ax.yaxis.line.set_color((0, 0, 0, 0))
     ax.zaxis.line.set_color((0, 0, 0, 0))
 
-    # text2D labels (CLAUDE.md: 3D set_*label is unreliable under bbox).
+    # Use 3D set_*label so each label auto-rotates to follow its axis
+    # projection (Time runs diagonally along X, Dose Ratio along Y, Z is
+    # vertical).  labelpad pulls each label away from the data so they
+    # don't overlap the surface.
     z_label = r"$O_2$ (%)" if spec["response"] == "O2" else "Contractility"
+    fp = helvetica(LABEL_PT * SCALE, bold=False)
+    # X and Y labels: use 3D set_*label so they auto-rotate to follow each
+    # axis projection. Negative labelpad pulls them CLOSER (default sits
+    # outside the tick-label area, which we don't have).
+    ax.set_xlabel("Time (h)", fontproperties=fp, labelpad=-5 * SCALE)
+    ax.set_ylabel("Dose Ratio", fontproperties=fp, labelpad=-5 * SCALE)
+    # Z label: set_zlabel mpl wraps when the column is narrow, splitting
+    # "O2" and "(%)" onto two lines. Draw via text2D at fixed left margin
+    # instead — vertical, cleanly readable.
     ax.text2D(
-        0.02, 0.50, z_label,
+        0.01, 0.55, z_label,
         transform=ax.transAxes,
         rotation=90, ha="left", va="center",
-        fontproperties=helvetica(LABEL_PT * SCALE, bold=False),
-    )
-    ax.text2D(
-        0.30, 0.04, "Dose Ratio",
-        transform=ax.transAxes,
-        ha="center", va="bottom",
-        fontproperties=helvetica(LABEL_PT * SCALE, bold=False),
-    )
-    ax.text2D(
-        0.78, 0.06, "Time (h)",
-        transform=ax.transAxes,
-        ha="center", va="bottom",
-        fontproperties=helvetica(LABEL_PT * SCALE, bold=False),
+        fontproperties=fp,
     )
 
     # Save at the upscaled size, no bbox crop, transparent.

@@ -63,13 +63,17 @@ TICK_FONT_PT = 8
 AXIS_LABEL_PT = 11
 LEGEND_FONT_PT = 7
 
-DATA_LINEWIDTH_PT = 0.7
-MODEL_LINEWIDTH_PT = 1.6
+# Sampled from the existing Fig_3e_*.png axisless renders so the Prism
+# version matches the original visual identity exactly:
+#   highest dose → navy, middle → pink/magenta, lowest → yellow.
+HIGH_COLOR = "#000080"   # navy (5 mM Sotalol / 0.5 mM Vandetanib)
+MID_COLOR = "#C04060"    # pink/magenta (2.5 mM / 0.125 mM)
+LOW_COLOR = "#E0E020"    # yellow (0.313 mM / 0.062 mM)
 
-# Low conc → blue, mid → yellow, high → red.
-LOW_COLOR = "#1F46FC"
-MID_COLOR = "#F7C400"
-HIGH_COLOR = "#FF2908"
+# Line widths tuned to match the axisless source: thin solid raw lines,
+# thicker dashed model fits.
+DATA_LINEWIDTH_PT = 0.5
+MODEL_LINEWIDTH_PT = 1.4
 
 PANELS = {
     "j": dict(
@@ -78,9 +82,10 @@ PANELS = {
         drug="Vandetanib",
         response="O2",
         y_label=r"$O_2$ (fold)",
-        concs=[0.062, 0.125, 0.5],
-        # `nice` labels avoid floating-point noise on legend display.
-        conc_labels=["0.062 mM", "0.125 mM", "0.5 mM"],
+        # Listed HIGH→LOW so the legend reads in the same order as the
+        # axisless render (0.5, 0.125, 0.062).
+        concs=[0.5, 0.125, 0.062],
+        conc_labels=["0.5 mM", "0.125 mM", "0.062 mM"],
     ),
     "k": dict(
         sheet="Sotalol_Contractility",
@@ -88,8 +93,8 @@ PANELS = {
         drug="Sotalol",
         response="Contractility",
         y_label="Contractility (fold)",
-        concs=[0.313, 2.5, 5.0],
-        conc_labels=["0.313 mM", "2.5 mM", "5 mM"],
+        concs=[5.0, 2.5, 0.313],
+        conc_labels=["5 mM", "2.5 mM", "0.313 mM"],
     ),
 }
 
@@ -123,30 +128,16 @@ def _replicate_blocks(df_one: pd.DataFrame) -> list[pd.DataFrame]:
 
 
 def _conc_color(conc: float, all_concs: list[float]) -> str:
-    """Map a concentration to a color along low→mid→high gradient."""
-    if len(all_concs) == 1:
-        return MID_COLOR
-    log_min = np.log10(min(all_concs))
-    log_max = np.log10(max(all_concs))
-    t = (np.log10(conc) - log_min) / max(log_max - log_min, 1e-9)
-    if t <= 0.5:
-        # Interpolate LOW → MID
-        return _lerp_hex(LOW_COLOR, MID_COLOR, t / 0.5)
-    return _lerp_hex(MID_COLOR, HIGH_COLOR, (t - 0.5) / 0.5)
-
-
-def _hex_to_rgb(h: str) -> tuple[float, float, float]:
-    h = h.lstrip("#")
-    return tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))
-
-
-def _lerp_hex(c1: str, c2: str, t: float) -> str:
-    a = _hex_to_rgb(c1)
-    b = _hex_to_rgb(c2)
-    r = int(round((a[0] + (b[0] - a[0]) * t) * 255))
-    g = int(round((a[1] + (b[1] - a[1]) * t) * 255))
-    b_ = int(round((a[2] + (b[2] - a[2]) * t) * 255))
-    return f"#{r:02X}{g:02X}{b_:02X}"
+    """Map a concentration to its discrete color (highest=navy, mid=pink,
+    lowest=yellow). The axisless source uses three fixed colors, not a
+    gradient, so we sort and assign by rank.
+    """
+    sorted_concs = sorted(all_concs)
+    rank = sorted_concs.index(conc)
+    if len(sorted_concs) == 3:
+        return [LOW_COLOR, MID_COLOR, HIGH_COLOR][rank]
+    # Fallback for non-3 case: low/high only
+    return LOW_COLOR if rank == 0 else HIGH_COLOR
 
 
 def _plot_fn(df: pd.DataFrame, spec: dict):
@@ -179,18 +170,15 @@ def _plot_fn(df: pd.DataFrame, spec: dict):
         ax.set_xlabel("Time (h)")
         ax.set_ylabel(spec["y_label"])
 
-        # Y axis: auto, but pad to a clean rounded max.
-        all_vals = df["Value_Normalized"].to_numpy()
-        ymax = float(np.nanmax(all_vals))
-        ymin = float(np.nanmin(all_vals))
-        # Round limits outwards to nearest 0.5 (or 0.1 if ranges are tight).
-        if ymax - ymin > 1.0:
-            step = 0.5
+        # Per-panel Y range: O2 (Vandetanib) rises from 1 → ~4 fold;
+        # Contractility (Sotalol) falls from 1 → ~0.55 fold. Hand-picked
+        # so ticks land on round numbers and the data fills the panel.
+        if spec["response"] == "O2":
+            ax.set_ylim(0.5, 4.0)
+            ax.set_yticks([1, 2, 3, 4])
         else:
-            step = 0.1
-        y_lo = np.floor(ymin / step) * step
-        y_hi = np.ceil(ymax / step) * step
-        ax.set_ylim(y_lo, y_hi)
+            ax.set_ylim(0.4, 1.05)
+            ax.set_yticks([0.4, 0.6, 0.8, 1.0])
 
         apply_prism_style(
             ax,
@@ -209,24 +197,30 @@ def _plot_fn(df: pd.DataFrame, spec: dict):
             bold=False,
         )
 
-        # Concentration legend, placed in the corner that doesn't overlap
-        # data: rising curves (O2) → upper-left is empty until late; falling
-        # curves (Contractility) → lower-left is empty.  Solid=Data /
-        # Dashed=Fit is intuitive enough that we omit the linestyle legend.
+        # Legend matches the axisless source: 3 concentration colors then
+        # Data/Model line-style entries (solid vs dashed). Position chosen
+        # per panel for a clean corner: rising O2 → upper-left, decaying
+        # Contractility → lower-left.
         loc = "upper left" if spec["response"] == "O2" else "lower left"
         handles = [
-            Line2D([0], [0], color=color_for[c], linewidth=2.0 * scale,
+            Line2D([0], [0], color=color_for[c], linewidth=2.4 * scale,
                    label=lab)
             for c, lab in zip(concs, spec["conc_labels"])
+        ]
+        handles += [
+            Line2D([0], [0], color="black",
+                   linewidth=DATA_LINEWIDTH_PT * scale * 1.6, label="Data"),
+            Line2D([0], [0], color="black", linestyle="--", dashes=(4, 3),
+                   linewidth=MODEL_LINEWIDTH_PT * scale, label="Model"),
         ]
         ax.legend(
             handles=handles,
             loc=loc,
             frameon=False,
-            handlelength=1.2,
+            handlelength=1.4,
             handletextpad=0.4,
             labelspacing=0.20,
-            borderaxespad=0.6,
+            borderaxespad=0.4,
             prop=helvetica(LEGEND_FONT_PT * scale),
         )
 
