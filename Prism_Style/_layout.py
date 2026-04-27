@@ -192,6 +192,7 @@ INPLACE_FIG_NUM = {2: 2, 3: 3}
 # would shrink the new image into the old box.
 RESIZE_TO_NATIVE = {
     (3, "b"), (3, "d"), (3, "f"),
+    (3, "j"), (3, "k"),
 }
 
 # Backward-compat aliases (older imports may still use the heatmap names).

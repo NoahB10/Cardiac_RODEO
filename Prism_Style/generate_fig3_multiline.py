@@ -41,9 +41,12 @@ from _paths import panel_png, panel_data
 
 SRC = PROJECT_ROOT / "Output" / "PowerPoint_Figures" / "Fig_3" / "Fig_3e_data.xlsx"
 
-# PPT panel boxes on slide 3 (group footprint).
-PANEL_W = 2.59
-PANEL_H = 1.75
+# Sized so the inner plot area (data box, excluding tick/label margins)
+# measures 4.8 x 3.26 cm = 1.89 x 1.28" per user spec.
+# PLOT_W = PANEL_W - MARGIN_L - MARGIN_R = 2.54 - 0.55 - 0.10 = 1.89
+# PLOT_H = PANEL_H - MARGIN_T - MARGIN_B = 1.95 - 0.12 - 0.55 = 1.28
+PANEL_W = 2.54
+PANEL_H = 1.95
 
 # Plot-area margins (inches) — chosen so a 13 pt Y label and a 13 pt X
 # label both fit, with a gap above for the small legend.
@@ -73,11 +76,10 @@ LEGEND_FONT_PT = 7
 # previously drifted the navy/pink/yellow.
 _PLASMA = plt.get_cmap("plasma", 3)
 
-# Line widths chosen to match the original generate_paper_figures.py
-# style at this small panel size (orig used 1.2 / 2.5 at 12x8 in;
-# scaled by 2.59/12 ≈ 0.22 → ~0.27 / 0.55 pt at 2.59x1.75 in).
-DATA_LINEWIDTH_PT = 0.35
-MODEL_LINEWIDTH_PT = 0.85
+# Trimmed thinner per user request — barely-visible replicate traces with
+# a slightly bolder dashed model overlay.
+DATA_LINEWIDTH_PT = 0.22
+MODEL_LINEWIDTH_PT = 0.55
 
 PANELS = {
     "j": dict(
