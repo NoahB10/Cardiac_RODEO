@@ -111,9 +111,10 @@ PANEL_SPECS = {
         "fig_size": (1.31, 1.03),
         "margins": dict(left=0.50, right=0.04, top=0.04, bottom=0.30),
         "y_axis_label": "Drug Dose",
-        "x_axis_label": "Time from Exposure",   # no "(h)" — panel too narrow
+        "x_axis_label": "Time from Exposure",
         "vmax": 100,
         "size_class": "small",
+        "no_spines": True,   # numbers + labels visible; spine lines + tick marks removed
     },
     (3, "c"): {
         "drug": "Nifedipine",
@@ -127,6 +128,7 @@ PANEL_SPECS = {
         "x_axis_label": "Time from Exposure",
         "vmax": 100,
         "size_class": "small",
+        "no_spines": True,
     },
     (3, "e"): {
         "drug": "Mexiletine",
@@ -140,6 +142,7 @@ PANEL_SPECS = {
         "x_axis_label": "Time from Exposure",
         "vmax": 100,
         "size_class": "small",
+        "no_spines": True,
     },
 }
 
@@ -312,6 +315,7 @@ def _heatmap_plot_fn(data: pd.DataFrame, spec: dict, conc_map: dict[str, float |
     cmap.set_bad("white")
 
     is_small = spec.get("size_class") == "small"
+    no_spines = spec.get("no_spines", False)
     axis_pt = AXIS_LABEL_PT_SMALL if is_small else AXIS_LABEL_PT_LARGE
     tick_pt = TICK_LABEL_PT_SMALL if is_small else TICK_LABEL_PT_LARGE
 
@@ -386,12 +390,22 @@ def _heatmap_plot_fn(data: pd.DataFrame, spec: dict, conc_map: dict[str, float |
             ax.set_xlabel("")
             ax.set_ylabel("")
             ax.tick_params(axis="both", length=0, width=0)
-        else:
-            ax.set_xticks(x_tick_centers)
-            ax.set_yticks(y_ticks)
-            ax.set_xticklabels(x_tick_labels)
-            ax.set_yticklabels(y_tick_labels)
+            return
 
+        # Spine setup: full L-frame for large panels; no spines for small panels
+        # (numbers and labels still show — only the black bars + tick marks go).
+        if no_spines:
+            for s in ax.spines.values():
+                s.set_visible(False)
+            ax.tick_params(axis="both", length=0, width=0,
+                           pad=2 * scale)
+        else:
+            for s in ("top", "right"):
+                ax.spines[s].set_visible(False)
+            for s in ("bottom", "left"):
+                ax.spines[s].set_visible(True)
+                ax.spines[s].set_linewidth(SPINE_LW_PT * scale)
+                ax.spines[s].set_color(SPINE_COLOR)
             ax.tick_params(
                 axis="x", direction="out",
                 length=3 * scale, width=SPINE_LW_PT * scale,
@@ -403,15 +417,20 @@ def _heatmap_plot_fn(data: pd.DataFrame, spec: dict, conc_map: dict[str, float |
                 color=SPINE_COLOR, pad=2 * scale,
             )
 
-            fp_tick = helvetica(tick_pt * scale)
-            for lbl in ax.get_xticklabels() + ax.get_yticklabels():
-                lbl.set_fontproperties(fp_tick)
+        ax.set_xticks(x_tick_centers)
+        ax.set_yticks(y_ticks)
+        ax.set_xticklabels(x_tick_labels)
+        ax.set_yticklabels(y_tick_labels)
 
-            fp_label = helvetica(axis_pt * scale)
-            ax.set_xlabel(spec["x_axis_label"], fontproperties=fp_label,
-                          labelpad=2 * scale)
-            ax.set_ylabel(spec["y_axis_label"], fontproperties=fp_label,
-                          labelpad=2 * scale)
+        fp_tick = helvetica(tick_pt * scale)
+        for lbl in ax.get_xticklabels() + ax.get_yticklabels():
+            lbl.set_fontproperties(fp_tick)
+
+        fp_label = helvetica(axis_pt * scale)
+        ax.set_xlabel(spec["x_axis_label"], fontproperties=fp_label,
+                      labelpad=2 * scale)
+        ax.set_ylabel(spec["y_axis_label"], fontproperties=fp_label,
+                      labelpad=2 * scale)
 
     return _fn
 
@@ -465,13 +484,19 @@ def _render_panel(fig_num: int, letter: str, spec: dict):
         axes_rect=axes_rect,
     )
 
-    out_axisless = _axisless_png(fig_num, letter)
-    render_at_scale(
-        _heatmap_plot_fn(plotted, spec, conc_map, axisless=True),
-        (fig_w, fig_h), out_axisless,
-        scale=SCALE, dpi=600, transparent=True,
-        axes_rect=axes_rect,
-    )
+    # Axisless variant: only for panels that use the full L-frame style.
+    # "no_spines" panels (Fig 3) already omit the spine lines in the labeled
+    # version, so a separate axisless PNG is not needed.
+    if not spec.get("no_spines"):
+        out_axisless = _axisless_png(fig_num, letter)
+        render_at_scale(
+            _heatmap_plot_fn(plotted, spec, conc_map, axisless=True),
+            (fig_w, fig_h), out_axisless,
+            scale=SCALE, dpi=600, transparent=True,
+            axes_rect=axes_rect,
+        )
+    else:
+        out_axisless = None
 
     out_xlsx = _save_data(fig_num, letter, plotted, raw, spec)
     return out_png, out_axisless, out_xlsx, plotted.shape
@@ -490,7 +515,8 @@ def main():
               f"{out_png.relative_to(PROJECT_ROOT)}")
         print(f"    image     : {im.size} px = "
               f"{im.size[0]/dpi:.3f}\" x {im.size[1]/dpi:.3f}\"")
-        print(f"    axisless  : {out_axisless.relative_to(PROJECT_ROOT)}")
+        if out_axisless:
+            print(f"    axisless  : {out_axisless.relative_to(PROJECT_ROOT)}")
         print(f"    data      : {out_xlsx.relative_to(PROJECT_ROOT)}")
         print(f"    matrix    : {shape[0]} wells x {shape[1]} timepoints")
 
