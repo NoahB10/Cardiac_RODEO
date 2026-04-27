@@ -261,7 +261,9 @@ def _draw(letter: str, spec: dict, out_path: Path):
     ax.set_xlabel("Time (h)", fontproperties=fp, labelpad=6)
     ax.set_ylabel("Dose Ratio", fontproperties=fp, labelpad=6)
     # Z label: set_zlabel wraps on this narrow column — use text2D instead.
-    ax.text2D(-0.08, 0.55, z_label, transform=ax.transAxes,
+    # y=0.47 centers the label on the projected Z axis midpoint (the
+    # axis line sits lower than the figure center because of the 3D tilt).
+    ax.text2D(-0.08, 0.47, z_label, transform=ax.transAxes,
               rotation=90, ha="left", va="center", fontproperties=fp)
 
     # Save at the upscaled size, no bbox crop, transparent.
