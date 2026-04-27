@@ -62,12 +62,12 @@ LOWESS_W = 16
 
 AXIS_LABEL_PT_LARGE = 13   # slide-2 box (≥2.5" wide) — Prism standard
 TICK_LABEL_PT_LARGE = 9
-AXIS_LABEL_PT_SMALL = 7    # slide-3 box (~1.3" wide) — matches the small-panel
+AXIS_LABEL_PT_SMALL = 5    # slide-3 box (~1.3" wide) — 5pt lets axis-centered label fit
 TICK_LABEL_PT_SMALL = 6    #   convention from prism_panel_final_sizes.md
 SPINE_LW_PT = 1.0
 SPINE_COLOR = "black"
 MAX_Y_TICK_LABELS_LARGE = 8   # slide-2 panels can fit more dose ticks
-MAX_Y_TICK_LABELS_SMALL = 5   # slide-3 panels would overlap above this
+MAX_Y_TICK_LABELS_SMALL = 4   # 4 avoids overlap after rounding to 2 decimals
 
 
 # ---------------------------------------------------------------------------
@@ -109,9 +109,10 @@ PANEL_SPECS = {
         "remove_rows": {1, 8, 12, 16, 20, 24, 27},
         "drop_wells": None,
         "fig_size": (1.31, 1.03),
-        "margins": dict(left=0.50, right=0.04, top=0.04, bottom=0.46),
-        "y_axis_label": "Dactinomycin\nDose",
+        "margins": dict(left=0.50, right=0.04, top=0.15, bottom=0.46),
+        "y_axis_label": "Dactinomycin Dose",
         "x_axis_label": "Time from Exposure (h)",
+        "y_tick_decimals": 2,
         "vmax": 100,
         "size_class": "small",
         "no_spines": True,
@@ -123,9 +124,10 @@ PANEL_SPECS = {
         "remove_rows": {5, 6},
         "drop_wells": None,
         "fig_size": (1.33, 1.10),
-        "margins": dict(left=0.50, right=0.04, top=0.04, bottom=0.46),
-        "y_axis_label": "Nifedipine\nDose",
+        "margins": dict(left=0.50, right=0.04, top=0.10, bottom=0.46),
+        "y_axis_label": "Nifedipine Dose",
         "x_axis_label": "Time from Exposure (h)",
+        "y_tick_decimals": 2,
         "vmax": 100,
         "size_class": "small",
         "no_spines": True,
@@ -137,9 +139,10 @@ PANEL_SPECS = {
         "remove_rows": {2, 3, 9, 13, 20},
         "drop_wells": None,
         "fig_size": (1.31, 1.08),
-        "margins": dict(left=0.50, right=0.04, top=0.04, bottom=0.46),
-        "y_axis_label": "Mexiletine\nDose",
+        "margins": dict(left=0.50, right=0.04, top=0.10, bottom=0.46),
+        "y_axis_label": "Mexiletine Dose",
         "x_axis_label": "Time from Exposure (h)",
+        "y_tick_decimals": 2,
         "vmax": 100,
         "size_class": "small",
         "no_spines": True,
@@ -431,13 +434,20 @@ def _heatmap_plot_fn(data: pd.DataFrame, spec: dict, conc_map: dict[str, float |
                       labelpad=2 * scale)
 
         if no_spines:
-            # X label for spine-less panels: use fig.text centered on the
-            # figure (not the narrow axes) at the same font size as the y
-            # label so both axes labels match visually.
+            # X label: centered on the AXIS (plot area center), not figure
+            # center.  Y anchored just below the tick numbers.
             m = spec["margins"]
-            fig_h = spec["fig_size"][1]
-            y_frac = (m["bottom"] / 2) / fig_h
-            fig.text(0.5, y_frac, spec["x_axis_label"],
+            fig_w, fig_h = spec["fig_size"]
+            plot_w = fig_w - m["left"] - m["right"]
+            # x position: center of the plot area in figure-fraction
+            x_frac = (m["left"] + plot_w / 2) / fig_w
+            pad_in = 2 / 72          # effective tick pad in inches (2 pt)
+            tick_in = tick_pt / 72   # tick label height in inches
+            axis_in = axis_pt / 72   # x-label height in inches
+            tick_bot = m["bottom"] - pad_in - tick_in
+            y_from_bot = tick_bot - pad_in - axis_in / 2
+            y_frac = max(0.01, y_from_bot / fig_h)
+            fig.text(x_frac, y_frac, spec["x_axis_label"],
                      ha="center", va="center",
                      fontproperties=fp_label)
         else:
