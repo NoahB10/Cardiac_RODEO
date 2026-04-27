@@ -36,7 +36,8 @@ sys.path.insert(0, str(HERE))
 from _layout import (ROW_LAYOUT, PANEL_ROW, MARGIN_B, CONTENT,
                      LEGEND_STASH_X, LEGEND_STASH_T_BY_LETTER,
                      LEGEND_FILE_BY_LETTER,
-                     INPLACE_PANELS, INPLACE_FIG_NUM)  # noqa: E402
+                     INPLACE_PANELS, INPLACE_FIG_NUM,
+                     RESIZE_TO_NATIVE)  # noqa: E402
 from _paths import panel_dir  # noqa: E402
 from PIL import Image as _PILImage  # noqa: E402
 
@@ -275,10 +276,18 @@ def update_inplace_panels(prs, *, position_tol_in: float = 0.05):
             continue
 
         _swap_picture_source(match, png_path)
-        w_in = match.width / EMU_PER_INCH
-        h_in = match.height / EMU_PER_INCH
-        print(f"  swap slide {slide_1based} panel {letter:s} <- {png_name}  "
-              f"frame=({exp_L:.2f},{exp_T:.2f}) {w_in:.2f}x{h_in:.2f}\"")
+        if (slide_1based, letter) in RESIZE_TO_NATIVE:
+            new_w_in, new_h_in = _native_size_in(png_path)
+            match.width = Inches(new_w_in)
+            match.height = Inches(new_h_in)
+            print(f"  swap+resize slide {slide_1based} panel {letter:s} <- "
+                  f"{png_name}  frame=({exp_L:.2f},{exp_T:.2f}) "
+                  f"{new_w_in:.2f}x{new_h_in:.2f}\" (native)")
+        else:
+            w_in = match.width / EMU_PER_INCH
+            h_in = match.height / EMU_PER_INCH
+            print(f"  swap slide {slide_1based} panel {letter:s} <- {png_name}  "
+                  f"frame=({exp_L:.2f},{exp_T:.2f}) {w_in:.2f}x{h_in:.2f}\"")
 
 
 def main():

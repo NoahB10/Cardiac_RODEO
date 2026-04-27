@@ -170,6 +170,9 @@ INPLACE_PANELS = {
     (3, "b"): (1.25, 0.79, "Fig_3b_prism.png"),   # Dactinomycin O2 (Eq3)
     (3, "d"): (3.56, 0.79, "Fig_3d_prism.png"),   # Nifedipine   O2 (Eq10)
     (3, "f"): (5.85, 0.79, "Fig_3f_prism.png"),   # Mexiletine   O2 (Eq7)
+    # NOTE: b/d/f are now rendered at 3.77 x 3.82" (much larger than the
+    # original 1.19 x 1.18" boxes). They are listed in RESIZE_TO_NATIVE
+    # below so the swap also grows each PPTX box to match the new PNG.
     # Row 3 multi-line dose responses (background of Group 42 / Group 41):
     (3, "j"): (0.10, 3.88, "Fig_3j_prism.png"),   # Vandetanib O2
     (3, "k"): (2.74, 3.87, "Fig_3k_prism.png"),   # Sotalol Contractility
@@ -182,6 +185,14 @@ INPLACE_PANELS = {
 # fig_num for each in-place slide (slide 2 -> Figure 2 file dir, slide 3 ->
 # Figure 3 file dir).
 INPLACE_FIG_NUM = {2: 2, 3: 3}
+
+# Inplace panels that should ALSO have their PPTX picture box resized to
+# match the rendered PNG's native dimensions (top-left position is kept).
+# Useful when re-rendering at a new size — without this the swap-only path
+# would shrink the new image into the old box.
+RESIZE_TO_NATIVE = {
+    (3, "b"), (3, "d"), (3, "f"),
+}
 
 # Backward-compat aliases (older imports may still use the heatmap names).
 HEATMAP_PANELS = INPLACE_PANELS

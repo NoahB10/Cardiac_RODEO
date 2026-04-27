@@ -49,10 +49,12 @@ from _paths import panel_png, panel_data
 
 COEFF_XLSX = PROJECT_ROOT / "EQN_Coefficients" / "all_equations_coefficients.xlsx"
 
-# Native render size (inches) — PPT slide-3 panel boxes for b and f are
-# uniform 1.192 x 1.181. Render at exactly that so fonts don't reflow.
-PANEL_W = 1.19
-PANEL_H = 1.18
+# Render size (inches) — bumped to 3.77 x 3.82 per user request so the
+# 3D surface fills more of the panel relative to the axis labels. The
+# PPTX swap will replace the picture bytes; user can resize each box in
+# PowerPoint to display at the new native size.
+PANEL_W = 3.77
+PANEL_H = 3.82
 
 # Render-at-scale: draw 4× then LANCZOS-downsample so tick lines and label
 # edges stay crisp. Same trick as the rest of Prism_Style/.
@@ -66,10 +68,11 @@ N_GRID = 60
 VIEW_ELEV = 25
 VIEW_AZIM = -158
 
-# Axis label sizes are in FINAL points (post-downscale).  Keep them small
-# enough to fit in a 1.19" wide image but readable.
-LABEL_PT = 7
-TICK_PT = 5  # ticks are off by default — kept here for reference
+# Axis label sizes are in FINAL points (post-downscale).  Bumped to 14 pt
+# now that the panel is ~3.8" wide — proportionally similar to the old
+# 7 pt at 1.19".
+LABEL_PT = 14
+TICK_PT = 10  # ticks are off by default — kept here for reference
 
 # Per-panel spec: drug, equation function, sheet name, response type.
 PANELS = {

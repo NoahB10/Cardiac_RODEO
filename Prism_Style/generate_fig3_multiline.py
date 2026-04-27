@@ -27,6 +27,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 HERE = Path(__file__).resolve().parent
@@ -63,17 +64,20 @@ TICK_FONT_PT = 8
 AXIS_LABEL_PT = 11
 LEGEND_FONT_PT = 7
 
-# Sampled from the existing Fig_3e_*.png axisless renders so the Prism
-# version matches the original visual identity exactly:
-#   highest dose → navy, middle → pink/magenta, lowest → yellow.
-HIGH_COLOR = "#000080"   # navy (5 mM Sotalol / 0.5 mM Vandetanib)
-MID_COLOR = "#C04060"    # pink/magenta (2.5 mM / 0.125 mM)
-LOW_COLOR = "#E0E020"    # yellow (0.313 mM / 0.062 mM)
+# Use the SAME plasma colormap that generate_paper_figures.py uses for
+# Fig_3e (`plt.get_cmap('plasma', n)`):
+#   highest dose → cmap(0.0) ≈ dark purple
+#   middle       → cmap(0.5) ≈ magenta/pink
+#   lowest       → cmap(1.0) ≈ yellow
+# This matches the original axisless plot exactly; sampled hex codes
+# previously drifted the navy/pink/yellow.
+_PLASMA = plt.get_cmap("plasma", 3)
 
-# Line widths tuned to match the axisless source: thin solid raw lines,
-# thicker dashed model fits.
-DATA_LINEWIDTH_PT = 0.5
-MODEL_LINEWIDTH_PT = 1.4
+# Line widths chosen to match the original generate_paper_figures.py
+# style at this small panel size (orig used 1.2 / 2.5 at 12x8 in;
+# scaled by 2.59/12 ≈ 0.22 → ~0.27 / 0.55 pt at 2.59x1.75 in).
+DATA_LINEWIDTH_PT = 0.35
+MODEL_LINEWIDTH_PT = 0.85
 
 PANELS = {
     "j": dict(
@@ -127,17 +131,17 @@ def _replicate_blocks(df_one: pd.DataFrame) -> list[pd.DataFrame]:
     return blocks
 
 
-def _conc_color(conc: float, all_concs: list[float]) -> str:
-    """Map a concentration to its discrete color (highest=navy, mid=pink,
-    lowest=yellow). The axisless source uses three fixed colors, not a
-    gradient, so we sort and assign by rank.
+def _conc_color(conc: float, all_concs: list[float]):
+    """Map a concentration to its plasma-colormap color. Mirrors
+    generate_paper_figures.py: with concs_sorted high→low and
+    `cmap(i/(n-1))`, the highest dose gets cmap(0.0) (dark purple), the
+    lowest gets cmap(1.0) (yellow).
     """
-    sorted_concs = sorted(all_concs)
-    rank = sorted_concs.index(conc)
-    if len(sorted_concs) == 3:
-        return [LOW_COLOR, MID_COLOR, HIGH_COLOR][rank]
-    # Fallback for non-3 case: low/high only
-    return LOW_COLOR if rank == 0 else HIGH_COLOR
+    concs_high_to_low = sorted(all_concs, reverse=True)
+    n = len(concs_high_to_low)
+    cmap = plt.get_cmap("plasma", n)
+    i = concs_high_to_low.index(conc)
+    return cmap(i / max(n - 1, 1))
 
 
 def _plot_fn(df: pd.DataFrame, spec: dict):
