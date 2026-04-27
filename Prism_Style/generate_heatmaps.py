@@ -22,6 +22,9 @@ Pipeline (per CLAUDE.md "Heatmap Generation (Smoothed)"):
     7. Render with Prism style — axis labels at 13 pt, ticks at 9 pt,
        Y ticks placed at the centre of each concentration group with
        deduplicated labels (pandas '.x' suffixes stripped).
+
+Each panel also produces an axisless variant (same outer size, no tick marks,
+no tick labels, no axis titles) saved to Output/PowerPoint_Figures/Fig_N/Axisless/.
 """
 
 from __future__ import annotations
@@ -84,6 +87,7 @@ PANEL_SPECS = {
         "y_axis_label": "Epirubicin Dose",
         "x_axis_label": "Time from Exposure (h)",
         "vmax": 100,
+        "y_tick_decimals": 2,    # round dose labels to hundredths
     },
     (2, "f"): {
         "drug": "Mexiletine",
@@ -95,7 +99,8 @@ PANEL_SPECS = {
         "margins": dict(left=0.62, right=0.06, top=0.05, bottom=0.50),
         "y_axis_label": "Mexiletine Dose",
         "x_axis_label": "Time from Exposure (h)",
-        "vmax": None,    # auto from data
+        "vmax": None,            # auto from data
+        "y_tick_decimals": 2,
     },
     (3, "a"): {
         "drug": "Dactinomycin",
@@ -105,8 +110,8 @@ PANEL_SPECS = {
         "drop_wells": None,
         "fig_size": (1.31, 1.03),
         "margins": dict(left=0.50, right=0.04, top=0.04, bottom=0.30),
-        "y_axis_label": "Dactinomycin",
-        "x_axis_label": "Time (h)",
+        "y_axis_label": "Drug Dose",
+        "x_axis_label": "Time from Exposure",   # no "(h)" — panel too narrow
         "vmax": 100,
         "size_class": "small",
     },
@@ -118,8 +123,8 @@ PANEL_SPECS = {
         "drop_wells": None,
         "fig_size": (1.33, 1.10),
         "margins": dict(left=0.50, right=0.04, top=0.04, bottom=0.30),
-        "y_axis_label": "Nifedipine",
-        "x_axis_label": "Time (h)",
+        "y_axis_label": "Drug Dose",
+        "x_axis_label": "Time from Exposure",
         "vmax": 100,
         "size_class": "small",
     },
@@ -131,8 +136,8 @@ PANEL_SPECS = {
         "drop_wells": None,
         "fig_size": (1.31, 1.08),
         "margins": dict(left=0.50, right=0.04, top=0.04, bottom=0.30),
-        "y_axis_label": "Mexiletine",
-        "x_axis_label": "Time (h)",
+        "y_axis_label": "Drug Dose",
+        "x_axis_label": "Time from Exposure",
         "vmax": 100,
         "size_class": "small",
     },
@@ -171,9 +176,12 @@ def _build_conc_map(columns) -> dict[str, float | None]:
     return out
 
 
-def _format_conc(val: float | None, raw: str) -> str:
+def _format_conc(val: float | None, raw: str, *, decimals: int | None = None) -> str:
     if val is None:
         return raw
+    if decimals is not None:
+        val = round(val, decimals)
+    # Always use :g so trailing zeros are stripped (e.g. 1.50 -> "1.5").
     return str(int(val)) if val == int(val) else f"{val:g}"
 
 
@@ -289,7 +297,15 @@ def _process(spec: dict) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, float | 
 # Plotting
 # ---------------------------------------------------------------------------
 
-def _heatmap_plot_fn(data: pd.DataFrame, spec: dict, conc_map: dict[str, float | None]):
+def _axisless_png(fig_num: int, letter: str) -> Path:
+    """Axisless variant saved in the per-figure Axisless/ subfolder."""
+    d = PROJECT_ROOT / "Output" / "PowerPoint_Figures" / f"Fig_{fig_num}" / "Axisless"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / f"Fig_{fig_num}{letter}_prism_axisless.png"
+
+
+def _heatmap_plot_fn(data: pd.DataFrame, spec: dict, conc_map: dict[str, float | None],
+                     *, axisless: bool = False):
     cmap = LinearSegmentedColormap.from_list(
         "cardiac_rodeo", [HEATMAP_BLUE, "white", HEATMAP_RED]
     )
@@ -299,7 +315,9 @@ def _heatmap_plot_fn(data: pd.DataFrame, spec: dict, conc_map: dict[str, float |
     axis_pt = AXIS_LABEL_PT_SMALL if is_small else AXIS_LABEL_PT_LARGE
     tick_pt = TICK_LABEL_PT_SMALL if is_small else TICK_LABEL_PT_LARGE
 
-    y_labels = [_format_conc(conc_map.get(str(c)), str(c)) for c in data.index.tolist()]
+    decimals = spec.get("y_tick_decimals")
+    y_labels = [_format_conc(conc_map.get(str(c)), str(c), decimals=decimals)
+                for c in data.index.tolist()]
     x_values = [float(t) for t in data.columns.tolist()]
     n_rows, n_cols = data.shape
 
@@ -360,29 +378,40 @@ def _heatmap_plot_fn(data: pd.DataFrame, spec: dict, conc_map: dict[str, float |
         ax.set_xlim(0, n_cols)
         ax.set_ylim(n_rows, 0)
 
-        ax.set_xticks(x_tick_centers)
-        ax.set_yticks(y_ticks)
-        ax.set_xticklabels(x_tick_labels)
-        ax.set_yticklabels(y_tick_labels)
+        if axisless:
+            # Axisless: keep the L-shape frame but suppress all tick marks,
+            # tick labels, and axis titles so only the colormap is visible.
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_xlabel("")
+            ax.set_ylabel("")
+            ax.tick_params(axis="both", length=0, width=0)
+        else:
+            ax.set_xticks(x_tick_centers)
+            ax.set_yticks(y_ticks)
+            ax.set_xticklabels(x_tick_labels)
+            ax.set_yticklabels(y_tick_labels)
 
-        ax.tick_params(
-            axis="x", direction="out",
-            length=3 * scale, width=SPINE_LW_PT * scale,
-            color=SPINE_COLOR, pad=2 * scale,
-        )
-        ax.tick_params(
-            axis="y", direction="out",
-            length=3 * scale, width=SPINE_LW_PT * scale,
-            color=SPINE_COLOR, pad=2 * scale,
-        )
+            ax.tick_params(
+                axis="x", direction="out",
+                length=3 * scale, width=SPINE_LW_PT * scale,
+                color=SPINE_COLOR, pad=2 * scale,
+            )
+            ax.tick_params(
+                axis="y", direction="out",
+                length=3 * scale, width=SPINE_LW_PT * scale,
+                color=SPINE_COLOR, pad=2 * scale,
+            )
 
-        fp_tick = helvetica(tick_pt * scale)
-        for lbl in ax.get_xticklabels() + ax.get_yticklabels():
-            lbl.set_fontproperties(fp_tick)
+            fp_tick = helvetica(tick_pt * scale)
+            for lbl in ax.get_xticklabels() + ax.get_yticklabels():
+                lbl.set_fontproperties(fp_tick)
 
-        fp_label = helvetica(axis_pt * scale)
-        ax.set_xlabel(spec["x_axis_label"], fontproperties=fp_label, labelpad=2 * scale)
-        ax.set_ylabel(spec["y_axis_label"], fontproperties=fp_label, labelpad=2 * scale)
+            fp_label = helvetica(axis_pt * scale)
+            ax.set_xlabel(spec["x_axis_label"], fontproperties=fp_label,
+                          labelpad=2 * scale)
+            ax.set_ylabel(spec["y_axis_label"], fontproperties=fp_label,
+                          labelpad=2 * scale)
 
     return _fn
 
@@ -436,8 +465,16 @@ def _render_panel(fig_num: int, letter: str, spec: dict):
         axes_rect=axes_rect,
     )
 
+    out_axisless = _axisless_png(fig_num, letter)
+    render_at_scale(
+        _heatmap_plot_fn(plotted, spec, conc_map, axisless=True),
+        (fig_w, fig_h), out_axisless,
+        scale=SCALE, dpi=600, transparent=True,
+        axes_rect=axes_rect,
+    )
+
     out_xlsx = _save_data(fig_num, letter, plotted, raw, spec)
-    return out_png, out_xlsx, plotted.shape
+    return out_png, out_axisless, out_xlsx, plotted.shape
 
 
 def main():
@@ -446,15 +483,16 @@ def main():
         if not spec["csv"].exists():
             print(f"[SKIP] Fig {fig_num}{letter}: {spec['csv']} not found")
             continue
-        out_png, out_xlsx, shape = _render_panel(fig_num, letter, spec)
+        out_png, out_axisless, out_xlsx, shape = _render_panel(fig_num, letter, spec)
         im = Image.open(out_png)
         dpi = im.info.get("dpi", (600, 600))[0]
         print(f"[{fig_num}{letter}] {spec['drug']} {spec['response']} -> "
               f"{out_png.relative_to(PROJECT_ROOT)}")
-        print(f"    image  : {im.size} px = "
+        print(f"    image     : {im.size} px = "
               f"{im.size[0]/dpi:.3f}\" x {im.size[1]/dpi:.3f}\"")
-        print(f"    data   : {out_xlsx.relative_to(PROJECT_ROOT)}")
-        print(f"    matrix : {shape[0]} wells x {shape[1]} timepoints")
+        print(f"    axisless  : {out_axisless.relative_to(PROJECT_ROOT)}")
+        print(f"    data      : {out_xlsx.relative_to(PROJECT_ROOT)}")
+        print(f"    matrix    : {shape[0]} wells x {shape[1]} timepoints")
 
 
 if __name__ == "__main__":
