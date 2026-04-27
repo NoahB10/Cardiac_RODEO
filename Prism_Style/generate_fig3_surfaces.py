@@ -193,7 +193,9 @@ def _draw(letter: str, spec: dict, out_path: Path):
     # Pull the axes inset a bit so each set_*label has room without
     # clipping the figure edges (Z label on the left, X label bottom-right,
     # Y label bottom-left).
-    ax = fig.add_axes([0.10, 0.08, 0.85, 0.88], projection="3d")
+    # Inset axes: leave bottom/right margins for X/Y labels (text2D placed
+    # in axes coords below the 3D box).
+    ax = fig.add_axes([0.12, 0.22, 0.76, 0.72], projection="3d")
 
     # Color normalization on Response itself (some equations have negatives;
     # turbo handles either).
@@ -227,26 +229,19 @@ def _draw(letter: str, spec: dict, out_path: Path):
     ax.yaxis.line.set_color((0, 0, 0, 0))
     ax.zaxis.line.set_color((0, 0, 0, 0))
 
-    # Use 3D set_*label so each label auto-rotates to follow its axis
-    # projection (Time runs diagonally along X, Dose Ratio along Y, Z is
-    # vertical).  labelpad pulls each label away from the data so they
-    # don't overlap the surface.
+    # All axis labels via text2D (CLAUDE.md: set_*label is unreliable on
+    # 3D axes; text2D gives precise, clipping-safe placement).
     z_label = r"$O_2$ (%)" if spec["response"] == "O2" else "Contractility"
     fp = helvetica(LABEL_PT * SCALE, bold=False)
-    # X and Y labels: use 3D set_*label so they auto-rotate to follow each
-    # axis projection. Negative labelpad pulls them CLOSER (default sits
-    # outside the tick-label area, which we don't have).
-    ax.set_xlabel("Time (h)", fontproperties=fp, labelpad=-5 * SCALE)
-    ax.set_ylabel("Dose Ratio", fontproperties=fp, labelpad=-5 * SCALE)
-    # Z label: set_zlabel mpl wraps when the column is narrow, splitting
-    # "O2" and "(%)" onto two lines. Draw via text2D at fixed left margin
-    # instead — vertical, cleanly readable.
-    ax.text2D(
-        0.01, 0.55, z_label,
-        transform=ax.transAxes,
-        rotation=90, ha="left", va="center",
-        fontproperties=fp,
-    )
+    # Z label: vertical, left of the axes box.
+    ax.text2D(-0.06, 0.55, z_label, transform=ax.transAxes,
+              rotation=90, ha="left", va="center", fontproperties=fp)
+    # Time label: below the right portion of the 3D box (X axis direction).
+    ax.text2D(0.78, -0.10, "Time (h)", transform=ax.transAxes,
+              ha="center", va="top", fontproperties=fp)
+    # Dose Ratio label: below the left-front edge (Y axis direction).
+    ax.text2D(0.10, -0.13, "Dose Ratio", transform=ax.transAxes,
+              ha="center", va="top", fontproperties=fp)
 
     # Save at the upscaled size, no bbox crop, transparent.
     tmp = NamedTemporaryFile(suffix=".png", delete=False)
