@@ -193,9 +193,9 @@ def _draw(letter: str, spec: dict, out_path: Path):
     # Pull the axes inset a bit so each set_*label has room without
     # clipping the figure edges (Z label on the left, X label bottom-right,
     # Y label bottom-left).
-    # Inset axes: leave bottom/right margins for X/Y labels (text2D placed
-    # in axes coords below the 3D box).
-    ax = fig.add_axes([0.12, 0.22, 0.76, 0.72], projection="3d")
+    # Inset axes: leave margin on all sides so set_xlabel/set_ylabel labels
+    # (which auto-rotate to follow the axis direction) stay within the figure.
+    ax = fig.add_axes([0.20, 0.22, 0.68, 0.70], projection="3d")
 
     # Color normalization on Response itself (some equations have negatives;
     # turbo handles either).
@@ -229,19 +229,17 @@ def _draw(letter: str, spec: dict, out_path: Path):
     ax.yaxis.line.set_color((0, 0, 0, 0))
     ax.zaxis.line.set_color((0, 0, 0, 0))
 
-    # All axis labels via text2D (CLAUDE.md: set_*label is unreliable on
-    # 3D axes; text2D gives precise, clipping-safe placement).
+    # X and Y labels via set_xlabel/set_ylabel so they auto-rotate to follow
+    # each axis's projected direction in the 3D viewport.
+    # labelpad=6: small positive gap so the label clears the axis line
+    # without floating too far out.
     z_label = r"$O_2$ (%)" if spec["response"] == "O2" else "Contractility"
     fp = helvetica(LABEL_PT * SCALE, bold=False)
-    # Z label: vertical, left of the axes box.
-    ax.text2D(-0.06, 0.55, z_label, transform=ax.transAxes,
+    ax.set_xlabel("Time (h)", fontproperties=fp, labelpad=6)
+    ax.set_ylabel("Dose Ratio", fontproperties=fp, labelpad=6)
+    # Z label: set_zlabel wraps on this narrow column — use text2D instead.
+    ax.text2D(-0.08, 0.55, z_label, transform=ax.transAxes,
               rotation=90, ha="left", va="center", fontproperties=fp)
-    # Time label: below the right portion of the 3D box (X axis direction).
-    ax.text2D(0.78, -0.10, "Time (h)", transform=ax.transAxes,
-              ha="center", va="top", fontproperties=fp)
-    # Dose Ratio label: below the left-front edge (Y axis direction).
-    ax.text2D(0.10, -0.13, "Dose Ratio", transform=ax.transAxes,
-              ha="center", va="top", fontproperties=fp)
 
     # Save at the upscaled size, no bbox crop, transparent.
     tmp = NamedTemporaryFile(suffix=".png", delete=False)
