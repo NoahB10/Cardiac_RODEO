@@ -87,7 +87,7 @@ PANELS = {
         coef_sheet="Vandetanib_Coefficients",
         drug="Vandetanib",
         response="O2",
-        y_label=r"$O_2$ (fold)",
+        y_label="Normalized Oxygen",
         # Listed HIGH→LOW so the legend reads in the same order as the
         # axisless render (0.5, 0.125, 0.062).
         concs=[0.5, 0.125, 0.062],
@@ -98,7 +98,7 @@ PANELS = {
         coef_sheet="Sotalol_Coefficients",
         drug="Sotalol",
         response="Contractility",
-        y_label="Contractility (fold)",
+        y_label="Normalized Contractility",
         concs=[5.0, 2.5, 0.313],
         conc_labels=["5 mM", "2.5 mM", "0.313 mM"],
     ),
@@ -172,8 +172,8 @@ def _plot_fn(df: pd.DataFrame, spec: dict):
                 )
 
         ax.set_xlim(0, 100)
-        ax.set_xticks([0, 25, 50, 75, 100])
-        ax.set_xlabel("Time (h)")
+        ax.set_xticks(list(range(0, 101, 10)))
+        ax.set_xlabel("Time from exposure (h)")
         ax.set_ylabel(spec["y_label"])
 
         # Per-panel Y range: O2 (Vandetanib) rises from 1 → ~4 fold;
@@ -203,11 +203,10 @@ def _plot_fn(df: pd.DataFrame, spec: dict):
             bold=False,
         )
 
-        # Legend matches the axisless source: 3 concentration colors then
-        # Data/Model line-style entries (solid vs dashed). Position chosen
-        # per panel for a clean corner: rising O2 → upper-left, decaying
-        # Contractility → lower-left.
-        loc = "upper left" if spec["response"] == "O2" else "lower left"
+        # Legend: 3 concentration colors then Data/Model line-style entries.
+        # j (Vandetanib O2): bottom-right (rising curves clear that corner).
+        # k (Sotalol Contractility): lower-left (decaying curves clear there).
+        loc = "lower right" if spec["response"] == "O2" else "lower left"
         handles = [
             Line2D([0], [0], color=color_for[c], linewidth=2.4 * scale,
                    label=lab)
