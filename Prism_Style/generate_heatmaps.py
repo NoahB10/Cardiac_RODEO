@@ -112,7 +112,6 @@ PANEL_SPECS = {
         "margins": dict(left=0.50, right=0.04, top=0.04, bottom=0.46),
         "y_axis_label": "Dactinomycin\nDose",
         "x_axis_label": "Time from Exposure (h)",
-        "x_label_pt": 9,   # 9 pt — largest that fits centered in 1.31" figure
         "vmax": 100,
         "size_class": "small",
         "no_spines": True,
@@ -127,7 +126,6 @@ PANEL_SPECS = {
         "margins": dict(left=0.50, right=0.04, top=0.04, bottom=0.46),
         "y_axis_label": "Nifedipine\nDose",
         "x_axis_label": "Time from Exposure (h)",
-        "x_label_pt": 9,
         "vmax": 100,
         "size_class": "small",
         "no_spines": True,
@@ -142,7 +140,6 @@ PANEL_SPECS = {
         "margins": dict(left=0.50, right=0.04, top=0.04, bottom=0.46),
         "y_axis_label": "Mexiletine\nDose",
         "x_axis_label": "Time from Exposure (h)",
-        "x_label_pt": 9,
         "vmax": 100,
         "size_class": "small",
         "no_spines": True,
@@ -433,19 +430,16 @@ def _heatmap_plot_fn(data: pd.DataFrame, spec: dict, conc_map: dict[str, float |
         ax.set_ylabel(spec["y_axis_label"], fontproperties=fp_label,
                       labelpad=2 * scale)
 
-        x_label_pt = spec.get("x_label_pt", axis_pt)
-        if x_label_pt != axis_pt:
-            # Larger font for x-label that may overflow the axes width.
-            # Use fig.text so it's centered on the figure (not the narrow
-            # axes) — this keeps the label visually centered under the
-            # heatmap even if it extends past the panel edges.
+        if no_spines:
+            # X label for spine-less panels: use fig.text centered on the
+            # figure (not the narrow axes) at the same font size as the y
+            # label so both axes labels match visually.
             m = spec["margins"]
             fig_h = spec["fig_size"][1]
             y_frac = (m["bottom"] / 2) / fig_h
             fig.text(0.5, y_frac, spec["x_axis_label"],
                      ha="center", va="center",
-                     fontproperties=helvetica(x_label_pt * scale),
-                     clip_on=False)
+                     fontproperties=fp_label)
         else:
             ax.set_xlabel(spec["x_axis_label"], fontproperties=fp_label,
                           labelpad=2 * scale)
