@@ -163,23 +163,24 @@ INPLACE_PANELS = {
     (2, "d"): (0.16, 6.72, "Fig_2d_prism.png"),
     (2, "e"): (2.51, 6.68, "Fig_2e_prism.png"),
     (2, "f"): (4.51, 6.69, "Fig_2f_prism.png"),
-    (3, "a"): (0.04, 0.93, "Fig_3a_prism.png"),
-    (3, "c"): (2.34, 0.94, "Fig_3c_prism.png"),
-    (3, "e"): (4.65, 0.94, "Fig_3e_prism.png"),
+    # Row 1 heatmaps + surfaces — positions reflect user's manual layout
+    # adjustments in PowerPoint (heatmaps shifted, surfaces lifted to T~0.65).
+    (3, "a"): (-0.02, 0.93, "Fig_3a_prism.png"),
+    (3, "c"): (2.39, 0.94, "Fig_3c_prism.png"),
+    (3, "e"): (4.83, 0.93, "Fig_3e_prism.png"),
     # Row 1 surfaces (paired with the heatmaps above):
-    (3, "b"): (1.25, 0.79, "Fig_3b_prism.png"),   # Dactinomycin O2 (Eq3)
-    (3, "d"): (3.56, 0.79, "Fig_3d_prism.png"),   # Nifedipine   O2 (Eq10)
-    (3, "f"): (5.85, 0.79, "Fig_3f_prism.png"),   # Mexiletine   O2 (Eq7)
+    (3, "b"): (0.87, 0.65, "Fig_3b_prism.png"),   # Dactinomycin O2 (Eq3)
+    (3, "d"): (3.30, 0.66, "Fig_3d_prism.png"),   # Nifedipine   O2 (Eq10)
+    (3, "f"): (5.74, 0.63, "Fig_3f_prism.png"),   # Mexiletine   O2 (Eq7)
     # NOTE: b/d/f are now rendered at 3.77 x 3.82" (much larger than the
     # original 1.19 x 1.18" boxes). They are listed in RESIZE_TO_NATIVE
     # below so the swap also grows each PPTX box to match the new PNG.
+    # Row 2 mid-slide panels (Session D):
+    (3, "g"): (0.11, 2.13, "Fig_3g_prism.png"),   # R² bar — Group 82
+    (3, "i"): (3.35, 2.10, "Fig_3i_prism.png"),   # LOOCV Accuracy vs AUC scatter — Group 70
     # Row 3 multi-line dose responses (background of Group 42 / Group 41):
     (3, "j"): (0.10, 3.88, "Fig_3j_prism.png"),   # Vandetanib O2
     (3, "k"): (2.74, 3.87, "Fig_3k_prism.png"),   # Sotalol Contractility
-    # Panels g (R² bar) and i (LOOCV scatter) are intentionally NOT in this
-    # map — Session D rendered them at sizes larger than their PPT boxes
-    # under descriptive names (Fig_3_R2_bar_prism.png /
-    # Fig_3_LOOCV_scatter_prism.png) and noted manual placement.
 }
 
 # fig_num for each in-place slide (slide 2 -> Figure 2 file dir, slide 3 ->

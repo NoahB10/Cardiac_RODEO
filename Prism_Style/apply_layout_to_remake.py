@@ -76,6 +76,12 @@ LETTER_BOX_H_IN = 0.20
 LETTER_FONT_PT = 12
 LETTER_FONT_BOLD = True
 
+# Toggle: when False, the script does NOT add PanelLetter_* textboxes and
+# strips any pre-existing ones from each managed slide (slides 2/3/6/7/8).
+# Flip back to True to restore the panel-letter overlays. The _add_letter()
+# function definition is kept intact regardless of this flag.
+ADD_PANEL_LETTERS = False
+
 NS = {
     "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
     "p": "http://schemas.openxmlformats.org/presentationml/2006/main",
@@ -117,7 +123,7 @@ def _add_letter(slide, letter: str, position_in: tuple[float, float]):
     p.alignment = PP_ALIGN.LEFT
     run = p.add_run()
     run.text = letter
-    run.font.name = "Helvetica"
+    run.font.name = "Arial"
     run.font.size = Pt(LETTER_FONT_PT)
     run.font.bold = LETTER_FONT_BOLD
     run.font.color.rgb = RGBColor(0, 0, 0)
@@ -154,6 +160,18 @@ def _is_panel_letter(shape):
     txt = shape.text_frame.text.strip()
     return (len(txt) == 1 and txt.lower() in "abcdefghijk"
             and shape.name.startswith(("PanelLetter_", "Label_")))
+
+
+def _remove_existing_panel_letters(slide) -> int:
+    """Strip any pre-existing PanelLetter_* / Label_* textboxes from a slide.
+    Used when ADD_PANEL_LETTERS is False so re-runs don't leave stale labels.
+    Returns the count removed."""
+    removed = 0
+    for shape in list(slide.shapes):
+        if _is_panel_letter(shape):
+            _delete_shape(slide, shape)
+            removed += 1
+    return removed
 
 
 def _compute_picture_top(letter: str, image_h_in: float) -> float:
@@ -194,8 +212,9 @@ def update_slide_loose(slide, fig_num: int):
         L = row["lefts"][letter]
         T = _compute_picture_top(letter, h_in)
         _add_picture(slide, png, (L, T))
-        # Letter sits at row.letter_top (uniform within row).
-        _add_letter(slide, letter, (L, row["letter_top"] - LETTER_OFFSET_Y_IN))
+        if ADD_PANEL_LETTERS:
+            # Letter sits at row.letter_top (uniform within row).
+            _add_letter(slide, letter, (L, row["letter_top"] - LETTER_OFFSET_Y_IN))
         panel_positions[letter] = (L, T, w_in, h_in)
         plot_bottom = T + h_in - MARGIN_B[letter]
         print(f"  add {name:12s} <- {png_name}  pos=({L:.2f},{T:.2f}) "
@@ -325,6 +344,23 @@ def main():
     # bytes get refreshed from the latest Prism PNG.
     print("\n=== In-place panels (slides 2, 3) ===")
     update_inplace_panels(prs)
+
+    # Phase 4: when panel-letter overlays are disabled, sweep every managed
+    # slide and remove any pre-existing PanelLetter_* / Label_* textboxes so
+    # re-runs don't leave stale labels behind.
+    if not ADD_PANEL_LETTERS:
+        print("\n=== Stripping panel-letter overlays (ADD_PANEL_LETTERS=False) ===")
+        managed_slide_indices = set()
+        # In-place slides 2 and 3 (1-based -> 0-based)
+        for slide_1based in INPLACE_FIG_NUM:
+            if slide_1based - 1 < len(prs.slides):
+                managed_slide_indices.add(slide_1based - 1)
+        # Loose-rebuild figure slides 6/7/8
+        managed_slide_indices.update(canonical.values())
+        for idx in sorted(managed_slide_indices):
+            removed = _remove_existing_panel_letters(prs.slides[idx])
+            if removed:
+                print(f"  slide {idx + 1}: removed {removed} panel-letter textbox(es)")
 
     prs.save(str(PPTX_OUT))
     print(f"\n[done] -> {PPTX_OUT}")

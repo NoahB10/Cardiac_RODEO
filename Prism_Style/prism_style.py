@@ -6,7 +6,7 @@ Two pieces:
    Prism's visual defaults:
    - L-shape spines (left + bottom only)
    - Outward Y ticks, no X tick marks (just labels)
-   - Helvetica **Bold** for every label, at explicit point sizes
+   - Arial for every label, at explicit point sizes (Bold via ``bold=True``)
    - Clean Y tick formatter ("0", "0.25", "0.50", "0.75", "1")
    Every size/linewidth knob is a kwarg — change font size, tick length,
    label pad, spine thickness independently.
@@ -32,22 +32,40 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent  # one level up from Prism_Style/
+
+# Arial (system) is the primary face. The project-bundled helvetica.ttf is
+# kept around as a final fallback if Arial is ever missing on a machine.
+_ARIAL_PATH = Path("/System/Library/Fonts/Supplemental/Arial.ttf")
+_ARIAL_BOLD_PATH = Path("/System/Library/Fonts/Supplemental/Arial Bold.ttf")
 _HELV_PATH = PROJECT_ROOT / "fonts" / "helvetica.ttf"
 _HELV_BOLD_PATH = PROJECT_ROOT / "fonts" / "helvetica-bold.ttf"
-for _p in (_HELV_PATH, _HELV_BOLD_PATH):
+for _p in (_ARIAL_PATH, _ARIAL_BOLD_PATH, _HELV_PATH, _HELV_BOLD_PATH):
     if _p.exists():
         fm.fontManager.addfont(str(_p))
 
 
-def helvetica(size_pt: float, bold: bool = False) -> fm.FontProperties:
-    """Bundled Helvetica at ``size_pt`` points; regular by default."""
-    path = _HELV_BOLD_PATH if bold else _HELV_PATH
-    return fm.FontProperties(fname=str(path), size=size_pt)
+def _font_path(bold: bool) -> Path:
+    if bold:
+        return _ARIAL_BOLD_PATH if _ARIAL_BOLD_PATH.exists() else _HELV_BOLD_PATH
+    return _ARIAL_PATH if _ARIAL_PATH.exists() else _HELV_PATH
 
 
-def helvetica_bold(size_pt: float) -> fm.FontProperties:
-    """Bundled Helvetica Bold at ``size_pt`` points."""
-    return helvetica(size_pt, bold=True)
+def arial(size_pt: float, bold: bool = False) -> fm.FontProperties:
+    """Arial at ``size_pt`` points; regular by default. Falls back to the
+    bundled Helvetica TTF if system Arial is unavailable."""
+    return fm.FontProperties(fname=str(_font_path(bold)), size=size_pt)
+
+
+def arial_bold(size_pt: float) -> fm.FontProperties:
+    """Arial Bold at ``size_pt`` points."""
+    return arial(size_pt, bold=True)
+
+
+# Backward-compat aliases — every existing generator imports `helvetica` /
+# `helvetica_bold`. Keep the symbol names valid so we don't have to touch
+# every file. They now resolve to Arial.
+helvetica = arial
+helvetica_bold = arial_bold
 
 
 def _clean_y_tick(x, pos):

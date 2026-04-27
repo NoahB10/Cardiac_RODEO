@@ -3,7 +3,7 @@ Shared figure configuration for Cardiac RODEO project.
 Import this module at the top of any script that generates matplotlib figures.
 
 Usage:
-    import figure_config  # Sets up Helvetica font and consistent sizes
+    import figure_config  # Sets up Arial font and consistent sizes
     import matplotlib.pyplot as plt
     # ... create figures as normal
 
@@ -20,17 +20,26 @@ import matplotlib.pyplot as plt
 _current_file = Path(__file__).resolve()
 PROJECT_ROOT = _current_file.parent
 
-# Register Helvetica fonts from local fonts folder
+# Register any project-bundled TTFs (e.g. fonts/helvetica.ttf is still here
+# as a fallback; primary face is system Arial registered below).
 _font_dir = PROJECT_ROOT / 'fonts'
 if _font_dir.exists():
     for _font_file in _font_dir.glob('*.ttf'):
         fm.fontManager.addfont(str(_font_file))
 
+# Register system Arial faces (macOS) so matplotlib resolves "Arial" reliably.
+for _arial_path in (
+    Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+    Path("/System/Library/Fonts/Supplemental/Arial Bold.ttf"),
+):
+    if _arial_path.exists():
+        fm.fontManager.addfont(str(_arial_path))
+
 # =============================================================================
-# MANDATORY FONT SETTINGS - Helvetica with fixed sizes for consistency
+# MANDATORY FONT SETTINGS - Arial with fixed sizes for consistency
 # =============================================================================
 plt.rcParams['font.family'] = 'sans-serif'
-plt.rcParams['font.sans-serif'] = ['Helvetica', 'Arial', 'DejaVu Sans']
+plt.rcParams['font.sans-serif'] = ['Arial', 'Helvetica', 'DejaVu Sans']
 plt.rcParams['axes.unicode_minus'] = False
 
 # NOTE: Font sizes are NOT set globally here — each figure script sets its
@@ -45,4 +54,4 @@ plt.rcParams['axes.linewidth'] = 0.8
 plt.rcParams['xtick.major.width'] = 0.8
 plt.rcParams['ytick.major.width'] = 0.8
 
-print(f"[figure_config] Helvetica font configured from {_font_dir}")
+print(f"[figure_config] Arial font configured (project fonts: {_font_dir})")
