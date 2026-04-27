@@ -44,15 +44,17 @@ SRC = PROJECT_ROOT / "Output" / "PowerPoint_Figures" / "Fig_3" / "Fig_3e_data.xl
 # Sized so the inner plot area (data box, excluding tick/label margins)
 # measures 4.8 x 3.26 cm = 1.89 x 1.28" per user spec.
 # PLOT_W = PANEL_W - MARGIN_L - MARGIN_R = 2.54 - 0.55 - 0.10 = 1.89
-# PLOT_H = PANEL_H - MARGIN_T - MARGIN_B = 1.95 - 0.12 - 0.55 = 1.28
+# PLOT_H = PANEL_H - MARGIN_T - MARGIN_B = 2.13 - 0.30 - 0.55 = 1.28
+# (MARGIN_T bumped from 0.12 → 0.30 so the rotated Y label
+# "Normalized Contractility" has room above the axis without clipping.)
 PANEL_W = 2.54
-PANEL_H = 1.95
+PANEL_H = 2.13
 
 # Plot-area margins (inches) — chosen so a 13 pt Y label and a 13 pt X
 # label both fit, with a gap above for the small legend.
 MARGIN_L = 0.55
 MARGIN_R = 0.10
-MARGIN_T = 0.12
+MARGIN_T = 0.30
 MARGIN_B = 0.55
 
 PLOT_W = PANEL_W - MARGIN_L - MARGIN_R
