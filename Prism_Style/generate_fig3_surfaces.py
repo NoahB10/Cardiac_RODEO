@@ -49,12 +49,13 @@ from _paths import panel_png, panel_data
 
 COEFF_XLSX = PROJECT_ROOT / "EQN_Coefficients" / "all_equations_coefficients.xlsx"
 
-# Render size (inches) — bumped to 3.77 x 3.82 per user request so the
-# 3D surface fills more of the panel relative to the axis labels. The
-# PPTX swap will replace the picture bytes; user can resize each box in
-# PowerPoint to display at the new native size.
-PANEL_W = 3.77
-PANEL_H = 3.82
+# Render size (inches) — sized so the inner 3D plot box (the wireframe
+# cube, not including label margins) measures ~0.97 x 0.96 in the final
+# image, per user spec. With axes_rect=[0.20, 0.22, 0.68, 0.70] and the
+# projected 3D box taking ~85%/76% of the axes, figure ~1.70 x 1.80 in
+# yields the target plot-box size.
+PANEL_W = 1.70
+PANEL_H = 1.80
 
 # Render-at-scale: draw 4× then LANCZOS-downsample so tick lines and label
 # edges stay crisp. Same trick as the rest of Prism_Style/.
@@ -68,11 +69,10 @@ N_GRID = 60
 VIEW_ELEV = 25
 VIEW_AZIM = -158
 
-# Axis label sizes are in FINAL points (post-downscale).  Bumped to 14 pt
-# now that the panel is ~3.8" wide — proportionally similar to the old
-# 7 pt at 1.19".
-LABEL_PT = 14
-TICK_PT = 10  # ticks are off by default — kept here for reference
+# Axis label sizes are in FINAL points (post-downscale). At ~1.7" wide
+# panel, 10 pt keeps labels readable without crowding the small 3D box.
+LABEL_PT = 10
+TICK_PT = 7  # ticks are off by default — kept here for reference
 
 # Per-panel spec: drug, equation function, sheet name, response type.
 PANELS = {
