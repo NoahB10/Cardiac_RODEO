@@ -62,8 +62,8 @@ LOWESS_W = 16
 
 AXIS_LABEL_PT_LARGE = 13   # slide-2 box (≥2.5" wide) — Prism standard
 TICK_LABEL_PT_LARGE = 9
-AXIS_LABEL_PT_SMALL = 7    # slide-3 box — 7pt labels
-TICK_LABEL_PT_SMALL = 7    #   tick labels match axis labels
+AXIS_LABEL_PT_SMALL = 9    # slide-3 box — unified 9pt axis labels (Fig 3 standard)
+TICK_LABEL_PT_SMALL = 7    # tick labels at 7pt (Fig 3 standard)
 SPINE_LW_PT = 1.0
 SPINE_COLOR = "black"
 MAX_Y_TICK_LABELS_LARGE = 8   # slide-2 panels can fit more dose ticks
@@ -85,7 +85,7 @@ PANEL_SPECS = {
         "fig_size": (2.60, 1.78),
         "margins": dict(left=0.62, right=0.06, top=0.05, bottom=0.50),
         "y_axis_label": "Epirubicin Dose",
-        "x_axis_label": "Time from Exposure (h)",
+        "x_axis_label": "Time from exposure (h)",
         "vmax": 100,
         "y_tick_decimals": 2,    # round dose labels to hundredths
     },
@@ -98,7 +98,7 @@ PANEL_SPECS = {
         "fig_size": (2.60, 1.74),
         "margins": dict(left=0.62, right=0.06, top=0.05, bottom=0.50),
         "y_axis_label": "Mexiletine Dose",
-        "x_axis_label": "Time from Exposure (h)",
+        "x_axis_label": "Time from exposure (h)",
         "vmax": None,            # auto from data
         "y_tick_decimals": 2,
     },
@@ -115,7 +115,7 @@ PANEL_SPECS = {
         "fig_size": (1.30, 3.44 / 2.54),   # 1.30" x 1.354" (3.30x3.44 cm)
         "margins": dict(left=0.40, right=0.19, top=0.15, bottom=0.495),
         "y_axis_label": "Dactinomycin Dose",
-        "x_axis_label": "Time from Exposure (h)",
+        "x_axis_label": "Time from exposure",
         "y_tick_decimals": 2,
         "vmax": 100,
         "size_class": "small",
@@ -130,7 +130,7 @@ PANEL_SPECS = {
         "fig_size": (1.30, 3.44 / 2.54),   # 1.30" x 1.354" (3.30x3.44 cm)
         "margins": dict(left=0.40, right=0.19, top=0.15, bottom=0.495),
         "y_axis_label": "Nifedipine Dose",
-        "x_axis_label": "Time from Exposure (h)",
+        "x_axis_label": "Time from exposure",
         "y_tick_decimals": 2,
         "vmax": 100,
         "size_class": "small",
@@ -145,7 +145,7 @@ PANEL_SPECS = {
         "fig_size": (1.30, 3.44 / 2.54),   # 1.30" x 1.354" (3.30x3.44 cm)
         "margins": dict(left=0.40, right=0.19, top=0.15, bottom=0.495),
         "y_axis_label": "Mexiletine Dose",
-        "x_axis_label": "Time from Exposure (h)",
+        "x_axis_label": "Time from exposure",
         "y_tick_decimals": 2,
         "vmax": 100,
         "size_class": "small",
@@ -352,8 +352,9 @@ def _heatmap_plot_fn(data: pd.DataFrame, spec: dict, conc_map: dict[str, float |
                for i in keep_idx]
     y_tick_labels = [group_keys[i] for i in keep_idx]
 
-    # X ticks: 5 (large) or 4 (small) evenly spaced labels mapped to hours.
-    n_target = 4 if is_small else 5
+    # X ticks: 5 (large) or 3 (small) evenly spaced labels mapped to hours.
+    # Small panels are 1.30" wide; 4 ticks at 7pt collide — use 3 instead.
+    n_target = 3 if is_small else 5
     if n_cols <= n_target:
         x_indices = list(range(n_cols))
     else:

@@ -45,7 +45,8 @@ def strip_axes(fig):
     Strip all axis decorations from every axes in a figure.
 
     Removes: axis labels, titles, tick labels, tick marks, spines, grid lines
-    Keeps:   legends, data annotations (ax.text), plotted content, colorbars (colors only)
+    Keeps:   legends, data annotations (ax.text), plotted content, colorbars (colors only),
+             the figure/axes background fill (white stays white — we just crop tight)
     """
     for ax in fig.get_axes():
         ax.set_xlabel('')
@@ -80,6 +81,13 @@ def strip_axes(fig):
 # MONKEY-PATCH: Intercept Figure.savefig to also produce axisless versions
 # ============================================================================
 
+# Per-panel axisless-height overrides (in centimetres). The saved axisless PNG
+# will be resized (aspect preserved) to match these heights. Add entries here
+# when a specific panel must land at an exact size in the layout.
+AXISLESS_HEIGHT_OVERRIDES_CM = {
+    'Fig_6c.png': 3.56,
+}
+
 _orig_savefig = matplotlib.figure.Figure.savefig
 _savefig_active = False  # Guard against recursion
 
@@ -111,18 +119,85 @@ def _patched_savefig(self, fname, *args, **kwargs):
     axisless_dir.mkdir(parents=True, exist_ok=True)
     axisless_path = axisless_dir / fname_path.name
 
-    # Strip axes and save axisless version
+    # Strip axes and save axisless version sized to the plot-area bbox only.
+    # The axisless image must match the axes rectangle exactly, so that
+    # when it's overlaid on the with-axis image, it lines up pixel-perfect
+    # with the inside of the axes — no margin for labels/ticks, but all
+    # whitespace *inside* the axes preserved.
     strip_axes(self)
+    axisless_kwargs = dict(kwargs)
+    plot_bbox = _main_axes_bbox_in_inches(self)
+    if plot_bbox is not None:
+        axisless_kwargs['bbox_inches'] = plot_bbox
+        axisless_kwargs['pad_inches'] = 0
+    else:
+        # Fallback: no axes found, use tight
+        axisless_kwargs['bbox_inches'] = 'tight'
+        axisless_kwargs['pad_inches'] = 0
     _savefig_active = True
     try:
-        _orig_savefig(self, str(axisless_path), *args, **kwargs)
+        _orig_savefig(self, str(axisless_path), *args, **axisless_kwargs)
+        _apply_height_override(axisless_path)
         print(f"  Saved axisless: {axisless_path}")
 
         # For heatmaps: also save body and colorbar as separate images
         if 'eatmap' in fname_path.stem:
-            _split_heatmap_colorbar(self, axisless_path, *args, **kwargs)
+            _split_heatmap_colorbar(self, axisless_path, *args, **axisless_kwargs)
     finally:
         _savefig_active = False
+
+
+def _apply_height_override(axisless_path):
+    """If this panel has an entry in AXISLESS_HEIGHT_OVERRIDES_CM, resize the
+    saved axisless PNG to that exact height (aspect preserved)."""
+    target_cm = AXISLESS_HEIGHT_OVERRIDES_CM.get(axisless_path.name)
+    if not target_cm:
+        return
+    try:
+        from PIL import Image
+        im = Image.open(axisless_path)
+        dpi = im.info.get('dpi', (SAVE_DPI, SAVE_DPI))[1]
+        target_px = int(round(target_cm / 2.54 * dpi))
+        if im.size[1] == target_px:
+            return
+        scale = target_px / im.size[1]
+        new_size = (int(round(im.size[0] * scale)), target_px)
+        resized = im.resize(new_size, Image.LANCZOS)
+        resized.save(axisless_path, dpi=(dpi, dpi))
+    except Exception as e:
+        print(f"  (height override failed for {axisless_path.name}: {e})")
+
+
+def _main_axes_bbox_in_inches(fig):
+    """Return the primary data-axes bbox in figure-inch coords, or None.
+
+    For figures with a single axes this is that axes. For figures with
+    multiple axes (e.g. heatmap + colorbar), we return the union of the
+    non-colorbar axes — i.e. every axes whose width is not the narrowest.
+    """
+    axes = fig.get_axes()
+    if not axes:
+        return None
+    # Identify colorbar-like axes (narrowest; skip from main region).
+    widths = sorted(((ax.get_position().width, i, ax) for i, ax in enumerate(axes)),
+                    key=lambda t: t[0])
+    if len(axes) >= 2 and widths[0][0] < widths[-1][0] * 0.25:
+        main_axes = [t[2] for t in widths[1:]]
+    else:
+        main_axes = axes
+
+    # Union of display-coord bboxes, then convert to inches
+    bboxes = []
+    for ax in main_axes:
+        try:
+            bboxes.append(ax.get_window_extent())
+        except Exception:
+            continue
+    if not bboxes:
+        return None
+    from matplotlib.transforms import Bbox
+    union = Bbox.union(bboxes)
+    return union.transformed(fig.dpi_scale_trans.inverted())
 
 
 def _split_heatmap_colorbar(fig, axisless_path, *args, **kwargs):

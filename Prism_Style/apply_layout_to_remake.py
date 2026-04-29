@@ -80,7 +80,17 @@ LETTER_FONT_BOLD = True
 # strips any pre-existing ones from each managed slide (slides 2/3/6/7/8).
 # Flip back to True to restore the panel-letter overlays. The _add_letter()
 # function definition is kept intact regardless of this flag.
-ADD_PANEL_LETTERS = False
+ADD_PANEL_LETTERS = True
+
+# Per-panel letter offset overrides (slide_1based, letter) -> (dx_in, dy_in).
+# Applied RELATIVE to the picture's (L, T). Falls back to
+# LETTER_OFFSET_X_IN / LETTER_OFFSET_Y_IN when not present.
+# Slide 3 b/d/f: user moved letters to align with the a/c/e row (~T=0.78").
+LETTER_OFFSETS: dict[tuple[int, str], tuple[float, float]] = {
+    (3, "b"): (0.243, 0.123),
+    (3, "d"): (0.309, 0.136),
+    (3, "f"): (0.393, 0.119),
+}
 
 NS = {
     "a": "http://schemas.openxmlformats.org/drawingml/2006/main",
@@ -105,10 +115,16 @@ def _delete_shape(slide, shape):
     sp.getparent().remove(sp)
 
 
-def _add_letter(slide, letter: str, position_in: tuple[float, float]):
+def _add_letter(slide, letter: str, position_in: tuple[float, float],
+                slide_1based: int = 0):
+    """Place a bold letter textbox near position_in.
+    Uses LETTER_OFFSETS[(slide_1based, letter)] if defined, otherwise the
+    global LETTER_OFFSET_X/Y_IN defaults."""
     L, T = position_in
-    x = (L + LETTER_OFFSET_X_IN) * EMU_PER_INCH
-    y = (T + LETTER_OFFSET_Y_IN) * EMU_PER_INCH
+    dx, dy = LETTER_OFFSETS.get((slide_1based, letter),
+                                (LETTER_OFFSET_X_IN, LETTER_OFFSET_Y_IN))
+    x = (L + dx) * EMU_PER_INCH
+    y = (T + dy) * EMU_PER_INCH
     if x < 0:
         x = 0
     if y < 0:
@@ -183,7 +199,7 @@ def _compute_picture_top(letter: str, image_h_in: float) -> float:
     return row["plot_bottom"] + MARGIN_B[letter] - image_h_in
 
 
-def update_slide_loose(slide, fig_num: int):
+def update_slide_loose(slide, fig_num: int, slide_1based: int = 0):
     """Wipe ALL pictures + panel letters + groups, then rebuild from
     ROW_LAYOUT + CONTENT. Title text boxes are preserved.
 
@@ -213,8 +229,8 @@ def update_slide_loose(slide, fig_num: int):
         T = _compute_picture_top(letter, h_in)
         _add_picture(slide, png, (L, T))
         if ADD_PANEL_LETTERS:
-            # Letter sits at row.letter_top (uniform within row).
-            _add_letter(slide, letter, (L, row["letter_top"] - LETTER_OFFSET_Y_IN))
+            _add_letter(slide, letter, (L, row["letter_top"] - LETTER_OFFSET_Y_IN),
+                        slide_1based=slide_1based)
         panel_positions[letter] = (L, T, w_in, h_in)
         plot_bottom = T + h_in - MARGIN_B[letter]
         print(f"  add {name:12s} <- {png_name}  pos=({L:.2f},{T:.2f}) "
@@ -308,6 +324,18 @@ def update_inplace_panels(prs, *, position_tol_in: float = 0.05):
             print(f"  swap slide {slide_1based} panel {letter:s} <- {png_name}  "
                   f"frame=({exp_L:.2f},{exp_T:.2f}) {w_in:.2f}x{h_in:.2f}\"")
 
+        if ADD_PANEL_LETTERS:
+            # Remove any stale PanelLetter for this slot before adding a fresh one.
+            for sp in list(slide.shapes):
+                if hasattr(sp, 'name') and sp.name == f"PanelLetter_{letter}":
+                    _delete_shape(slide, sp)
+            L_fr = match.left / EMU_PER_INCH
+            T_fr = match.top / EMU_PER_INCH
+            _add_letter(slide, letter, (L_fr, T_fr), slide_1based=slide_1based)
+            dx, dy = LETTER_OFFSETS.get((slide_1based, letter),
+                                        (LETTER_OFFSET_X_IN, LETTER_OFFSET_Y_IN))
+            print(f"    letter '{letter}' at ({L_fr + dx:.2f}, {T_fr + dy:.2f}\")")
+
 
 def main():
     PPTX_OUT.parent.mkdir(parents=True, exist_ok=True)
@@ -328,7 +356,7 @@ def main():
     for fig, idx in canonical.items():
         slide = prs.slides[idx]
         print(f"\n=== Slide {idx + 1} (Figure {fig}) ===")
-        update_slide_loose(slide, fig)
+        update_slide_loose(slide, fig, slide_1based=idx + 1)
 
     # Phase 2: drop duplicate slides AFTER processing so canonical indices
     # don't shift mid-loop. Delete from highest-index first.

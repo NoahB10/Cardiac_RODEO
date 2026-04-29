@@ -134,3 +134,6 @@ Output/PowerPoint_Figures/Fig_2.zip
 # Misc non-code files
 rodeo.emf
 heart_rate_analysis_script.py.py
+
+# PowerPoint / Office lock files (created when a doc is open)
+~$*

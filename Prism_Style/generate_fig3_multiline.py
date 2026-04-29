@@ -65,8 +65,8 @@ AXES_RECT = (MARGIN_L / PANEL_W, MARGIN_B / PANEL_H,
 SCALE = 4
 DPI = 600
 
-TICK_FONT_PT = 8
-AXIS_LABEL_PT = 11
+TICK_FONT_PT = 7    # unified Fig 3 tick size
+AXIS_LABEL_PT = 9   # unified Fig 3 axis-label size
 LEGEND_FONT_PT = 7
 
 # Use the SAME plasma colormap that generate_paper_figures.py uses for
@@ -182,10 +182,10 @@ def _plot_fn(df: pd.DataFrame, spec: dict):
         # Contractility (Sotalol) falls from 1 → ~0.55 fold. Hand-picked
         # so ticks land on round numbers and the data fills the panel.
         if spec["response"] == "O2":
-            ax.set_ylim(0.5, 4.0)
+            ax.set_ylim(1, 4)
             ax.set_yticks([1, 2, 3, 4])
         else:
-            ax.set_ylim(0.4, 1.05)
+            ax.set_ylim(0.4, 1.0)
             ax.set_yticks([0.4, 0.6, 0.8, 1.0])
 
         apply_prism_style(

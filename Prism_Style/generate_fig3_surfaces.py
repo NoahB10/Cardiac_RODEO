@@ -71,8 +71,8 @@ VIEW_AZIM = -158
 
 # Axis label sizes are in FINAL points (post-downscale). At ~1.7" wide
 # panel, 10 pt keeps labels readable without crowding the small 3D box.
-LABEL_PT = 10
-TICK_PT = 7  # ticks are off by default — kept here for reference
+LABEL_PT = 9   # unified Fig 3 axis-label size
+TICK_PT = 7    # ticks are off by default — kept here for reference
 
 # Per-panel spec: drug, equation function, sheet name, response type.
 PANELS = {
@@ -218,7 +218,7 @@ def _draw(letter: str, spec: dict, out_path: Path):
     # Y label bottom-left).
     # Inset axes: leave margin on all sides so set_xlabel/set_ylabel labels
     # (which auto-rotate to follow the axis direction) stay within the figure.
-    ax = fig.add_axes([0.20, 0.22, 0.68, 0.70], projection="3d")
+    ax = fig.add_axes([0.234, 0.255, 0.612, 0.630], projection="3d")
 
     # Color normalization on Response itself (some equations have negatives;
     # turbo handles either).

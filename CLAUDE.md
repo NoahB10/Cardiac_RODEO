@@ -122,6 +122,15 @@ Steps: `--fit` → `--consolidate` → `--excel` → `--report`
 
 ## Plotting Standards
 
+### Axisless Image Sizing (Overlay Rule)
+Every figure has a "with-axis" copy and an "axisless" copy in `Output/PowerPoint_Figures/Fig_X/` and `Fig_X/Axisless/`. The axisless PNG MUST be saved at the exact axes-bbox size — i.e. the rectangle inside the with-axis image where data is plotted, with tick labels and axis labels excluded.
+
+**Why:** when the axisless image is overlaid on the with-axis image and aligned to the axes area, it must fit pixel-perfect with no resizing. Any whitespace *inside* the axes is kept (it's part of the plot area); any margin *outside* the axes (for ticks/labels) is excluded.
+
+**How:** `generate_axisless_figures.py` monkey-patches `Figure.savefig` and for the axisless copy passes `bbox_inches=<axes extent in inches>` plus `pad_inches=0`. The axes extent comes from `ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())`. Do NOT use `bbox_inches='tight'` for the axisless save (that would crop to the visible content and break the overlay). Do NOT post-crop uniform-white borders with PIL — that removes legitimate whitespace inside the axes.
+
+For figures with a colorbar axes, the colorbar (narrowest axes) is excluded and the main data axes is used for the bbox.
+
 ### 3D Surface Plots
 - **X-axis:** Time (hours), range `[0, 96]`
 - **Y-axis:** Dose ratio (C0/Cmax), range `[0, 2]`

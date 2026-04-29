@@ -87,6 +87,7 @@ def _plot_fn(df, threshold, prob_col):
             edgecolor="black",
             linewidth=0.6 * scale,
             zorder=3,
+            clip_on=False,
         )
 
         ax.axvline(
@@ -108,7 +109,7 @@ def _plot_fn(df, threshold, prob_col):
 
         ax.set_yticks(y)
         ax.set_yticklabels(df["Drug"].tolist())
-        ax.set_xlim(-2, 102)
+        ax.set_xlim(0, 100)
         ax.set_xticks([0, 25, 50, 75, 100])
         ax.invert_yaxis()
         ax.set_xlabel("Prob (%)")

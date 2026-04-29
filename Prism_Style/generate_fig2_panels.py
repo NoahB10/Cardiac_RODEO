@@ -7,11 +7,11 @@ Panel | Box (in)    | What it shows
 ------|-------------|--------------------------------------------------------
 2a    | 2.31 x 1.82 | Epirubicin O2 multi-line (8 doses, time 0..96 h)
 2b    | 2.33 x 1.82 | Epirubicin TC50 sigmoid (Viability vs Epirubicin mM, log-x)
-2d    | 2.25 x 1.74 | EMPTY Contractility axis frame (used as overlay base)
-2e    | 2.06 x 1.76 | Mexiletine Contractility multi-line (3 doses, Data + Model)
+2d    | 2.25 x 1.74 | Mexiletine Contractility multi-line (7 doses, time 0..96 h)
+2e    | 2.06 x 1.76 | Mexiletine stacked waveforms (Low/Med/High @ 48 h)
 
 Style: Helvetica, L-spines (top/right hidden), axis labels 13 pt, ticks 9 pt.
-Outputs land in `Output/PowerPoint_Figures_Remake/sources/Fig_2/`:
+Outputs land in `Output/PowerPoint_Figures/Fig_2/`:
     Fig_2{letter}_prism.png        — the panel image (native size = box size)
     Fig_2{letter}_prism_data.xlsx  — paired data XLSX (Plotted + Metadata)
 """
@@ -120,17 +120,16 @@ def _plot_2a(df, dose_cols):
                     solid_capstyle="round", zorder=3)
 
         ax.set_xlim(0, 100)
-        ax.set_ylim(0, 75)
+        ax.set_ylim(0, 80)
         ax.set_xticks([0, 20, 40, 60, 80, 100])
-        ax.set_yticks([0, 20, 40, 60])
-        ax.set_xlabel("Time from Exposure (h)")
+        ax.set_yticks([0, 10, 20, 30, 40, 50, 60, 70, 80])
+        ax.set_xlabel("Time from exposure (h)")
         ax.set_ylabel("Oxygen (% Air)")
         _setup_axes(ax, scale)
     return _fn
 
 
-def _save_2a_data(df, dose_cols, src):
-    out = panel_data(2, "a")
+def _save_2a_data_to(df, dose_cols, src, out):
     plotted = df[["Time_h"] + dose_cols].copy()
     metadata = pd.DataFrame([{
         "Panel": "Fig_2a (Prism)",
@@ -213,8 +212,8 @@ def _plot_2b(x, y, yerr, fit_x, fit_y, tc50):
         )
 
         ax.set_xscale("log")
-        ax.set_xlim(0.05, 20)
-        ax.set_ylim(-5, 105)
+        ax.set_xlim(0.1, 10)
+        ax.set_ylim(0, 100)
         ax.set_xticks([0.1, 1, 10])
         ax.xaxis.set_major_formatter(mticker.FuncFormatter(
             lambda v, p: f"{v:g}"))
@@ -222,7 +221,7 @@ def _plot_2b(x, y, yerr, fit_x, fit_y, tc50):
             base=10, subs=tuple(np.arange(2, 10) * 0.1), numticks=20))
         ax.xaxis.set_minor_formatter(mticker.NullFormatter())
 
-        ax.set_yticks([0, 25, 50, 75, 100])
+        ax.set_yticks([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
         ax.set_xlabel("Epirubicin (mM)")
         ax.set_ylabel("Viability (%)")
         _setup_axes(ax, scale)
@@ -241,8 +240,7 @@ def _plot_2b(x, y, yerr, fit_x, fit_y, tc50):
     return _fn
 
 
-def _save_2b_data(df, fit_x, fit_y, tc50, popt, src):
-    out = panel_data(2, "b")
+def _save_2b_data_to(df, fit_x, fit_y, tc50, popt, src, out):
     plotted = df[["Concentration", "Consumption", "Consumption_std",
                   "O2_mean", "O2_std", "N_wells"]].copy()
     plotted.rename(columns={"Consumption": "Viability_pct",
@@ -271,38 +269,66 @@ def _save_2b_data(df, fit_x, fit_y, tc50, popt, src):
 
 
 # ===========================================================================
-# Fig 2d — EMPTY Contractility axis frame
+# Fig 2d — Mexiletine Contractility multi-line (parallel to 2a)
 # ===========================================================================
-# Box: 2.25 x 1.74". Y axis Contractility (%) 3-11, X axis Time 0-96.
+# Box: 2.25 x 1.74". 7 doses (20, 10, 5, 2.5, 1.25, 0.625, 0.156 mM).
+# Data: Plotted_Data sheet of Fig_2j_Mexiletine_Contractility_data.xlsx
+# Colors: plasma colormap (matches tracked Fig_2j_Mexiletine_Contractility.png).
 
 D_BOX_W, D_BOX_H = 2.25, 1.74
 D_ML, D_MR, D_MT, D_MB = 0.50, 0.18, 0.06, 0.50
 D_PLOT_W = D_BOX_W - D_ML - D_MR
 D_PLOT_H = D_BOX_H - D_MT - D_MB
 
+# Plasma palette sampled at i/(N-1) for N=7 doses (high -> low).
+# Matches plt.get_cmap('plasma', 7) used by plot_contractility.py.
+PALETTE_PLASMA_7 = [
+    "#0d0887",   # 20 mM    (i=0, dark blue)
+    "#5402a3",   # 10 mM    (i=1, deep purple)
+    "#8b0aa5",   # 5 mM     (i=2, magenta-purple)
+    "#b83289",   # 2.5 mM   (i=3, pink)
+    "#db5c68",   # 1.25 mM  (i=4, red-pink)
+    "#f1834b",   # 0.625 mM (i=5, orange)
+    "#f0f921",   # 0.156 mM (i=6, yellow)
+]
 
-def _plot_2d():
+
+def load_2d_data():
+    src = FIG_DIR / "Fig_2j_Mexiletine_Contractility_data.xlsx"
+    df = pd.read_excel(src, sheet_name="Plotted_Data")
+    df.columns = [c.strip() for c in df.columns]
+    dose_cols = [c for c in df.columns if c.endswith("_mM")]
+    return df, dose_cols, src
+
+
+def _plot_2d(df, dose_cols):
     def _fn(fig, ax, scale):
+        x = df["Time_h"].to_numpy(dtype=float)
+        for col, color in zip(dose_cols, PALETTE_PLASMA_7):
+            y = df[col].to_numpy(dtype=float)
+            ax.plot(x, y, color=color, linewidth=1.0 * scale,
+                    solid_capstyle="round", zorder=3)
+
         ax.set_xlim(0, 100)
-        ax.set_ylim(3, 11)
+        ax.set_ylim(2, 12)
         ax.set_xticks([0, 20, 40, 60, 80, 100])
-        ax.set_yticks([4, 6, 8, 10])
-        ax.set_xlabel("Time from Exposure (h)")
+        ax.set_yticks([2, 4, 6, 8, 10, 12])
+        ax.set_xlabel("Time from exposure (h)")
         ax.set_ylabel("Contractility (%)")
         _setup_axes(ax, scale)
     return _fn
 
 
-def _save_2d_data():
-    out = panel_data(2, "d")
-    plotted = pd.DataFrame({"Note": ["Empty axis frame — no data plotted."]})
+def _save_2d_data_to(df, dose_cols, src, out):
+    plotted = df[["Time_h"] + dose_cols].copy()
     metadata = pd.DataFrame([{
         "Panel": "Fig_2d (Prism)",
-        "Description": "Empty Contractility axis frame — overlay base for heatmaps",
+        "Description": "Mexiletine Contractility multi-line — 7 doses",
         "Source_Script": "Prism_Style/generate_fig2_panels.py",
-        "Source_Data": "(none)",
-        "X_Axis": "Time from Exposure (h), 0-100",
-        "Y_Axis": "Contractility (%), 3-11",
+        "Source_Data": str(src.relative_to(PROJECT_ROOT)),
+        "X_Axis": "Time_h (0-95, 1000 interpolated points)",
+        "Y_Axis": "Contractility (%)",
+        "Doses_mM": ", ".join(c.replace("_mM", "") for c in dose_cols),
     }])
     with pd.ExcelWriter(out, engine="openpyxl") as w:
         plotted.to_excel(w, sheet_name="Plotted", index=False)
@@ -311,150 +337,96 @@ def _save_2d_data():
 
 
 # ===========================================================================
-# Fig 2e — Mexiletine Contractility multi-line (3 doses, Data + Model)
+# Fig 2e — Mexiletine Waveforms (3 stacked traces at 48 h)
 # ===========================================================================
-# Box: 2.06 x 1.76". Pick 3 doses spanning the dose range — high (5 mM),
-# mid (1.25 mM), low (0.156 mM) — match the colours used by the existing
-# 3-dose waveform legend so the slide stays visually coherent.
+# Box: 2.06 x 1.76". Three stacked contractility waveforms (Low/Med/High
+# concentration), each with a "X mM, Y bpm" text label colored to the trace.
+# Data: Plotted_Data sheet of Fig_2k_Mexiletine_Waveforms_data.xlsx.
 
 E_BOX_W, E_BOX_H = 2.06, 1.76
-E_ML, E_MR, E_MT, E_MB = 0.48, 0.30, 0.06, 0.50
+E_ML, E_MR, E_MT, E_MB = 0.30, 0.10, 0.06, 0.50
 E_PLOT_W = E_BOX_W - E_ML - E_MR
 E_PLOT_H = E_BOX_H - E_MT - E_MB
 
-# Doses chosen to span low/mid/high while matching the waveform-legend palette.
-# Colours come from the 3-dose waveform legend on the same slide.
-E_DOSES = [
-    ("5_mM",     "5",     "#7E2A99"),   # purple
-    ("1.25_mM",  "1.25",  "#E0457A"),   # pink-red
-    ("0.625_mM", "0.625", "#F8A82A"),   # amber
+# Plasma colors matching plot_mexiletine_waveforms.py (Low=yellow, High=purple).
+WAVEFORM_LEVELS = [
+    ("Low",  "#fdb42f"),   # yellow/amber, bottom waveform
+    ("Med",  "#cc4778"),   # pink,         middle waveform
+    ("High", "#9c179e"),   # purple,       top waveform
 ]
 
 
 def load_2e_data():
-    src = FIG_DIR / "Fig_2j_Mexiletine_Contractility_data.xlsx"
-    plotted = pd.read_excel(src, sheet_name="Plotted_Data")
-    plotted.columns = [c.strip() for c in plotted.columns]
-    raw = pd.read_excel(src, sheet_name="Raw_Data")
-    raw.columns = [str(c).strip() for c in raw.columns]
-    return plotted, raw, src
+    src = FIG_DIR / "Fig_2k_Mexiletine_Waveforms_data.xlsx"
+    df = pd.read_excel(src, sheet_name="Plotted_Data")
+    df.columns = [c.strip() for c in df.columns]
+    return df, src
 
 
-def _raw_mean_for_dose(raw_df, dose_str):
-    """Average the per-well columns whose label cleans to ``dose_str`` mM.
-
-    Excel's auto-suffixed duplicates (5, 5.1, 5.2, 5.3) all represent the
-    same dose — strip the .x suffix before matching.
-    """
-    time_col = "Unnamed: 0"
-    if time_col not in raw_df.columns:
-        # Fall back to the first column if Excel didn't produce the unnamed one.
-        time_col = raw_df.columns[1]
-    cols = []
-    target = float(dose_str)
-    for c in raw_df.columns:
-        s = str(c)
-        if s in {"Source", time_col}:
-            continue
-        # Reduce e.g. "0.156.3" -> "0.156" by trimming trailing .x suffixes.
-        try:
-            if abs(float(s) - target) < 1e-6:
-                cols.append(c)
-                continue
-        except ValueError:
-            pass
-        # The pandas-suffixed form "5.1" -> 5; "0.156.3" -> 0.156
-        parts = s.split(".")
-        # Try progressively shorter prefixes
-        for i in range(len(parts), 0, -1):
-            head = ".".join(parts[:i])
-            try:
-                if abs(float(head) - target) < 1e-6:
-                    cols.append(c)
-                    break
-            except ValueError:
-                continue
-    if not cols:
-        return None, None
-    sub = raw_df[[time_col] + cols].dropna(how="all", subset=cols)
-    t = sub[time_col].to_numpy(dtype=float)
-    arr = sub[cols].to_numpy(dtype=float)
-    mean = np.nanmean(arr, axis=1)
-    mask = np.isfinite(t) & np.isfinite(mean)
-    return t[mask], mean[mask]
+def _extract_waveform(df, level):
+    """Return (time, signal, conc_mM, bpm) for one of Low/Med/High."""
+    time_col = next(c for c in df.columns
+                    if c.startswith(level + "_") and c.endswith("_time_s"))
+    sig_col = next(c for c in df.columns
+                   if c.startswith(level + "_") and c.endswith("BPM"))
+    # column form: e.g. "Low_0.625mM_time_s" -> conc "0.625"
+    conc_str = time_col.split("_")[1].replace("mM", "")
+    bpm_str = sig_col.split("_")[-1].replace("BPM", "")
+    t = df[time_col].to_numpy(dtype=float)
+    s = df[sig_col].to_numpy(dtype=float)
+    mask = np.isfinite(t) & np.isfinite(s)
+    return t[mask], s[mask], conc_str, bpm_str
 
 
-def _plot_2e(plotted, raw):
-    """Plot 3 dose model curves + sparse marker samples to convey 'data + model'.
-
-    Marker points are drawn from the model itself (subsampled every ~12 h).
-    The raw per-well sheet lives in fractional-amplitude units that don't map
-    1:1 to the % baseline used by Plotted_Data, so true raw overlay would
-    be misleading without re-running the normalization pipeline.
-    """
+def _plot_2e(df):
     def _fn(fig, ax, scale):
-        x_model = plotted["Time_h"].to_numpy(dtype=float)
-        # Sample-marker indices ~ every 12 h across the 0..96 h range
-        marker_targets = [0, 12, 24, 36, 48, 60, 72, 84, 96]
-        marker_idx = [int(np.argmin(np.abs(x_model - t))) for t in marker_targets]
+        # Compute peak-to-peak per waveform for stacking spacing.
+        traces = []
+        for level, color in WAVEFORM_LEVELS:
+            t, s, conc, bpm = _extract_waveform(df, level)
+            traces.append((level, color, t, s, conc, bpm))
+        amplitudes = [np.ptp(s) for (_, _, _, s, _, _) in traces]
+        max_amp = max(amplitudes) if amplitudes else 1.0
+        spacing = max_amp * 1.5
 
-        for col, label, color in E_DOSES:
-            y_model = plotted[col].to_numpy(dtype=float)
-            ax.plot(x_model, y_model,
-                    color=color, linewidth=1.0 * scale,
+        for i, (level, color, t, s, conc, bpm) in enumerate(traces):
+            offset = i * spacing
+            ax.plot(t, s + offset, color=color,
+                    linewidth=1.0 * scale, alpha=0.95, zorder=3)
+            # Concentration + BPM label, colored to match the trace,
+            # placed at the top-left of each trace.
+            y_peak = float(np.max(s + offset))
+            ax.text(0.10, y_peak + spacing * 0.10,
+                    f"{conc} mM, {bpm} bpm",
+                    fontproperties=helvetica(7 * scale),
+                    color=color, va="bottom", ha="left",
                     zorder=4)
-            ax.plot(x_model[marker_idx], y_model[marker_idx],
-                    marker="o", linestyle="",
-                    markerfacecolor=color, markeredgecolor=color,
-                    markersize=1.8 * scale,
-                    zorder=5)
 
-        ax.set_xlim(0, 100)
-        ax.set_ylim(0, 12)
-        ax.set_xticks([0, 20, 40, 60, 80, 100])
-        ax.set_yticks([0, 3, 6, 9, 12])
-        ax.set_xlabel("Time from Exposure (h)")
-        ax.set_ylabel("Contractility (%)")
-        _setup_axes(ax, scale)
-
-        handles = [
-            Line2D([0], [0], marker="o", color="w",
-                   markerfacecolor="#444", markeredgecolor="#444",
-                   markersize=2.5 * scale, label="Data"),
-            Line2D([0], [0], color="#444",
-                   linewidth=1.1 * scale, label="Model"),
-        ]
-        ax.legend(
-            handles=handles,
-            loc="lower left",
-            frameon=False,
-            handlelength=0.9, handletextpad=0.4,
-            labelspacing=0.20,
-            prop=helvetica(7 * scale),
-        )
+        ax.set_xlim(0, 7)
+        # Reserve headroom above topmost label, room below bottom waveform.
+        ax.set_ylim(-spacing * 0.5, spacing * 2.85)
+        ax.set_xticks([0, 1, 2, 3, 4, 5, 6, 7])
+        ax.set_yticks([])
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Contractility")
+        _setup_axes(ax, scale, ytick_length_pt=0.0)
+        # Hide the y-axis tick marks entirely (no values shown).
+        ax.tick_params(axis="y", which="both", left=False, right=False)
     return _fn
 
 
-def _save_2e_data(plotted, raw, src):
-    out = panel_data(2, "e")
-    cols = ["Time_h"] + [c for (c, _, _) in E_DOSES]
-    model_df = plotted[cols].copy()
-
+def _save_2e_data_to(df, src, out):
     metadata = pd.DataFrame([{
         "Panel": "Fig_2e (Prism)",
-        "Description": "Mexiletine Contractility multi-line — 3 doses, Data + Model legend",
+        "Description": "Mexiletine stacked waveforms — 3 doses at 48 h",
         "Source_Script": "Prism_Style/generate_fig2_panels.py",
         "Source_Data": str(src.relative_to(PROJECT_ROOT)),
-        "X_Axis": "Time from Exposure (h), 0-96",
-        "Y_Axis": "Contractility (%)",
-        "Doses_mM": ", ".join(label for (_, label, _) in E_DOSES),
-        "Notes": ("Markers sampled from the smoothed model curve every ~12 h "
-                  "to convey the 'Data + Model' visual; per-well raw data "
-                  "lives in different units (fractional amplitude) and is "
-                  "not directly overlaid."),
+        "X_Axis": "Time (s), 0-7",
+        "Y_Axis": "Contractility (mV, stacked with offset)",
+        "Levels": "Low (0.625 mM, 59 BPM), Med (2.5 mM, 73 BPM), High (5.0 mM, 119 BPM)",
     }])
     with pd.ExcelWriter(out, engine="openpyxl") as w:
-        model_df.to_excel(w, sheet_name="Model", index=False)
+        df.to_excel(w, sheet_name="Plotted", index=False)
         metadata.to_excel(w, sheet_name="Metadata", index=False)
     return out
 
@@ -467,44 +439,52 @@ def main():
     from PIL import Image
     panels_done = []
 
+    # Panels a and b save directly to the tracked figures folder (not Remake).
+    OUT_DIR = FIG_DIR
+
     # ---- 2a ----
     a_df, a_dose_cols, a_src = load_2a_data()
     a_w, a_h, a_rect = _layout(A_PLOT_W, A_PLOT_H,
                                 ml=A_ML, mr=A_MR, mt=A_MT, mb=A_MB)
-    out_a = panel_png(2, "a")
+    out_a = OUT_DIR / "Fig_2a_prism.png"
+    data_a = OUT_DIR / "Fig_2a_prism_data.xlsx"
     render_at_scale(_plot_2a(a_df, a_dose_cols), (a_w, a_h), out_a,
                     scale=SCALE, dpi=DPI, transparent=True, axes_rect=a_rect)
-    data_a = _save_2a_data(a_df, a_dose_cols, a_src)
+    _save_2a_data_to(a_df, a_dose_cols, a_src, data_a)
     panels_done.append(("a", out_a, data_a, a_w, a_h))
 
     # ---- 2b ----
     b_df, bx, by, byerr, bfx, bfy, b_tc50, b_popt, b_src = load_2b_data()
     b_w, b_h, b_rect = _layout(B_PLOT_W, B_PLOT_H,
                                 ml=B_ML, mr=B_MR, mt=B_MT, mb=B_MB)
-    out_b = panel_png(2, "b")
+    out_b = OUT_DIR / "Fig_2b_prism.png"
+    data_b = OUT_DIR / "Fig_2b_prism_data.xlsx"
     render_at_scale(_plot_2b(bx, by, byerr, bfx, bfy, b_tc50), (b_w, b_h),
                     out_b, scale=SCALE, dpi=DPI, transparent=True,
                     axes_rect=b_rect)
-    data_b = _save_2b_data(b_df, bfx, bfy, b_tc50, b_popt, b_src)
+    _save_2b_data_to(b_df, bfx, bfy, b_tc50, b_popt, b_src, data_b)
     panels_done.append(("b", out_b, data_b, b_w, b_h))
 
     # ---- 2d ----
+    d_df, d_dose_cols, d_src = load_2d_data()
     d_w, d_h, d_rect = _layout(D_PLOT_W, D_PLOT_H,
                                 ml=D_ML, mr=D_MR, mt=D_MT, mb=D_MB)
-    out_d = panel_png(2, "d")
-    render_at_scale(_plot_2d(), (d_w, d_h), out_d,
+    out_d = OUT_DIR / "Fig_2d_prism.png"
+    data_d = OUT_DIR / "Fig_2d_prism_data.xlsx"
+    render_at_scale(_plot_2d(d_df, d_dose_cols), (d_w, d_h), out_d,
                     scale=SCALE, dpi=DPI, transparent=True, axes_rect=d_rect)
-    data_d = _save_2d_data()
+    _save_2d_data_to(d_df, d_dose_cols, d_src, data_d)
     panels_done.append(("d", out_d, data_d, d_w, d_h))
 
     # ---- 2e ----
-    e_plotted, e_raw, e_src = load_2e_data()
+    e_df, e_src = load_2e_data()
     e_w, e_h, e_rect = _layout(E_PLOT_W, E_PLOT_H,
                                 ml=E_ML, mr=E_MR, mt=E_MT, mb=E_MB)
-    out_e = panel_png(2, "e")
-    render_at_scale(_plot_2e(e_plotted, e_raw), (e_w, e_h), out_e,
+    out_e = OUT_DIR / "Fig_2e_prism.png"
+    data_e = OUT_DIR / "Fig_2e_prism_data.xlsx"
+    render_at_scale(_plot_2e(e_df), (e_w, e_h), out_e,
                     scale=SCALE, dpi=DPI, transparent=True, axes_rect=e_rect)
-    data_e = _save_2e_data(e_plotted, e_raw, e_src)
+    _save_2e_data_to(e_df, e_src, data_e)
     panels_done.append(("e", out_e, data_e, e_w, e_h))
 
     # ---- Report ----

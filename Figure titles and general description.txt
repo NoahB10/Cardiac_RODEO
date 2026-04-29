@@ -1,0 +1,13 @@
+Figure titles and general descriptions:
+1. Design of a high throughput kinetic screen of cardiac organoids to predict drug-induced cardiotoxicity (DICT) 
+- Schematic to showcase the pipeline process to go from organoid plate to prediction
+2. Robotic platform for robust generation of cardiac organoids and automated real time measuring of interstitial oxygen and contractility.                                                                                 	 - explain the liquid droplet seeding with the biomek, show results of a complete plate, quantify how many form %, show the uniformity in the organoid sizes, show the dynamix opal capabilities with high throughput, show low variance in o2 readings,   
+3. Fitting oxygen and contractility kinetics to multidimensional temporal surfaces for continuous physiological dynamics characterization.                                                                                                    - show the raw kinetics data to show it is smooth, fit a few surfaces to the same raw data to showcase that physiological responses can be understood from the smooth surfaces,show that the equations fit the oxygen data well and pick top 3. Show with a machine learning model on loocv we picked the best resulting surface. Show the final results for the surface and raw data fitting. Explain the significance of each coefficient graphically   
+4. Multidimensional temporal surface representation of cardiac organoid interstitial oxygen concentration
+- show each of the surfaces of oxygen
+5. Multidimensional temporal surface representation of cardiac organoid contraction amplitude 
+- show each of the surfaces of contractility
+6. Interpretable prediction of arrhythmogenic drugs from multidimensional temporal surfaces 
+7. Interpretable prediction of heart damaging drugs from multidimensional temporal surfaces 
+8. Interpretable prediction of classification risk from multidimensional temporal surfaces  
+For each of the 3 interpretable predictions need to show:                                                    Show the prediction area under the curve to validate its significance, show the accuracy mcc F1 ect to show its performance, show its confusion matrix across the 5 folds, show the drug prediction threshold, show the shap values explanation, show the explainable feature cumulation graph to explain how important each feature is. Show for the top 3 features on a certain drug you can see a steep contrast between the surface behavior for that feature around c/cmax =1 for when it causes arrhythmia vs when it does not (interpretable), show the comparison against admet ai and the other articles prediction successes. 
