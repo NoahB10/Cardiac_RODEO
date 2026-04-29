@@ -45,6 +45,24 @@ TC50_RED = "#D6332B"      # vertical TC50 line
 GREY_DASH = "#9A9A9A"     # 50% horizontal reference
 BLACK = "#000000"
 
+# When True, axis labels / titles / inset annotations are NOT rendered into
+# the PNG — they live as editable PowerPoint text boxes (see _text_overlay.py
+# and apply_layout_to_remake.py). Margins also tighten so the PNG shrinks to
+# (plot_area + tick-label margin) only. The apply step shifts the picture
+# position so the plot area stays at the same slide coordinates as before.
+STRIP_LABELS = True
+
+# Tight margins used when STRIP_LABELS is True. Sized to fit tick marks
+# (4 pt = 0.056"), tick-to-label pad (2 pt = 0.028"), 9 pt tick-label glyph
+# bbox (≈ 0.13" tall, ≈ 0.07"/char wide), plus a small buffer. Worst-case
+# x-tick label ("100") is centered on the rightmost tick — its right half
+# (≈ 0.10") must fit inside mr. Worst-case y-tick label ("100") sits to the
+# left of the tick mark — its full width (≈ 0.21") must fit inside ml.
+STRIP_ML = 0.34  # covers "100" 3-char y-tick + tick + pad + buffer
+STRIP_MR = 0.14  # covers right half of "100" x-tick + buffer
+STRIP_MT = 0.06  # small breath
+STRIP_MB = 0.26  # covers tick + pad + 9 pt label height + buffer
+
 
 # ---------------------------------------------------------------------------
 # Multi-line color palette — 8 doses, sequential turbo-ish (matches existing
@@ -95,12 +113,16 @@ def _layout(plot_w, plot_h, *, ml, mr, mt, mb):
 # ===========================================================================
 # Fig 2a — Epirubicin O2 multi-line
 # ===========================================================================
-# Box: 2.31 x 1.82"
+# Plot area size is preserved across STRIP_LABELS modes so the plot looks
+# identical; only the outer margins change.
 
-A_BOX_W, A_BOX_H = 2.31, 1.82
-A_ML, A_MR, A_MT, A_MB = 0.50, 0.15, 0.06, 0.50
-A_PLOT_W = A_BOX_W - A_ML - A_MR        # 1.66"
-A_PLOT_H = A_BOX_H - A_MT - A_MB        # 1.26"
+A_PLOT_W, A_PLOT_H = 1.66, 1.26
+if STRIP_LABELS:
+    A_ML, A_MR, A_MT, A_MB = STRIP_ML, STRIP_MR, STRIP_MT, STRIP_MB
+else:
+    A_ML, A_MR, A_MT, A_MB = 0.50, 0.15, 0.06, 0.50
+A_BOX_W = A_PLOT_W + A_ML + A_MR
+A_BOX_H = A_PLOT_H + A_MT + A_MB
 
 
 def load_2a_data():
@@ -116,15 +138,16 @@ def _plot_2a(df, dose_cols):
         x = df["Time_h"].to_numpy(dtype=float)
         for col, color in zip(dose_cols, PALETTE_8):
             y = df[col].to_numpy(dtype=float)
-            ax.plot(x, y, color=color, linewidth=1.0 * scale,
+            ax.plot(x, y, color=color, linewidth=1.2 * scale,
                     solid_capstyle="round", zorder=3)
 
         ax.set_xlim(0, 100)
         ax.set_ylim(0, 80)
         ax.set_xticks([0, 20, 40, 60, 80, 100])
         ax.set_yticks([0, 10, 20, 30, 40, 50, 60, 70, 80])
-        ax.set_xlabel("Time from exposure (h)")
-        ax.set_ylabel("Oxygen (% Air)")
+        if not STRIP_LABELS:
+            ax.set_xlabel("Time from exposure (h)")
+            ax.set_ylabel("Oxygen (% Air)")
         _setup_axes(ax, scale)
     return _fn
 
@@ -151,10 +174,13 @@ def _save_2a_data_to(df, dose_cols, src, out):
 # ===========================================================================
 # Box: 2.33 x 1.82". Log X (0.05 .. 20 mM), Y 0..100 viability.
 
-B_BOX_W, B_BOX_H = 2.33, 1.82
-B_ML, B_MR, B_MT, B_MB = 0.50, 0.15, 0.06, 0.50
-B_PLOT_W = B_BOX_W - B_ML - B_MR
-B_PLOT_H = B_BOX_H - B_MT - B_MB
+B_PLOT_W, B_PLOT_H = 1.68, 1.26
+if STRIP_LABELS:
+    B_ML, B_MR, B_MT, B_MB = STRIP_ML, STRIP_MR, STRIP_MT, STRIP_MB
+else:
+    B_ML, B_MR, B_MT, B_MB = 0.50, 0.15, 0.06, 0.50
+B_BOX_W = B_PLOT_W + B_ML + B_MR
+B_BOX_H = B_PLOT_H + B_MT + B_MB
 
 
 def _hill_decreasing(x, top, bottom, ec50, hill):
@@ -222,21 +248,23 @@ def _plot_2b(x, y, yerr, fit_x, fit_y, tc50):
         ax.xaxis.set_minor_formatter(mticker.NullFormatter())
 
         ax.set_yticks([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
-        ax.set_xlabel("Epirubicin (mM)")
-        ax.set_ylabel("Viability (%)")
+        if not STRIP_LABELS:
+            ax.set_xlabel("Epirubicin (mM)")
+            ax.set_ylabel("Viability (%)")
         _setup_axes(ax, scale)
         ax.tick_params(axis="x", which="minor",
                        length=2.0 * scale, width=0.8 * scale,
                        direction="out", color="black")
 
-        ax.text(
-            0.96, 0.92,
-            f"TC50 = {tc50:.2f} mM",
-            transform=ax.transAxes,
-            ha="right", va="top",
-            fontproperties=helvetica(8 * scale),
-            zorder=6,
-        )
+        if not STRIP_LABELS:
+            ax.text(
+                0.96, 0.92,
+                f"TC50 = {tc50:.2f} mM",
+                transform=ax.transAxes,
+                ha="right", va="top",
+                fontproperties=helvetica(8 * scale),
+                zorder=6,
+            )
     return _fn
 
 
@@ -275,10 +303,13 @@ def _save_2b_data_to(df, fit_x, fit_y, tc50, popt, src, out):
 # Data: Plotted_Data sheet of Fig_2j_Mexiletine_Contractility_data.xlsx
 # Colors: plasma colormap (matches tracked Fig_2j_Mexiletine_Contractility.png).
 
-D_BOX_W, D_BOX_H = 2.25, 1.74
-D_ML, D_MR, D_MT, D_MB = 0.50, 0.18, 0.06, 0.50
-D_PLOT_W = D_BOX_W - D_ML - D_MR
-D_PLOT_H = D_BOX_H - D_MT - D_MB
+D_PLOT_W, D_PLOT_H = 1.57, 1.18
+if STRIP_LABELS:
+    D_ML, D_MR, D_MT, D_MB = STRIP_ML, STRIP_MR, STRIP_MT, STRIP_MB
+else:
+    D_ML, D_MR, D_MT, D_MB = 0.50, 0.18, 0.06, 0.50
+D_BOX_W = D_PLOT_W + D_ML + D_MR
+D_BOX_H = D_PLOT_H + D_MT + D_MB
 
 # Plasma palette sampled at i/(N-1) for N=7 doses (high -> low).
 # Matches plt.get_cmap('plasma', 7) used by plot_contractility.py.
@@ -306,15 +337,16 @@ def _plot_2d(df, dose_cols):
         x = df["Time_h"].to_numpy(dtype=float)
         for col, color in zip(dose_cols, PALETTE_PLASMA_7):
             y = df[col].to_numpy(dtype=float)
-            ax.plot(x, y, color=color, linewidth=1.0 * scale,
+            ax.plot(x, y, color=color, linewidth=1.2 * scale,
                     solid_capstyle="round", zorder=3)
 
         ax.set_xlim(0, 100)
         ax.set_ylim(2, 12)
         ax.set_xticks([0, 20, 40, 60, 80, 100])
         ax.set_yticks([2, 4, 6, 8, 10, 12])
-        ax.set_xlabel("Time from exposure (h)")
-        ax.set_ylabel("Contractility (%)")
+        if not STRIP_LABELS:
+            ax.set_xlabel("Time from exposure (h)")
+            ax.set_ylabel("Contractility (%)")
         _setup_axes(ax, scale)
     return _fn
 
@@ -343,10 +375,15 @@ def _save_2d_data_to(df, dose_cols, src, out):
 # concentration), each with a "X mM, Y bpm" text label colored to the trace.
 # Data: Plotted_Data sheet of Fig_2k_Mexiletine_Waveforms_data.xlsx.
 
-E_BOX_W, E_BOX_H = 2.06, 1.76
-E_ML, E_MR, E_MT, E_MB = 0.30, 0.10, 0.06, 0.50
-E_PLOT_W = E_BOX_W - E_ML - E_MR
-E_PLOT_H = E_BOX_H - E_MT - E_MB
+E_PLOT_W, E_PLOT_H = 1.66, 1.20
+if STRIP_LABELS:
+    # 2e hides the y-axis ticks/numbers, so its left margin can be smaller
+    # than the standard STRIP_ML used by other Fig 2 panels.
+    E_ML, E_MR, E_MT, E_MB = 0.06, STRIP_MR, STRIP_MT, STRIP_MB
+else:
+    E_ML, E_MR, E_MT, E_MB = 0.30, 0.10, 0.06, 0.50
+E_BOX_W = E_PLOT_W + E_ML + E_MR
+E_BOX_H = E_PLOT_H + E_MT + E_MB
 
 # Plasma colors matching plot_mexiletine_waveforms.py (Low=yellow, High=purple).
 WAVEFORM_LEVELS = [
@@ -392,26 +429,30 @@ def _plot_2e(df):
         for i, (level, color, t, s, conc, bpm) in enumerate(traces):
             offset = i * spacing
             ax.plot(t, s + offset, color=color,
-                    linewidth=1.0 * scale, alpha=0.95, zorder=3)
-            # Concentration + BPM label, colored to match the trace,
-            # placed at the top-left of each trace.
-            y_peak = float(np.max(s + offset))
-            ax.text(0.10, y_peak + spacing * 0.10,
-                    f"{conc} mM, {bpm} bpm",
-                    fontproperties=helvetica(7 * scale),
-                    color=color, va="bottom", ha="left",
-                    zorder=4)
+                    linewidth=1.2 * scale, alpha=0.95, zorder=3)
+            if not STRIP_LABELS:
+                # Concentration + BPM label, colored to match the trace,
+                # placed at the top-left of each trace.
+                y_peak = float(np.max(s + offset))
+                ax.text(0.10, y_peak + spacing * 0.10,
+                        f"{conc} mM, {bpm} bpm",
+                        fontproperties=helvetica(7 * scale),
+                        color=color, va="bottom", ha="left",
+                        zorder=4)
 
         ax.set_xlim(0, 7)
         # Reserve headroom above topmost label, room below bottom waveform.
         ax.set_ylim(-spacing * 0.5, spacing * 2.85)
         ax.set_xticks([0, 1, 2, 3, 4, 5, 6, 7])
         ax.set_yticks([])
-        ax.set_xlabel("Time (s)")
-        ax.set_ylabel("Contractility")
+        if not STRIP_LABELS:
+            ax.set_xlabel("Time (s)")
+            ax.set_ylabel("Contractility")
         _setup_axes(ax, scale, ytick_length_pt=0.0)
         # Hide the y-axis tick marks entirely (no values shown).
         ax.tick_params(axis="y", which="both", left=False, right=False)
+        # Hide the y-axis spine — 2e has no y values and no y-axis label.
+        ax.spines["left"].set_visible(False)
     return _fn
 
 
